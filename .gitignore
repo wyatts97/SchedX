@@ -105,22 +105,6 @@ packages/schedx-app/uploads/
 **/uploads/
 **/static/uploads/
 
-# Media files uploaded by users
-*.mp4
-*.mov
-*.avi
-*.mkv
-*.webm
-*.jpg
-*.jpeg
-*.gif
-*.bmp
-*.tiff
-*.svg
-*.webp
-*.heic
-*.heif
-
 # =============================================================================
 # DATABASE & PERSISTENT DATA
 # =============================================================================
