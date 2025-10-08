@@ -10,7 +10,7 @@ import { userRateLimit, RATE_LIMITS } from '$lib/rate-limiting';
 
 // Tweet API validation schema
 const tweetApiSchema = z.object({
-	action: z.enum(['schedule', 'publish', 'draft', 'template']),
+	action: z.enum(['schedule', 'publish', 'draft', 'template', 'queue']),
 	content: z
 		.string()
 		.min(1, 'Tweet content is required')
@@ -132,24 +132,24 @@ export const POST = userRateLimit(RATE_LIMITS.tweets)(
 							message: 'Template saved successfully'
 						}),
 						{
-							status: 201,
 							headers: { 'Content-Type': 'application/json' }
 						}
 					);
 
 				case 'queue':
-					tweet.status = TweetStatus.QUEUED;
-					tweet.scheduledDate = new Date(); // Placeholder, will be set by queue processor
-					// Get current queue length to set position
-					const queuedTweets = await db.getTweetsByStatus(userId, TweetStatus.QUEUED);
-					tweet.queuePosition = queuedTweets.length;
-					const queuedId = await db.saveTweet(tweet as Tweet);
-					logger.info('Tweet added to queue successfully', { queuedId, queuePosition: tweet.queuePosition });
+				tweet.status = TweetStatus.QUEUED;
+				tweet.scheduledDate = new Date(); // Placeholder, will be set by queue processor
+				// Get current queue length to set position
+				const queuedTweets = await (db as any).getTweetsByStatus(tweet.userId, TweetStatus.QUEUED);
+				tweet.queuePosition = queuedTweets.length;
+				const queuedId = await db.saveTweet(tweet as Tweet);
+				log.info('Tweet added to queue successfully', { queuedId, queuePosition: tweet.queuePosition });
 					return new Response(
 						JSON.stringify({
 							id: queuedId,
 							success: true,
-							message: 'Tweet added to queue successfully'
+							message: 'Tweet added to queue successfully',
+							queuePosition: tweet.queuePosition
 						}),
 						{
 							status: 201,
