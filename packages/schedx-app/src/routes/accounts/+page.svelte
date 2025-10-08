@@ -80,11 +80,15 @@
 				// Don't show any toast on initial load or regular refreshes
 			} else {
 				error = data.error || 'Failed to load accounts';
-				toastStore.error('Load Failed', error);
+				// Don't show error toast if we're polling for a new account
+				if (!pollingForAccount) {
+					toastStore.error('Load Failed', error);
+				}
 			}
 		} catch (e) {
 			error = 'Failed to load accounts';
-			if (!initialLoad) {
+			// Don't show error toast if we're polling or on initial load
+			if (!initialLoad && !pollingForAccount) {
 				toastStore.error('Load Failed', error);
 			}
 		} finally {
