@@ -1,0 +1,484 @@
+/* Preline v3 CSS - Complete Setup */
+
+/* Base Preline Components */
+@layer components {
+	/* Overlay */
+	.hs-overlay {
+		@apply fixed inset-0 z-50;
+	}
+
+	.hs-overlay-open\:flex:has(~ .hs-overlay-open) {
+		@apply flex;
+	}
+
+	/* Dropdown */
+	.hs-dropdown {
+		@apply relative inline-flex;
+	}
+
+	.hs-dropdown-menu {
+		@apply absolute z-10 hidden;
+	}
+
+	.hs-dropdown-open .hs-dropdown-menu {
+		@apply block;
+	}
+
+	/* Accordion */
+	.hs-accordion {
+		@apply relative;
+	}
+
+	.hs-accordion-content {
+		@apply hidden;
+	}
+
+	.hs-accordion-active .hs-accordion-content {
+		@apply block;
+	}
+
+	/* Collapse */
+	.hs-collapse {
+		@apply hidden;
+	}
+
+	.hs-collapse.show {
+		@apply block;
+	}
+
+	/* Tabs */
+	.hs-tab-content {
+		@apply hidden;
+	}
+
+	.hs-tab-content.active {
+		@apply block;
+	}
+
+	/* File Upload */
+	.hs-file-upload {
+		@apply relative;
+	}
+
+	.hs-file-upload-input {
+		@apply absolute inset-0 h-full w-full cursor-pointer opacity-0;
+	}
+
+	/* Datepicker */
+	.hs-datepicker {
+		@apply relative;
+	}
+
+	.hs-datepicker-input {
+		@apply w-full;
+	}
+
+	/* Theme Switch */
+	.hs-theme-switch {
+		@apply relative inline-flex items-center;
+	}
+
+	.hs-theme-switch-input {
+		@apply sr-only;
+	}
+
+	.hs-theme-switch-slider {
+		@apply relative h-6 w-11 cursor-pointer rounded-full bg-gray-200 transition-colors;
+	}
+
+	.hs-theme-switch-input:checked + .hs-theme-switch-slider {
+		@apply bg-blue-600;
+	}
+
+	.hs-theme-switch-slider::before {
+		@apply absolute left-1 top-1 h-4 w-4 rounded-full bg-white transition-transform;
+		content: '';
+	}
+
+	.hs-theme-switch-input:checked + .hs-theme-switch-slider::before {
+		@apply translate-x-5;
+	}
+
+	/* Tooltip */
+	.hs-tooltip {
+		@apply relative;
+	}
+
+	.hs-tooltip-content {
+		@apply absolute z-50 hidden;
+	}
+
+	.hs-tooltip.show .hs-tooltip-content {
+		@apply block;
+	}
+
+	/* Carousel */
+	.hs-carousel {
+		@apply relative overflow-hidden;
+	}
+
+	.hs-carousel-body {
+		@apply flex transition-transform duration-300;
+	}
+
+	.hs-carousel-slide {
+		@apply flex-shrink-0;
+	}
+
+	/* Select */
+	.hs-select {
+		@apply relative;
+	}
+
+	.hs-select-toggle {
+		@apply relative w-full cursor-pointer;
+	}
+
+	.hs-select-menu {
+		@apply absolute z-50 hidden w-full;
+	}
+
+	.hs-select.open .hs-select-menu {
+		@apply block;
+	}
+
+	/* Input Number */
+	.hs-input-number {
+		@apply relative inline-flex items-center;
+	}
+
+	.hs-input-number-input {
+		@apply w-full text-center;
+	}
+
+	.hs-input-number-increment,
+	.hs-input-number-decrement {
+		@apply flex h-8 w-8 items-center justify-center border border-gray-300 bg-white hover:bg-gray-50;
+	}
+
+	/* Pin Input */
+	.hs-pin-input {
+		@apply flex gap-2;
+	}
+
+	.hs-pin-input-item {
+		@apply h-12 w-12 rounded-lg border border-gray-300 text-center focus:border-blue-500 focus:ring-blue-500;
+	}
+
+	/* Strong Password */
+	.hs-strong-password {
+		@apply relative;
+	}
+
+	.hs-strong-password-strip {
+		@apply h-1 rounded-full bg-gray-200;
+	}
+
+	.hs-strong-password-strip.passed {
+		@apply bg-green-500;
+	}
+
+	/* Toggle Password */
+	.hs-toggle-password {
+		@apply cursor-pointer;
+	}
+
+	.hs-toggle-password.active {
+		@apply text-blue-600;
+	}
+
+	/* Textarea Auto Height */
+	.hs-textarea-auto-height {
+		@apply resize-none overflow-hidden;
+	}
+
+	/* Copy Markup */
+	.hs-copy-markup {
+		@apply cursor-pointer;
+	}
+
+	.hs-copy-markup:disabled {
+		@apply cursor-not-allowed opacity-50;
+	}
+
+	/* Remove Element */
+	.hs-remove-element {
+		@apply cursor-pointer;
+	}
+
+	/* Scroll Nav */
+	.hs-scroll-nav {
+		@apply relative;
+	}
+
+	.hs-scroll-nav-item {
+		@apply cursor-pointer;
+	}
+
+	.hs-scroll-nav-item.active {
+		@apply text-blue-600;
+	}
+
+	/* Scrollspy */
+	.hs-scrollspy {
+		@apply relative;
+	}
+
+	.hs-scrollspy-item {
+		@apply cursor-pointer;
+	}
+
+	.hs-scrollspy-item.active {
+		@apply text-blue-600;
+	}
+
+	/* Stepper */
+	.hs-stepper {
+		@apply flex items-center;
+	}
+
+	.hs-stepper-item {
+		@apply flex items-center;
+	}
+
+	.hs-stepper-item.completed {
+		@apply text-green-600;
+	}
+
+	.hs-stepper-item.active {
+		@apply text-blue-600;
+	}
+
+	/* Tree View */
+	.hs-tree-view {
+		@apply relative;
+	}
+
+	.hs-tree-view-item {
+		@apply cursor-pointer;
+	}
+
+	.hs-tree-view-item.expanded > .hs-tree-view-children {
+		@apply block;
+	}
+
+	.hs-tree-view-children {
+		@apply hidden;
+	}
+
+	/* Layout Splitter */
+	.hs-layout-splitter {
+		@apply relative;
+	}
+
+	.hs-layout-splitter-handle {
+		@apply absolute cursor-col-resize bg-gray-200 hover:bg-gray-300;
+	}
+
+	/* Range Slider */
+	.hs-range-slider {
+		@apply relative;
+	}
+
+	.hs-range-slider:disabled {
+		@apply cursor-not-allowed opacity-50;
+	}
+
+	/* Toggle Count */
+	.hs-toggle-count {
+		@apply relative;
+	}
+
+	.hs-toggle-count-badge {
+		@apply absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white;
+	}
+}
+
+/* Custom Variants */
+@custom-variant hs-success {
+	&.success {
+		@slot;
+	}
+
+	.success & {
+		@slot;
+	}
+}
+
+@custom-variant hs-error {
+	&.error {
+		@slot;
+	}
+
+	.error & {
+		@slot;
+	}
+}
+
+/* Apexcharts */
+@custom-variant hs-apexcharts-tooltip-dark {
+	&.dark {
+		@slot;
+	}
+}
+
+/* Sortable.js */
+@custom-variant hs-dragged {
+	&.dragged {
+		@slot;
+	}
+}
+
+/* Toastify */
+@custom-variant hs-toastify-on {
+	&.toastify.on {
+		@slot;
+	}
+
+	.toastify.on & {
+		@slot;
+	}
+}
+
+/* Preline v3 Specific Styles */
+@layer utilities {
+	/* Overlay animations */
+	.hs-overlay-open\:opacity-100 {
+		opacity: 1;
+	}
+
+	.hs-overlay-open\:duration-500 {
+		transition-duration: 500ms;
+	}
+
+	/* Dropdown animations */
+	.hs-dropdown-open\:opacity-100 {
+		opacity: 1;
+	}
+
+	.hs-dropdown-open\:scale-100 {
+		transform: scale(1);
+	}
+
+	/* Accordion animations */
+	.hs-accordion-active\:rotate-180 {
+		transform: rotate(180deg);
+	}
+
+	/* Collapse animations */
+	.hs-collapse-show\:block {
+		display: block;
+	}
+
+	/* Tab animations */
+	.hs-tab-active\:text-blue-600 {
+		color: rgb(37 99 235);
+	}
+
+	.hs-tab-active\:border-blue-600 {
+		border-color: rgb(37 99 235);
+	}
+
+	/* File upload styles */
+	.hs-file-upload-dragover {
+		@apply border-blue-500 bg-blue-50;
+	}
+
+	/* Datepicker styles */
+	.hs-datepicker-calendar {
+		@apply rounded-lg border border-gray-200 bg-white shadow-lg;
+	}
+
+	/* Theme switch animations */
+	.hs-theme-switch-slider::before {
+		transition: transform 0.2s ease-in-out;
+	}
+
+	/* Tooltip animations */
+	.hs-tooltip-content {
+		transition: opacity 0.2s ease-in-out;
+	}
+
+	/* Carousel animations */
+	.hs-carousel-slide {
+		transition: transform 0.3s ease-in-out;
+	}
+
+	/* Select animations */
+	.hs-select-menu {
+		transition:
+			opacity 0.2s ease-in-out,
+			transform 0.2s ease-in-out;
+	}
+
+	/* Input number animations */
+	.hs-input-number-increment:hover,
+	.hs-input-number-decrement:hover {
+		transition: background-color 0.2s ease-in-out;
+	}
+
+	/* Pin input focus styles */
+	.hs-pin-input-item:focus {
+		@apply outline-none ring-2 ring-blue-500 ring-offset-2;
+	}
+
+	/* Strong password animations */
+	.hs-strong-password-strip {
+		transition: background-color 0.3s ease-in-out;
+	}
+
+	/* Toggle password animations */
+	.hs-toggle-password {
+		transition: color 0.2s ease-in-out;
+	}
+
+	/* Textarea auto height */
+	.hs-textarea-auto-height {
+		transition: height 0.2s ease-in-out;
+	}
+
+	/* Copy markup animations */
+	.hs-copy-markup {
+		transition: opacity 0.2s ease-in-out;
+	}
+
+	/* Remove element animations */
+	.hs-remove-element {
+		transition: opacity 0.2s ease-in-out;
+	}
+
+	/* Scroll nav animations */
+	.hs-scroll-nav-item {
+		transition: color 0.2s ease-in-out;
+	}
+
+	/* Scrollspy animations */
+	.hs-scrollspy-item {
+		transition: color 0.2s ease-in-out;
+	}
+
+	/* Stepper animations */
+	.hs-stepper-item {
+		transition: color 0.2s ease-in-out;
+	}
+
+	/* Tree view animations */
+	.hs-tree-view-children {
+		transition: opacity 0.2s ease-in-out;
+	}
+
+	/* Layout splitter animations */
+	.hs-layout-splitter-handle {
+		transition: background-color 0.2s ease-in-out;
+	}
+
+	/* Range slider animations */
+	.hs-range-slider {
+		transition: opacity 0.2s ease-in-out;
+	}
+
+	/* Toggle count animations */
+	.hs-toggle-count-badge {
+		transition: transform 0.2s ease-in-out;
+	}
+}

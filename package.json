@@ -1,0 +1,79 @@
+{
+  "name": "schedx-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Monorepo for the SchedX project",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "setup": "node scripts/setup.js",
+    "validate:env": "node scripts/validate-env.js",
+    "db:indexes": "node scripts/create-indexes.js",
+    "db:setup": "npm run db:indexes",
+    "predev": "npm run validate:env",
+    "dev:app": "npm run dev --workspace=@schedx/app",
+    "dev:scheduler": "npm run dev --workspace=@schedx/scheduler",
+    "dev": "concurrently --names \"APP,SCHEDULER\" --prefix-colors \"blue,green\" \"npm run dev:app\" \"npm run dev:scheduler\"",
+    "build:shared": "npm run build --workspace=@schedx/shared-lib",
+    "build:app": "npm run build --workspace=@schedx/app",
+    "build:scheduler": "npm run build --workspace=@schedx/scheduler",
+    "prebuild": "npm run validate:env",
+    "build": "run-s build:shared build:app build:scheduler",
+    "start:app": "npm run preview --workspace=@schedx/app",
+    "start:scheduler": "npm run start --workspace=@schedx/scheduler",
+    "start": "concurrently --names \"APP,SCHEDULER\" --prefix-colors \"blue,green\" \"npm run start:app\" \"npm run start:scheduler\"",
+    "docker:dev": "docker-compose up -d",
+    "docker:prod": "docker-compose -f docker-compose.prod.yml up -d",
+    "docker:down": "docker-compose down",
+    "lint": "eslint \"**/*.{js,jsx,ts,tsx}\" --quiet --fix",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md,html,css}\"",
+    "audit": "npm audit --audit-level=moderate",
+    "audit:fix": "npm audit fix",
+    "security:check": "npm audit && npm run audit --workspace=@schedx/app && npm run audit --workspace=@schedx/scheduler && npm run audit --workspace=@schedx/shared-lib",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "@sveltejs/kit": "^2.25.1",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^24.0.14",
+    "concurrently": "^8.2.2",
+    "eslint": "^9.15.0",
+    "eslint-config-prettier": "^9.1.0",
+    "npm-run-all": "^4.1.5",
+    "prettier": "^3.4.2",
+    "vite": "^7.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "keywords": [
+    "svelte",
+    "sveltekit",
+    "mongodb",
+    "typescript",
+    "twitter",
+    "scheduling",
+    "schedx"
+  ],
+  "author": "SchedX Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/schedx"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/schedx/issues"
+  },
+  "dependencies": {
+    "@sentry/node": "^10.18.0",
+    "@sentry/profiling-node": "^10.18.0",
+    "bcryptjs": "^3.0.2",
+    "dotenv": "^16.4.5",
+    "flatpickr": "^4.6.13",
+    "preline": "^3.1.0",
+    "socks": "^2.8.6",
+    "twitter-api-v2": "^1.24.0"
+  }
+}

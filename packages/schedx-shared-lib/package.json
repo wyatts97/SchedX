@@ -1,0 +1,31 @@
+{
+  "name": "@schedx/shared-lib",
+  "version": "1.0.0",
+  "description": "Shared library for SchedX app and scheduler",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    "./types/types": "./dist/types/types.js",
+    "./backend": "./dist/backend/index.js",
+    ".": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "rimraf dist/ && tsc",
+    "dev": "tsc -w"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@isaacs/brace-expansion": "^5.0.0",
+    "minimatch": "^10.0.3",
+    "mongodb": "^6.3.0",
+    "socks": "^2.8.6"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.18",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.0.0"
+  }
+}

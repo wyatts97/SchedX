@@ -1,0 +1,85 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    command: sh -c "cd packages/schedx-app && npm run dev -- --host 0.0.0.0 --port ${PORT}"
+    ports:
+      - "${PORT}:${PORT}"
+    depends_on:
+      mongo:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - BODY_SIZE_LIMIT=10485760
+      - NODE_OPTIONS=--max-http-header-size=65536
+    volumes:
+      - uploads-data:/app/packages/schedx-app/uploads
+      - ./packages/schedx-app/src:/app/packages/schedx-app/src
+      - ./packages/schedx-app/static:/app/packages/schedx-app/static
+      - ./packages/schedx-app/svelte.config.js:/app/packages/schedx-app/svelte.config.js
+      - ./packages/schedx-app/vite.config.ts:/app/packages/schedx-app/vite.config.ts
+      - ./packages/schedx-app/tailwind.config.js:/app/packages/schedx-app/tailwind.config.js
+      - ./packages/schedx-app/postcss.config.js:/app/packages/schedx-app/postcss.config.js
+      - ./packages/schedx-app/tsconfig.json:/app/packages/schedx-app/tsconfig.json
+      - ./packages/schedx-shared-lib/src:/app/packages/schedx-shared-lib/src
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${PORT}/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - schedx-network
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    command: npm run start --workspace=@schedx/scheduler
+    depends_on:
+      mongo:
+        condition: service_healthy
+    env_file:
+      - .env
+    volumes:
+      - ./packages/schedx-scheduler/src:/app/packages/schedx-scheduler/src
+      - ./packages/schedx-shared-lib/src:/app/packages/schedx-shared-lib/src
+    healthcheck:
+      test: ["CMD", "pgrep", "node"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - schedx-network
+
+  mongo:
+    image: mongo:6
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+      MONGO_INITDB_DATABASE: schedx
+    volumes:
+      - mongo-data:/data/db
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')", "--quiet"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - schedx-network
+
+volumes:
+  mongo-data:
+  uploads-data:
+
+networks:
+  schedx-network:
+    driver: bridge 

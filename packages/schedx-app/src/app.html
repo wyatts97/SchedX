@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" href="%sveltekit.assets%/favicon.png" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+		<!-- Preline CSS (Local) -->
+		<link rel="stylesheet" href="%sveltekit.assets%/preline.css" />
+
+		%sveltekit.head%
+	</head>
+	<body
+		data-sveltekit-preload-data="hover"
+		class="theme-dim:bg-[#15202b] theme-lightsout:bg-black bg-gray-50 dark:bg-gray-900"
+	>
+		<div style="display: contents">%sveltekit.body%</div>
+
+		<script src="/lodash.min.js"></script>
+		<script src="/preline.js"></script>
+	</body>
+</html>

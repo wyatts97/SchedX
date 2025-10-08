@@ -1,0 +1,643 @@
+@import '../../../node_modules/preline/variants.css';
+@import '../../../node_modules/flatpickr/dist/flatpickr.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styles for different themes */
+[data-theme='dark'] {
+	--bg-primary: #1f2937;
+	--bg-secondary: #192734;
+	--bg-tertiary: #253341;
+	--text-primary: #ffffff;
+	--text-secondary: #8899a6;
+	--border-color: #38444d;
+	--accent-color: #1da1f2;
+	background-color: #1f2937 !important;
+	color: #ffffff !important;
+}
+
+/* High-specificity override for lightsout mode */
+[data-theme='lightsout'] body,
+[data-theme='lightsout'] .min-h-screen,
+[data-theme='lightsout'] .bg-white,
+[data-theme='lightsout'] .bg-gray-50,
+[data-theme='lightsout'] .bg-gray-100 {
+	background-color: #000 !important;
+	color: #fff !important;
+}
+[data-theme='lightsout'] .text-gray-900,
+[data-theme='lightsout'] .text-gray-800,
+[data-theme='lightsout'] .text-gray-700 {
+	color: #fff !important;
+}
+[data-theme='lightsout'] .border-gray-200,
+[data-theme='lightsout'] .border-gray-300,
+[data-theme='lightsout'] .border-gray-400 {
+	border-color: #333 !important;
+}
+
+/* Preline Component Fixes */
+.hs-datepicker {
+	z-index: 9999 !important;
+}
+
+.hs-datepicker .datepicker-picker {
+	background-color: var(--bg-secondary) !important;
+	border-color: var(--border-color) !important;
+	color: var(--text-primary) !important;
+}
+
+.hs-datepicker .datepicker-picker .datepicker-header {
+	background-color: var(--bg-tertiary) !important;
+	border-bottom-color: var(--border-color) !important;
+}
+
+.hs-datepicker .datepicker-picker .datepicker-controls .btn {
+	color: var(--text-primary) !important;
+	background-color: transparent !important;
+}
+
+.hs-datepicker .datepicker-picker .datepicker-controls .btn:hover {
+	background-color: var(--bg-tertiary) !important;
+}
+
+.hs-datepicker .datepicker-picker .datepicker-view .days .day {
+	color: var(--text-primary) !important;
+}
+
+.hs-datepicker .datepicker-picker .datepicker-view .days .day:hover {
+	background-color: var(--accent-color) !important;
+	color: white !important;
+}
+
+.hs-datepicker .datepicker-picker .datepicker-view .days .day.selected {
+	background-color: var(--accent-color) !important;
+	color: white !important;
+}
+
+.hs-datepicker .datepicker-picker .datepicker-view .days .day.today {
+	background-color: var(--accent-color) !important;
+	color: white !important;
+}
+
+/* File Upload Fixes */
+.hs-file-upload {
+	position: relative;
+}
+
+.hs-file-upload .file-upload-preview {
+	background-color: var(--bg-secondary) !important;
+	border-color: var(--border-color) !important;
+	color: var(--text-primary) !important;
+}
+
+.hs-file-upload .file-upload-trigger {
+	background-color: var(--bg-secondary) !important;
+	border-color: var(--border-color) !important;
+	color: var(--text-primary) !important;
+}
+
+.hs-file-upload .file-upload-trigger:hover {
+	background-color: var(--bg-tertiary) !important;
+	border-color: var(--accent-color) !important;
+}
+
+/* Preline Textarea Auto-Height Plugin Fixes */
+.hs-textarea-auto-height {
+	resize: none !important;
+	overflow: hidden !important;
+	transition: height 0.2s ease-in-out !important;
+}
+
+.hs-textarea-auto-height:focus {
+	resize: none !important;
+	overflow: hidden !important;
+}
+
+/* Ensure textarea auto-height works in all themes */
+.dark .hs-textarea-auto-height {
+	resize: none !important;
+	overflow: hidden !important;
+}
+
+/* Base styles */
+@layer base {
+	html {
+		@apply antialiased;
+	}
+
+	body {
+		transition:
+			background-color 0.2s ease,
+			color 0.2s ease;
+	}
+}
+
+/* Component styles */
+@layer components {
+	/* Button styles */
+	.btn {
+		@apply inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+	}
+
+	.btn-primary {
+		@apply bg-primary-500 text-white shadow-sm hover:bg-primary-600 focus:ring-primary-500;
+	}
+
+	.btn-secondary {
+		@apply bg-gray-100 text-gray-900 hover:bg-gray-200 focus:ring-gray-500 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600;
+	}
+
+	.btn-error {
+		@apply bg-error text-white hover:bg-red-600 focus:ring-error;
+	}
+
+	.btn-ghost {
+		@apply bg-transparent text-gray-700 hover:bg-gray-100 focus:ring-gray-500 dark:text-gray-300 dark:hover:bg-gray-800;
+	}
+
+	.btn-sm {
+		@apply px-3 py-1.5 text-xs;
+	}
+
+	.btn-lg {
+		@apply px-6 py-3 text-base;
+	}
+
+	/* Input styles */
+	.input {
+		@apply block w-full rounded-lg border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400;
+	}
+
+	.textarea {
+		@apply block w-full rounded-lg border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400;
+		/* Remove resize: vertical to allow auto-height to work */
+	}
+
+	/* Card styles */
+	.card {
+		@apply rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800;
+	}
+
+	.card-body {
+		@apply p-6;
+	}
+
+	/* Alert styles */
+	.alert {
+		@apply rounded-lg border p-4;
+	}
+
+	.alert-success {
+		@apply border-green-200 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400;
+	}
+
+	.alert-error {
+		@apply border-red-200 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400;
+	}
+
+	.alert-warning {
+		@apply border-yellow-200 bg-yellow-50 text-yellow-800 dark:border-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400;
+	}
+
+	/* Loading spinner */
+	.loading {
+		@apply inline-block h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-primary-500;
+	}
+
+	.loading-lg {
+		@apply h-8 w-8;
+	}
+
+	/* Avatar styles */
+	.avatar {
+		@apply inline-block overflow-hidden rounded-full;
+	}
+
+	.avatar-sm {
+		@apply h-8 w-8;
+	}
+
+	.avatar-md {
+		@apply h-10 w-10;
+	}
+
+	.avatar-lg {
+		@apply h-12 w-12;
+	}
+
+	/* Badge styles */
+	.badge {
+		@apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+	}
+
+	.badge-primary {
+		@apply bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-300;
+	}
+
+	.badge-success {
+		@apply bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300;
+	}
+
+	.badge-error {
+		@apply bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300;
+	}
+
+	/* Dropdown styles */
+	.dropdown {
+		@apply relative inline-block;
+	}
+
+	.dropdown-content {
+		@apply absolute right-0 z-50 mt-2 w-48 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800;
+	}
+
+	/* Menu styles */
+	.menu {
+		@apply space-y-1;
+	}
+
+	.menu li a {
+		@apply block rounded-md px-4 py-2 text-sm text-gray-700 transition-colors duration-150 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white;
+	}
+
+	/* Drawer styles */
+	.drawer {
+		@apply relative;
+	}
+
+	.drawer-content {
+		@apply flex min-h-screen flex-col;
+	}
+
+	.drawer-side {
+		@apply fixed inset-y-0 left-0 z-40 w-64 transform border-r border-gray-200 bg-white transition-transform duration-300 ease-in-out dark:border-gray-700 dark:bg-gray-800;
+	}
+
+	.drawer-overlay {
+		@apply fixed inset-0 z-30 bg-black bg-opacity-50;
+	}
+
+	/* Navbar styles */
+	.navbar {
+		@apply flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3 shadow-sm dark:border-gray-700 dark:bg-gray-800;
+	}
+
+	.navbar-start {
+		@apply flex items-center space-x-4;
+	}
+
+	.navbar-end {
+		@apply flex items-center space-x-2;
+	}
+
+	/* Footer styles */
+	.footer {
+		@apply border-t border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900;
+	}
+
+	.footer-center {
+		@apply py-4 text-center;
+	}
+
+	/* Dock styles for mobile */
+	.dock {
+		@apply fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800;
+	}
+
+	.dock-label {
+		@apply text-xs text-gray-600 dark:text-gray-400;
+	}
+
+	/* Sidebar icon button */
+	.sidebar-icon-btn {
+		@apply theme-lightsout:text-white-500 theme-lightsout:bg-black theme-lightsout:hover:bg-black-500 flex h-20 w-full flex-col items-center justify-center rounded-lg bg-gray-100 text-xl text-gray-900 shadow-md transition-all duration-200 hover:bg-gray-200 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700;
+	}
+
+	/* App icon container */
+	.app-icon-container img {
+		@apply h-full w-full object-contain;
+	}
+
+	/* Enhanced shadows */
+	.shadow-header {
+		@apply shadow-lg;
+	}
+
+	.shadow-sidebar {
+		@apply shadow-xl;
+	}
+
+	/* Theme-specific glow effects */
+	.glow-header {
+		@apply shadow-lg shadow-primary-500/20;
+	}
+
+	.glow-sidebar {
+		@apply shadow-xl shadow-primary-500/20;
+	}
+
+	/* Media gallery isolation */
+	.media-gallery-container {
+		@apply pointer-events-auto relative z-10;
+	}
+
+	.media-gallery-container * {
+		@apply pointer-events-auto;
+	}
+
+	.media-gallery-container .media-thumbnail {
+		@apply pointer-events-auto z-10;
+	}
+
+	.media-gallery-container .remove-button {
+		@apply z-15 pointer-events-auto;
+	}
+}
+
+/* Utility classes */
+@layer utilities {
+	.text-primary-content {
+		@apply text-white;
+	}
+
+	.bg-base-100 {
+		@apply bg-white dark:bg-gray-900;
+	}
+
+	.dark .bg-gray-900 {
+		background-color: #1f2937 !important;
+	}
+
+	.bg-base-200 {
+		@apply bg-gray-50 dark:bg-gray-800;
+	}
+
+	.bg-base-300 {
+		@apply bg-gray-100 dark:bg-gray-700;
+	}
+
+	.text-base-content {
+		@apply text-gray-900 dark:text-white;
+	}
+
+	.border-base-300 {
+		@apply border-gray-200 dark:border-gray-700;
+	}
+}
+
+/* Lightsout mode refinements */
+[data-theme='lightsout'] body,
+[data-theme='lightsout'] .min-h-screen {
+	background-color: #000 !important;
+	color: #fff !important;
+}
+[data-theme='lightsout'] .sidebar,
+[data-theme='lightsout'] .card,
+[data-theme='lightsout'] .drawer,
+[data-theme='lightsout'] .navbar {
+	background-color: #000 !important;
+	color: #fff !important;
+}
+[data-theme='lightsout'] .bg-white,
+[data-theme='lightsout'] .bg-gray-50,
+[data-theme='lightsout'] .bg-gray-100 {
+	background-color: #000 !important;
+	color: #fff !important;
+}
+[data-theme='lightsout'] .text-gray-900,
+[data-theme='lightsout'] .text-gray-800,
+[data-theme='lightsout'] .text-gray-700 {
+	color: #fff !important;
+}
+[data-theme='lightsout'] .border-gray-200,
+[data-theme='lightsout'] .border-gray-300,
+[data-theme='lightsout'] .border-gray-400 {
+	border-color: #222 !important;
+}
+[data-theme='lightsout'] .mobile-navbar-icon {
+	color: #fff !important;
+	filter: drop-shadow(0 0 4px #666);
+}
+[data-theme='lightsout'] .input,
+[data-theme='lightsout'] .textarea,
+[data-theme='lightsout'] .datepicker-picker,
+[data-theme='lightsout'] .recurrence-dropdown {
+	background-color: #18191a !important;
+	color: #fff !important;
+	border-color: #222 !important;
+}
+[data-theme='lightsout'] .recurrence-dropdown .dropdown-item {
+	background-color: #18191a !important;
+	color: #fff !important;
+}
+[data-theme='lightsout'] .recurrence-dropdown .dropdown-item:hover {
+	background-color: #1da1f2 !important;
+	color: #fff !important;
+}
+
+/* Lightsout mode: Inputs, selects, textareas */
+[data-theme='lightsout'] input,
+[data-theme='lightsout'] select,
+[data-theme='lightsout'] textarea {
+	background-color: #18191a !important;
+	color: #fff !important;
+	border-color: #222 !important;
+	caret-color: #fff !important;
+}
+[data-theme='lightsout'] input::placeholder,
+[data-theme='lightsout'] textarea::placeholder {
+	color: #b0b0b0 !important;
+	opacity: 1 !important;
+}
+
+/* Lightsout mode: Sidebar navigation links */
+[data-theme='lightsout'] nav a,
+[data-theme='lightsout'] .hs-accordion-group a,
+[data-theme='lightsout'] .sidebar a {
+	background-color: transparent !important;
+	color: #ffffff88 !important;
+	transition:
+		background 0.2s,
+		color 0.2s,
+		text-shadow 0.2s;
+}
+[data-theme='lightsout'] nav a:hover,
+[data-theme='lightsout'] .hs-accordion-group a:hover,
+[data-theme='lightsout'] .sidebar a:hover {
+	background-color: #111 !important;
+	color: #fff !important;
+	text-shadow: 0 0 5px #ffffff88;
+}
+[data-theme='lightsout'] nav a[aria-current='page'],
+[data-theme='lightsout'] .hs-accordion-group a[aria-current='page'],
+[data-theme='lightsout'] .sidebar a[aria-current='page'],
+[data-theme='lightsout'] .sidebar .active {
+	background-color: #000 !important;
+	color: #fff !important;
+	text-shadow: 0 0 8px #ffffffaa;
+}
+
+/* Lightsout mode: Dropdowns and dropdown items */
+[data-theme='lightsout'] .dropdown,
+[data-theme='lightsout'] .dropdown-content,
+[data-theme='lightsout'] .recurrence-dropdown {
+	background-color: #18191a !important;
+	color: #fff !important;
+	border-color: #222 !important;
+}
+[data-theme='lightsout'] .dropdown-item {
+	background-color: #18191a !important;
+	color: #fff !important;
+}
+[data-theme='lightsout'] .dropdown-item:hover {
+	background-color: #333 !important;
+	color: #fff !important;
+}
+
+/* Lightsout mode: Mobile navbar icons */
+[data-theme='lightsout'] .mobile-navbar-icon,
+[data-theme='lightsout'] .mobile-navbar-icon svg {
+	color: #fff !important;
+	stroke: #fff !important;
+}
+[data-theme='lightsout'] .mobile-navbar-icon:hover,
+[data-theme='lightsout'] .mobile-navbar-icon:hover svg {
+	filter: drop-shadow(0 0 6px #888);
+}
+
+/* Lightsout mode: Header background fix */
+[data-theme='lightsout'] header::before {
+	background-color: #000 !important;
+}
+
+/* Lightsout mode: Sidebar specific fixes */
+[data-theme='lightsout'] .sidebar,
+[data-theme='lightsout'] #hs-application-sidebar,
+[data-theme='lightsout'] .sidebar > div,
+[data-theme='lightsout'] .sidebar .bg-white\/80,
+[data-theme='lightsout'] .sidebar .bg-white\/80\/backdrop-blur-md {
+	background-color: #000 !important;
+	color: #fff !important;
+}
+
+[data-theme='lightsout'] .sidebar .border-gray-200\/50,
+[data-theme='lightsout'] .sidebar .dark\:border-gray-700\/50,
+[data-theme='lightsout'] .sidebar .theme-lightsout\:border-gray-800\/50 {
+	border-color: #222 !important;
+}
+
+[data-theme='lightsout'] .sidebar .text-gray-900,
+[data-theme='lightsout'] .sidebar .dark\:text-white,
+[data-theme='lightsout'] .sidebar .theme-lightsout\:text-white {
+	color: #fff !important;
+}
+
+/* Lightsout mode: Quick action cards and dashboard cards */
+[data-theme='lightsout'] .card,
+[data-theme='lightsout'] .bg-gray-50,
+[data-theme='lightsout'] .bg-gray-100,
+[data-theme='lightsout'] .hover\:bg-gray-100:hover,
+[data-theme='lightsout'] .hover\:bg-white:hover {
+	background-color: #000 !important;
+	color: #fff !important;
+}
+
+/* Remove hover state changes - keep background pure black */
+
+/* Lightsout mode: Theme toggle and avatar in sidebar */
+[data-theme='lightsout'] .sidebar .bg-gray-200,
+[data-theme='lightsout'] .sidebar .dark\:bg-gray-700 {
+	background-color: #111 !important;
+}
+
+[data-theme='lightsout'] .sidebar .text-yellow-500,
+[data-theme='lightsout'] .sidebar .text-blue-500,
+[data-theme='lightsout'] .sidebar .text-gray-900 {
+	color: #fff !important;
+}
+
+[data-theme='lightsout'] .sidebar .bg-yellow-500,
+[data-theme='lightsout'] .sidebar .bg-blue-500,
+[data-theme='lightsout'] .sidebar .bg-gray-900 {
+	background-color: #1da1f2 !important;
+	color: #fff !important;
+}
+
+/* Lightsout mode: Dashboard specific cards and quick actions */
+[data-theme='lightsout'] .bg-white,
+[data-theme='lightsout'] .bg-gray-50,
+[data-theme='lightsout'] .bg-gray-100,
+[data-theme='lightsout'] .bg-gray-200,
+[data-theme='lightsout'] .bg-gray-300 {
+	background-color: #000 !important;
+}
+
+/* Hover states removed - background stays pure black */
+
+/* Lightsout mode: Text colors for cards */
+[data-theme='lightsout'] .text-gray-600,
+[data-theme='lightsout'] .text-gray-700,
+[data-theme='lightsout'] .text-gray-800,
+[data-theme='lightsout'] .text-gray-900 {
+	color: #fff !important;
+}
+
+/* Lightsout mode: Border colors for cards */
+[data-theme='lightsout'] .border-gray-200,
+[data-theme='lightsout'] .border-gray-300,
+[data-theme='lightsout'] .border-gray-400 {
+	border-color: #333 !important;
+}
+
+/* Lightsout mode: Specific hover states for quick action cards - removed to keep pure black background */
+
+/* Lightsout mode: Specific border colors for quick action cards */
+[data-theme='lightsout'] .border-gray-200,
+[data-theme='lightsout'] .dark\:border-gray-700,
+[data-theme='lightsout'] .theme-lightsout\:border-gray-800 {
+	border-color: #333 !important;
+}
+
+/* Lightsout mode: Text colors for quick action cards */
+[data-theme='lightsout'] .text-gray-900,
+[data-theme='lightsout'] .dark\:text-white,
+[data-theme='lightsout'] .theme-lightsout\:text-white {
+	color: #fff !important;
+}
+
+[data-theme='lightsout'] .text-gray-500,
+[data-theme='lightsout'] .dark\:text-gray-400,
+[data-theme='lightsout'] .theme-lightsout\:text-gray-300 {
+	color: #ccc !important;
+}
+
+/* Lightsout mode: Icon colors for quick action cards */
+[data-theme='lightsout'] .text-primary-600,
+[data-theme='lightsout'] .dark\:text-primary-400,
+[data-theme='lightsout'] .theme-lightsout\:text-blue-400 {
+	color: #1da1f2 !important;
+}
+
+/* Lightsout mode: Force dark backgrounds for all light elements */
+[data-theme='lightsout'] *[class*='bg-white'],
+[data-theme='lightsout'] *[class*='bg-gray-50'],
+[data-theme='lightsout'] *[class*='bg-gray-100'],
+[data-theme='lightsout'] *[class*='bg-gray-200'] {
+	background-color: #000 !important;
+}
+
+/* Lightsout mode: Force dark text for all light text elements */
+[data-theme='lightsout'] *[class*='text-gray-900'],
+[data-theme='lightsout'] *[class*='text-gray-800'],
+[data-theme='lightsout'] *[class*='text-gray-700'] {
+	color: #fff !important;
+}
+
+/* Lightsout mode: Force dark borders for all light border elements */
+[data-theme='lightsout'] *[class*='border-gray-200'],
+[data-theme='lightsout'] *[class*='border-gray-300'] {
+	border-color: #333 !important;
+}

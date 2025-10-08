@@ -1,0 +1,35 @@
+{
+  "name": "@schedx/scheduler",
+  "version": "1.0.0",
+  "description": "Run periodically to post the scheduled tweets to X ",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "dev:once": "tsx src/index.ts runOnce",
+    "dev:debug": "tsx --inspect src/index.ts runOnce",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "timot_me",
+  "license": "GPL-3.0-or-later",
+  "dependencies": {
+    "@schedx/shared-lib": "*",
+    "@twitter-api-v2/plugin-token-refresher": "^1.0.0",
+    "axios": "^1.6.2",
+    "dotenv": "^16.5.0",
+    "mongodb": "^6.3.0",
+    "node-cron": "^4.0.5",
+    "pino": "^9.7.0",
+    "pino-pretty": "^13.0.0",
+    "socks": "^2.8.6",
+    "twitter-api-v2": "^1.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.18",
+    "ts-node": "^10.9.1",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
+  }
+}

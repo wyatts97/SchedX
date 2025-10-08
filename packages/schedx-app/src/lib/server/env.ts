@@ -1,0 +1,143 @@
+import { log } from './logger';
+
+export interface EnvironmentConfig {
+	// Authentication
+	AUTH_SECRET: string;
+
+	// Database
+	MONGODB_URI: string;
+	DB_ENCRYPTION_KEY: string;
+
+	// Server
+	HOST: string;
+	ORIGIN: string;
+	PORT: number;
+	NODE_ENV: 'development' | 'production' | 'test';
+
+	// File uploads
+	MAX_UPLOAD_SIZE: number;
+}
+
+/**
+ * Validate and load environment configuration
+ */
+export function validateEnvironment(): EnvironmentConfig {
+	const config: EnvironmentConfig = {
+		// Authentication
+		AUTH_SECRET: getRequiredEnv('AUTH_SECRET'),
+
+		// Database
+		MONGODB_URI: getRequiredEnv('MONGODB_URI'),
+		DB_ENCRYPTION_KEY: getRequiredEnv('DB_ENCRYPTION_KEY'),
+
+		// Server
+		HOST: process.env.HOST || '0.0.0.0',
+		ORIGIN: process.env.ORIGIN || 'http://localhost:5173',
+		PORT: parseInt(process.env.PORT || '5173', 10),
+		NODE_ENV: (process.env.NODE_ENV as EnvironmentConfig['NODE_ENV']) || 'development',
+
+		// File uploads
+		MAX_UPLOAD_SIZE: parseInt(process.env.MAX_UPLOAD_SIZE || '52428800', 10) // 50MB default
+	};
+
+	// Validate required fields
+	validateRequiredFields(config);
+
+	// Validate format of specific fields
+	validateFieldFormats(config);
+
+	// Log configuration status
+	logConfigurationStatus(config);
+
+	return config;
+}
+
+/**
+ * Get required environment variable
+ */
+function getRequiredEnv(key: string): string {
+	const value = process.env[key];
+	if (!value) {
+		throw new Error(`Missing required environment variable: ${key}`);
+	}
+	return value;
+}
+
+/**
+ * Validate required fields
+ */
+function validateRequiredFields(config: EnvironmentConfig): void {
+	const requiredFields = ['AUTH_SECRET', 'MONGODB_URI', 'DB_ENCRYPTION_KEY'];
+
+	for (const field of requiredFields) {
+		if (!config[field as keyof EnvironmentConfig]) {
+			throw new Error(`Missing required environment variable: ${field}`);
+		}
+	}
+}
+
+/**
+ * Validate field formats
+ */
+function validateFieldFormats(config: EnvironmentConfig): void {
+	// Validate AUTH_SECRET length
+	if (config.AUTH_SECRET.length < 32) {
+		throw new Error('AUTH_SECRET must be at least 32 characters long');
+	}
+
+	// Validate DB_ENCRYPTION_KEY length
+	if (config.DB_ENCRYPTION_KEY.length < 32) {
+		throw new Error('DB_ENCRYPTION_KEY must be at least 32 characters long');
+	}
+
+	// Validate PORT range
+	if (config.PORT < 1 || config.PORT > 65535) {
+		throw new Error('PORT must be between 1 and 65535');
+	}
+
+	// Validate MAX_UPLOAD_SIZE
+	if (config.MAX_UPLOAD_SIZE < 1024 || config.MAX_UPLOAD_SIZE > 100 * 1024 * 1024) {
+		throw new Error('MAX_UPLOAD_SIZE must be between 1KB and 100MB');
+	}
+
+	// Validate ORIGIN URL format
+	try {
+		new URL(config.ORIGIN);
+	} catch {
+		throw new Error('ORIGIN must be a valid URL');
+	}
+
+	// Validate MONGODB_URI format
+	if (
+		!config.MONGODB_URI.startsWith('mongodb://') &&
+		!config.MONGODB_URI.startsWith('mongodb+srv://')
+	) {
+		throw new Error('MONGODB_URI must be a valid MongoDB connection string');
+	}
+}
+
+/**
+ * Log configuration status
+ */
+function logConfigurationStatus(config: EnvironmentConfig): void {
+	log.info('Environment configuration loaded', {
+		nodeEnv: config.NODE_ENV,
+		port: config.PORT,
+		origin: config.ORIGIN,
+		maxUploadSize: `${Math.round(config.MAX_UPLOAD_SIZE / 1024 / 1024)}MB`
+	});
+
+	log.info('Twitter API configuration will be managed through the admin interface');
+}
+
+/**
+ * Get environment configuration singleton
+ */
+let envConfig: EnvironmentConfig | null = null;
+
+export function getEnvironmentConfig(): EnvironmentConfig {
+	if (!envConfig) {
+		envConfig = validateEnvironment();
+	}
+	return envConfig;
+}

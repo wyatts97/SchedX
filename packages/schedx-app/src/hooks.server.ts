@@ -1,0 +1,161 @@
+import { sequence } from '@sveltejs/kit/hooks';
+import type { Handle } from '@sveltejs/kit';
+import { handle as authHandle } from '$lib/server/auth';
+import { initializeDatabase, ensureDefaultAdminUser } from '$lib/server/db';
+import logger from '$lib/server/logger';
+import { RequestContext, logApiRequest, logApiError } from '$lib/server/logging';
+import { initSentry, captureException, setUser, addBreadcrumb } from '$lib/server/sentry';
+import { apiRateLimiter, authRateLimiter, getRateLimitIdentifier, createRateLimitResponse } from '$lib/server/rate-limiter';
+
+// Initialize Sentry
+initSentry();
+
+// Initialize database and ensure default admin user
+let dbInitialized = false;
+
+const initDb = async () => {
+	if (!dbInitialized) {
+		try {
+			await initializeDatabase();
+			await ensureDefaultAdminUser();
+			dbInitialized = true;
+			logger.debug('Database initialized successfully');
+		} catch (error) {
+			logger.error({ error }, 'Database initialization failed');
+			captureException(error as Error, { context: 'database_initialization' });
+		}
+	}
+};
+
+/**
+ * Rate limiting middleware
+ */
+const rateLimitHandle: Handle = async ({ event, resolve }) => {
+	const path = event.url.pathname;
+	
+	// Apply rate limiting to API routes
+	if (path.startsWith('/api/')) {
+		const identifier = getRateLimitIdentifier(event.request, event.locals.user?.id);
+		
+		// Use stricter rate limiting for auth endpoints
+		const limiter = path.startsWith('/api/auth') || path.startsWith('/api/login')
+			? authRateLimiter
+			: apiRateLimiter;
+		
+		const result = limiter.check(identifier);
+		
+		if (!result.allowed) {
+			logger.warn({
+				type: 'rate_limit_exceeded',
+				path,
+				identifier,
+				resetTime: result.resetTime
+			}, 'Rate limit exceeded');
+			
+			return createRateLimitResponse(result.resetTime);
+		}
+		
+		// Add rate limit headers
+		const response = await resolve(event);
+		response.headers.set('X-RateLimit-Limit', limiter.getStats().config.maxRequests.toString());
+		response.headers.set('X-RateLimit-Remaining', result.remaining.toString());
+		response.headers.set('X-RateLimit-Reset', new Date(result.resetTime).toISOString());
+		
+		return response;
+	}
+	
+	return resolve(event);
+};
+
+/**
+ * Request logging and correlation ID middleware
+ */
+const loggingHandle: Handle = async ({ event, resolve }) => {
+	const startTime = Date.now();
+	const correlationId = RequestContext.generateId();
+	
+	// Add correlation ID to event locals
+	event.locals.correlationId = correlationId;
+	
+	// Log incoming request
+	logger.debug({
+		type: 'request_start',
+		method: event.request.method,
+		path: event.url.pathname,
+		correlationId
+	}, `→ ${event.request.method} ${event.url.pathname}`);
+
+	try {
+		const response = await resolve(event);
+		const duration = Date.now() - startTime;
+		
+		// Log successful request
+		logApiRequest(
+			event.request.method,
+			event.url.pathname,
+			response.status,
+			duration,
+			correlationId
+		);
+		
+		// Add correlation ID to response headers
+		response.headers.set('X-Correlation-ID', correlationId);
+		
+		return response;
+	} catch (error) {
+		const duration = Date.now() - startTime;
+		
+		// Log error
+		logApiError(
+			event.request.method,
+			event.url.pathname,
+			error as Error,
+			correlationId
+		);
+		
+		throw error;
+	} finally {
+		// Cleanup
+		RequestContext.delete(correlationId);
+	}
+};
+
+/**
+ * Error handling middleware
+ */
+const errorHandle: Handle = async ({ event, resolve }) => {
+	try {
+		return await resolve(event);
+	} catch (error) {
+		const errorContext = {
+			type: 'unhandled_error',
+			error: error instanceof Error ? {
+				message: error.message,
+				stack: error.stack,
+				name: error.name
+			} : error,
+			path: event.url.pathname,
+			method: event.request.method,
+			correlationId: event.locals.correlationId
+		};
+		
+		logger.error(errorContext, 'Unhandled error in request');
+		
+		// Send to Sentry
+		captureException(error as Error, errorContext);
+		
+		throw error;
+	}
+};
+
+/** @type {import('@sveltejs/kit').Handle} */
+export const handle = sequence(
+	async ({ event, resolve }) => {
+		await initDb();
+		return resolve(event);
+	},
+	rateLimitHandle,
+	loggingHandle,
+	errorHandle,
+	authHandle
+);
