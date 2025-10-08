@@ -96,16 +96,6 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
 # =============================================================================
-# UPLOADS & USER CONTENT
-# =============================================================================
-
-# User uploads (contains user-generated content)
-packages/schedx-app/static/uploads/
-packages/schedx-app/uploads/
-**/uploads/
-**/static/uploads/
-
-# =============================================================================
 # DATABASE & PERSISTENT DATA
 # =============================================================================
 
