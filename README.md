@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="./packages/schedx-app/static/app-icon-lightsout.png" alt="SchedX App Icon" width="120" />
+  <img src=".\packages\schedx-app\static\app-icon-lightsout.png" alt="SchedX App Icon" width="120" />
   
   # SchedX
   
