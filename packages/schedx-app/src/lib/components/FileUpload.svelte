@@ -38,6 +38,7 @@
 	export let showPreview = true;
 	export let autoUpload = true; // Auto-upload files when selected
 	export let selectedAccountId: string | null = null; // Account ID for tagging media
+	export let initialMedia: { url: string; type: string }[] = []; // Pre-existing media for edit mode
 
 	// State
 	let files: File[] = [];
@@ -48,6 +49,24 @@
 	let dragCounter = 0;
 	let fileInput: HTMLInputElement;
 	let dropZone: HTMLDivElement;
+
+	// Load initial media on mount (for edit mode)
+	onMount(() => {
+		if (initialMedia && initialMedia.length > 0) {
+			// Convert initial media to MediaFile format
+			mediaFiles = initialMedia.map((media) => ({
+				url: media.url,
+				type: media.type as 'image' | 'video' | 'photo' | 'gif',
+				file: null as any, // No file object for pre-existing media
+				name: media.url.split('/').pop() || 'media',
+				size: 0,
+				uploaded: true // Already uploaded
+			}));
+
+			// Dispatch initial media for preview
+			dispatch('changeMedia', initialMedia as any);
+		}
+	});
 
 	// File validation
 	const allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];

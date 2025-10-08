@@ -107,6 +107,12 @@
 				});
 			}
 		}
+
+		// Load initial media for edit mode
+		if (mode === 'edit' && initialMedia && initialMedia.length > 0) {
+			tweetMedia = initialMedia as any;
+			logger.debug('Loaded initial media for edit mode:', tweetMedia);
+		}
 	});
 
 	afterUpdate(() => {
@@ -432,6 +438,7 @@
 	on:changeMedia={(e) => handleMediaUploaded(e.detail)}
 	disabled={submitting}
 	{selectedAccountId}
+	initialMedia={tweetMedia}
 />
 
 <!-- Template Fields (only show when saving as template) -->

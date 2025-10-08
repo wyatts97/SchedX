@@ -432,7 +432,7 @@
 					{#each twitterApps as app}
 						<a
 							href={`/api/auth/signin/twitter?twitterAppId=${app.id}`}
-							class="block rounded-lg border border-gray-200 p-4 text-center transition-all duration-200 hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-700"
+							class="block rounded-lg border border-gray-200 p-4 text-center font-medium text-gray-900 transition-all duration-200 hover:bg-gray-100 dark:border-gray-700 dark:text-white dark:hover:bg-gray-700"
 						>
 							{app.appName}
 						</a>
