@@ -37,7 +37,7 @@
 
 ### 1. **Clone and Setup**
 ```bash
-git clone https://github.com/yourusername/schedx.git
+git clone https://github.com/wyatts97/schedx.git
 cd schedx
 npm install
 ```
@@ -267,36 +267,10 @@ src/
 └── static/             # Static assets
 ```
 
----
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-### **Development Guidelines**
-- Follow TypeScript best practices
-- Use proper error handling
-- Add comprehensive logging
-- Test OAuth flows thoroughly
-- Maintain security standards
-
----
 
 ## 📝 License
 
 MIT License - see [LICENSE](LICENSE) for details.
-
----
-
-## 🆘 Support
-
-- **Issues**: [GitHub Issues](https://github.com/yourusername/schedx/issues)
-- **Documentation**: [Wiki](https://github.com/yourusername/schedx/wiki)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/schedx/discussions)
 
 ---
 
