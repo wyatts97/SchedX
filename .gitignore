@@ -113,7 +113,6 @@ packages/schedx-app/uploads/
 *.webm
 *.jpg
 *.jpeg
-*.png
 *.gif
 *.bmp
 *.tiff
