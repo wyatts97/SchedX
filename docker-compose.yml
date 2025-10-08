@@ -40,6 +40,8 @@ services:
         condition: service_healthy
     env_file:
       - .env
+    volumes:
+      - uploads-data:/app/packages/schedx-app/uploads
     healthcheck:
       test: ["CMD", "pgrep", "node"]
       interval: 30s
