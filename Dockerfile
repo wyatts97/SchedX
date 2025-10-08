@@ -15,8 +15,8 @@ RUN npm ci
 # Copy all source files
 COPY . .
 
-# Build shared-lib first (dependency for others)
-# Build the app and scheduler
+# Build in correct order: shared-lib MUST be built first
+RUN npm run build --workspace=@schedx/shared-lib
 RUN npm run build --workspace=@schedx/app
 RUN npm run build --workspace=@schedx/scheduler
 
