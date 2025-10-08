@@ -833,4 +833,60 @@ export class DatabaseClient {
     
     return { allowed: true };
   }
+
+  // --- Email Notification Preferences ---
+  async getEmailNotificationPreferences(userId: string): Promise<{
+    enabled: boolean;
+    email: string | null;
+    onSuccess: boolean;
+    onFailure: boolean;
+  } | null> {
+    const db = await this.connect();
+    const user = await db.collection('users').findOne(
+      { _id: new ObjectId(userId) },
+      { projection: { emailNotifications: 1 } }
+    );
+    
+    if (!user || !user.emailNotifications) {
+      return null;
+    }
+    
+    return user.emailNotifications;
+  }
+
+  async updateEmailNotificationPreferences(
+    userId: string,
+    preferences: {
+      enabled?: boolean;
+      email?: string;
+      onSuccess?: boolean;
+      onFailure?: boolean;
+    }
+  ): Promise<void> {
+    const db = await this.connect();
+    const updateFields: any = {};
+    
+    if (preferences.enabled !== undefined) {
+      updateFields['emailNotifications.enabled'] = preferences.enabled;
+    }
+    if (preferences.email !== undefined) {
+      updateFields['emailNotifications.email'] = preferences.email;
+    }
+    if (preferences.onSuccess !== undefined) {
+      updateFields['emailNotifications.onSuccess'] = preferences.onSuccess;
+    }
+    if (preferences.onFailure !== undefined) {
+      updateFields['emailNotifications.onFailure'] = preferences.onFailure;
+    }
+    
+    await db.collection('users').updateOne(
+      { _id: new ObjectId(userId) },
+      { 
+        $set: { 
+          ...updateFields,
+          updatedAt: new Date() 
+        } 
+      }
+    );
+  }
 }

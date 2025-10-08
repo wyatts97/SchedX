@@ -60,10 +60,10 @@ services:
 
   mongo:
     image: mongo:6
-    # DO NOT expose port in production - only for development
-    # Comment out the ports section when deploying to production
-    ports:
-      - "127.0.0.1:27017:27017"
+    # MongoDB port exposure - DISABLED by default for security
+    # Uncomment the ports section below ONLY for local development/debugging
+    # ports:
+    #   - "127.0.0.1:27017:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-root}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-example}

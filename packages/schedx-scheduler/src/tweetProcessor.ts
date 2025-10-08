@@ -1,17 +1,38 @@
 import { Tweet, TweetStatus, UserAccount } from '@schedx/shared-lib';
-import { DatabaseClient } from '@schedx/shared-lib/backend';
+import { DatabaseClient, EmailService } from '@schedx/shared-lib/backend';
 import { TokenManager } from './tokenManager.js';
 import { log } from './logger.js';
 import { TwitterApi } from 'twitter-api-v2';
-import { ORIGIN } from './config.js';
+import { 
+  ORIGIN, 
+  EMAIL_NOTIFICATIONS_ENABLED, 
+  RESEND_API_KEY, 
+  EMAIL_FROM, 
+  EMAIL_FROM_NAME 
+} from './config.js';
 
 export class TweetProcessor {
   private dbClient: DatabaseClient;
   private tokenManager: TokenManager;
+  private emailService: EmailService | null = null;
 
   constructor(dbClient: DatabaseClient) {
     this.dbClient = dbClient;
     this.tokenManager = new TokenManager(dbClient);
+    
+    // Initialize email service if enabled
+    if (EMAIL_NOTIFICATIONS_ENABLED && RESEND_API_KEY) {
+      this.emailService = new EmailService({
+        enabled: true,
+        provider: 'resend',
+        apiKey: RESEND_API_KEY,
+        fromEmail: EMAIL_FROM,
+        fromName: EMAIL_FROM_NAME
+      });
+      log.info('Email notification service initialized');
+    } else {
+      log.info('Email notifications disabled');
+    }
   }
 
   /**
@@ -199,12 +220,16 @@ export class TweetProcessor {
               tweetId: tweet.id,
               twitterTweetId: postedTweet.data.id 
             });
+            
+            // Send success email notification
+            await this.sendSuccessNotification(userId, tweet, twitterAccount, postedTweet.data.id);
           } else {
             throw new Error('No tweet data returned from Twitter API');
           }
         } catch (error: any) {
           // Handle rate limiting specifically
           if (error?.code === 429) {
+            const errorMessage = 'Twitter API rate limit exceeded. Please try again in a few minutes.';
             log.error(`Rate limit exceeded when posting tweet for user ${userId}:`, { 
               userId, 
               tweetId: tweet.id, 
@@ -213,6 +238,8 @@ export class TweetProcessor {
             });
             // Mark as failed due to rate limiting
             await this.dbClient.updateTweetStatus(tweet.id!, TweetStatus.FAILED);
+            // Send failure notification
+            await this.sendFailureNotification(userId, tweet, twitterAccount, errorMessage);
           } else {
             const errorMessage = this.handleTwitterError(error);
             log.error(`Failed to post tweet for user ${userId}:`, { 
@@ -222,6 +249,8 @@ export class TweetProcessor {
               originalError: error 
             });
             await this.dbClient.updateTweetStatus(tweet.id!, TweetStatus.FAILED);
+            // Send failure notification
+            await this.sendFailureNotification(userId, tweet, twitterAccount, errorMessage);
           }
         }
       }
@@ -244,6 +273,123 @@ export class TweetProcessor {
       } catch (error) {
         log.error(`Failed to mark tweet ${tweet.id} as failed:`, { userId, tweetId: tweet.id, error });
       }
+    }
+  }
+
+  /**
+   * Send success email notification
+   */
+  private async sendSuccessNotification(
+    userId: string,
+    tweet: Tweet,
+    account: UserAccount,
+    twitterTweetId: string
+  ): Promise<void> {
+    if (!this.emailService || !this.emailService.isEnabled()) {
+      return;
+    }
+
+    try {
+      // Get user email preferences
+      const preferences = await this.dbClient.getEmailNotificationPreferences(userId);
+      
+      if (!preferences || !preferences.enabled || !preferences.onSuccess || !preferences.email) {
+        log.debug('Email notifications not enabled for user', { userId });
+        return;
+      }
+
+      // Construct tweet URL
+      const tweetUrl = `https://twitter.com/${account.username}/status/${twitterTweetId}`;
+
+      // Send email
+      const result = await this.emailService.sendTweetSuccessNotification(preferences.email, {
+        tweetContent: tweet.content,
+        tweetUrl,
+        accountUsername: account.username,
+        accountDisplayName: account.displayName || account.username,
+        scheduledDate: tweet.scheduledDate,
+        postedDate: new Date(),
+        hasMedia: !!(tweet.media && tweet.media.length > 0),
+        mediaCount: tweet.media?.length || 0
+      });
+
+      if (result.success) {
+        log.info('Success email notification sent', { 
+          userId, 
+          tweetId: tweet.id,
+          email: preferences.email,
+          messageId: result.messageId 
+        });
+      } else {
+        log.error('Failed to send success email notification', { 
+          userId, 
+          tweetId: tweet.id,
+          error: result.error 
+        });
+      }
+    } catch (error) {
+      log.error('Error sending success email notification', { 
+        userId, 
+        tweetId: tweet.id,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+
+  /**
+   * Send failure email notification
+   */
+  private async sendFailureNotification(
+    userId: string,
+    tweet: Tweet,
+    account: UserAccount,
+    errorMessage: string
+  ): Promise<void> {
+    if (!this.emailService || !this.emailService.isEnabled()) {
+      return;
+    }
+
+    try {
+      // Get user email preferences
+      const preferences = await this.dbClient.getEmailNotificationPreferences(userId);
+      
+      if (!preferences || !preferences.enabled || !preferences.onFailure || !preferences.email) {
+        log.debug('Email notifications not enabled for user', { userId });
+        return;
+      }
+
+      // Send email
+      const result = await this.emailService.sendTweetFailureNotification(preferences.email, {
+        tweetContent: tweet.content,
+        accountUsername: account.username,
+        accountDisplayName: account.displayName || account.username,
+        scheduledDate: tweet.scheduledDate,
+        postedDate: new Date(),
+        hasMedia: !!(tweet.media && tweet.media.length > 0),
+        mediaCount: tweet.media?.length || 0,
+        errorMessage
+      });
+
+      if (result.success) {
+        log.info('Failure email notification sent', { 
+          userId, 
+          tweetId: tweet.id,
+          email: preferences.email,
+          messageId: result.messageId 
+        });
+      } else {
+        log.error('Failed to send failure email notification', { 
+          userId, 
+          tweetId: tweet.id,
+          error: result.error 
+        });
+      }
+    } catch (error) {
+      log.error('Error sending failure email notification', { 
+        userId, 
+        tweetId: tweet.id,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   }
 } 

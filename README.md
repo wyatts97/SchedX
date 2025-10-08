@@ -119,43 +119,152 @@ Ensure your app has these permissions:
 
 ## 🔧 Production Deployment
 
-### **Docker Deployment**
+### **Quick Docker Compose Deployment**
+
+**Prerequisites:**
+- Docker and Docker Compose installed
+- Domain name with DNS configured (for production)
+- SSL certificate (recommended: Let's Encrypt)
+
+**Step 1: Clone and Configure**
 ```bash
-# Build and run with Docker Compose
+# Clone repository
+git clone https://github.com/wyatts97/schedx.git
+cd schedx
+
+# Copy environment template
+cp .env.example .env
+```
+
+**Step 2: Configure Environment**
+Edit `.env` with your production values:
+```env
+# REQUIRED: Generate secure secrets
+# Run: openssl rand -base64 48
+AUTH_SECRET=your_production_auth_secret_min_32_chars
+DB_ENCRYPTION_KEY=your_production_encryption_key_min_32_chars
+
+# Database (Docker Compose will use these)
+MONGO_USER=schedx_admin
+MONGO_PASSWORD=your_secure_mongo_password
+MONGO_DATABASE=schedx
+MONGODB_URI=mongodb://schedx_admin:your_secure_mongo_password@mongo:27017/schedx?authSource=admin
+
+# Server Configuration
+NODE_ENV=production
+ORIGIN=https://yourdomain.com  # Your actual domain
+PORT=5173
+HOST=0.0.0.0
+
+# File Uploads
+MAX_UPLOAD_SIZE=52428800
+BODY_SIZE_LIMIT=10485760
+
+# Scheduler
+CRON_SCHEDULE=*/1 * * * *
+
+# Optional: Monitoring
+LOG_LEVEL=info
+SENTRY_DSN=  # Add your Sentry DSN if using
+```
+
+**Step 3: Deploy**
+```bash
+# Build and start all services
 docker-compose up -d
 
-# Or build custom image
-docker build -t schedx .
-docker run -p 5173:5173 schedx
+# Check service status
+docker-compose ps
+
+# View logs
+docker-compose logs -f
+
+# Check health
+curl http://localhost:5173/api/health
 ```
 
-### **Environment Variables for Production**
-```env
-NODE_ENV=production
-AUTH_SECRET=your_production_auth_secret
-DB_ENCRYPTION_KEY=your_production_encryption_key
-MONGODB_URI=mongodb://your-production-db:27017/schedx
-ORIGIN=https://yourdomain.com
+**Step 4: Initial Setup**
+1. Access your application at `https://yourdomain.com`
+2. Login with default credentials (change immediately!)
+3. Go to Admin Panel → Twitter Apps
+4. Add your Twitter API credentials
+5. Connect your Twitter accounts
+
+**Step 5: Set Up Reverse Proxy (Recommended)**
+
+Using **Nginx**:
+```nginx
+server {
+    listen 80;
+    server_name yourdomain.com;
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name yourdomain.com;
+
+    ssl_certificate /path/to/cert.pem;
+    ssl_certificate_key /path/to/key.pem;
+
+    location / {
+        proxy_pass http://localhost:5173;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        client_max_body_size 50M;
+    }
+}
 ```
 
-### **Security Checklist**
-- [ ] Use strong, unique secrets for AUTH_SECRET and DB_ENCRYPTION_KEY
-- [ ] Enable HTTPS in production
-- [ ] Configure proper CORS settings
-- [ ] Set up database backups
-- [ ] Configure Twitter API credentials through admin panel
-- [ ] Enable rate limiting
-- [ ] Set up monitoring and logging
+Using **Caddy** (automatic HTTPS):
+```
+yourdomain.com {
+    reverse_proxy localhost:5173
+}
+```
 
----
+### **Management Commands**
+```bash
+# View logs
+docker-compose logs -f app
+docker-compose logs -f scheduler
+docker-compose logs -f mongo
+
+# Restart services
+docker-compose restart app
+docker-compose restart scheduler
+
+# Stop all services
+docker-compose down
+
+# Update and restart
+git pull
+docker-compose down
+docker-compose up -d --build
+
+# Backup database
+docker-compose exec mongo mongodump --out /data/backup
+
+# Restore database
+docker-compose exec mongo mongorestore /data/backup
+```
 
 ## 📖 Usage Guide
 
 ### **Initial Setup**
-1. Run `npm run setup` to configure the application
-2. Start the app and go to the admin panel
-3. Add your Twitter API credentials in the **Twitter Apps** section
-4. Connect your Twitter accounts through the **Accounts** page
+1. Access your application (http://localhost:5173 for dev, your domain for production)
+2. Login with default admin credentials
+3. Go to Admin Panel → Twitter Apps
+4. Add your Twitter API credentials
+5. Connect your Twitter accounts through the **Accounts** page
+
+> **Note:** If setting up for local development without Docker, you can run `npm run setup` for an interactive configuration wizard that auto-generates secrets and creates your `.env` file.
 
 ### **Connecting Twitter Accounts**
 1. Go to **Twitter Accounts** page
