@@ -163,6 +163,7 @@
 		publish: 'Tweet published successfully!',
 		draft: 'Tweet saved as draft successfully!',
 		schedule: 'Tweet scheduled successfully!',
+		queue: 'Tweet added to queue successfully!',
 		template: 'Template saved successfully!',
 		update: 'Scheduled tweet updated successfully!'
 	};
@@ -172,6 +173,7 @@
 		publish: 'Failed to publish tweet',
 		draft: 'Failed to save draft',
 		schedule: 'Failed to schedule tweet',
+		queue: 'Failed to add tweet to queue',
 		template: 'Failed to save template',
 		update: 'Failed to update scheduled tweet'
 	};
@@ -524,6 +526,17 @@
 				<Loader2 class="h-4 w-4 animate-spin" />
 			{/if}
 			Save Draft
+		</button>
+		<button
+			type="button"
+			class="shadow-2xs focus:outline-hidden inline-flex items-center gap-x-2 border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-orange-600 hover:bg-orange-50 focus:z-10 focus:bg-orange-50 disabled:pointer-events-none disabled:opacity-50 dark:border-neutral-700 dark:bg-gray-700 dark:text-orange-400 dark:hover:bg-gray-600 dark:focus:bg-neutral-800"
+			on:click={() => handleSubmit('queue')}
+			disabled={submitting}
+		>
+			{#if submitting && currentAction === 'queue'}
+				<Loader2 class="h-4 w-4 animate-spin" />
+			{/if}
+			Add to Queue
 		</button>
 		<button
 			type="button"

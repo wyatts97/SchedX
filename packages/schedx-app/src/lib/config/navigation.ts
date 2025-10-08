@@ -25,6 +25,12 @@ export const navigationConfig: NavigationConfig = {
 			description: 'Create and schedule tweets'
 		},
 		{
+			href: '/thread',
+			label: 'Thread',
+			icon: `<path d="M4 6h16M4 12h16M4 18h16" /><circle cx="20" cy="6" r="2" /><circle cx="20" cy="18" r="2" />`,
+			description: 'Create tweet threads'
+		},
+		{
 			href: '/scheduled',
 			label: 'Scheduled',
 			icon: `<circle cx="12" cy="12" r="10" /><polyline points="12,6 12,12 16,14" />`,
@@ -35,6 +41,12 @@ export const navigationConfig: NavigationConfig = {
 			label: 'Drafts',
 			icon: `<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14,2 14,8 20,8" />`,
 			description: 'Manage draft tweets'
+		},
+		{
+			href: '/queue',
+			label: 'Queue',
+			icon: `<path d="M3 12h18" /><path d="M3 6h18" /><path d="M3 18h18" />`,
+			description: 'Auto-schedule queued tweets'
 		},
 		{
 			href: '/templates',

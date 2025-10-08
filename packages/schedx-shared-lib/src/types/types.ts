@@ -1,6 +1,7 @@
 export enum TweetStatus {
   DRAFT = 'draft',
   SCHEDULED = 'scheduled',
+  QUEUED = 'queued',
   POSTED = 'posted',
   FAILED = 'failed'
 }
@@ -46,6 +47,45 @@ export interface Tweet {
   templateName?: string;
   templateCategory?: string;
   media?: { url: string; type: 'photo' | 'gif' | 'video' }[];
+  queuePosition?: number; // Position in queue (for QUEUED status)
+  // Thread support
+  isThread?: boolean; // Whether this is part of a thread
+  threadId?: string; // ID of the parent thread
+  threadPosition?: number; // Position in thread (1, 2, 3, etc.)
+  threadTotal?: number; // Total tweets in thread
+}
+
+export interface Thread {
+  id?: string;
+  userId: string;
+  title?: string; // Optional thread title for organization
+  twitterAccountId: string;
+  scheduledDate: Date;
+  status: TweetStatus;
+  tweets: ThreadTweet[]; // Array of tweets in the thread
+  createdAt: Date;
+  updatedAt?: Date;
+  twitterThreadId?: string; // ID of first tweet in posted thread
+}
+
+export interface ThreadTweet {
+  content: string;
+  media?: { url: string; type: 'photo' | 'gif' | 'video' }[];
+  position: number; // 1, 2, 3, etc.
+  twitterTweetId?: string; // ID after posting
+}
+
+export interface QueueSettings {
+  id?: string;
+  userId: string;
+  enabled: boolean;
+  postingTimes: string[]; // Array of times like ["09:00", "13:00", "17:00"]
+  timezone: string;
+  minInterval: number; // Minimum minutes between posts
+  maxPostsPerDay: number;
+  skipWeekends: boolean;
+  createdAt: Date;
+  updatedAt?: Date;
 }
 
 export interface Notification {

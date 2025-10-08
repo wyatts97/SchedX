@@ -137,6 +137,26 @@ export const POST = userRateLimit(RATE_LIMITS.tweets)(
 						}
 					);
 
+				case 'queue':
+					tweet.status = TweetStatus.QUEUED;
+					tweet.scheduledDate = new Date(); // Placeholder, will be set by queue processor
+					// Get current queue length to set position
+					const queuedTweets = await db.getTweetsByStatus(userId, TweetStatus.QUEUED);
+					tweet.queuePosition = queuedTweets.length;
+					const queuedId = await db.saveTweet(tweet as Tweet);
+					logger.info('Tweet added to queue successfully', { queuedId, queuePosition: tweet.queuePosition });
+					return new Response(
+						JSON.stringify({
+							id: queuedId,
+							success: true,
+							message: 'Tweet added to queue successfully'
+						}),
+						{
+							status: 201,
+							headers: { 'Content-Type': 'application/json' }
+						}
+					);
+
 				case 'schedule':
 					if (!scheduledDate) {
 						return new Response(JSON.stringify({ error: 'Scheduled date is required' }), {

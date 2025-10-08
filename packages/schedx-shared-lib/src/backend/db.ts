@@ -729,6 +729,132 @@ export class DatabaseClient {
     return { insertedCount: 0 };
   }
 
+  // Queue Management Methods
+  async getTweetsByStatus(userId: string, status: TweetStatus | TweetStatus[]): Promise<any[]> {
+    const db = await this.connect();
+    const statusFilter = Array.isArray(status) ? { $in: status } : status;
+    const tweets = await db.collection('tweets')
+      .find({ userId, status: statusFilter })
+      .sort({ queuePosition: 1, createdAt: 1 })
+      .toArray();
+    
+    return tweets.map(tweet => ({
+      ...tweet,
+      id: tweet._id.toString(),
+      _id: undefined
+    }));
+  }
+
+  async updateTweet(tweetId: string, updates: Partial<any>): Promise<void> {
+    const db = await this.connect();
+    await db.collection('tweets').updateOne(
+      { _id: new ObjectId(tweetId) },
+      { $set: { ...updates, updatedAt: new Date() } }
+    );
+  }
+
+  async getQueueSettings(userId: string): Promise<any | null> {
+    const db = await this.connect();
+    const settings = await db.collection('queue_settings').findOne({ userId });
+    if (!settings) return null;
+    
+    return {
+      ...settings,
+      id: settings._id.toString(),
+      _id: undefined
+    };
+  }
+
+  async saveQueueSettings(settings: any): Promise<string> {
+    const db = await this.connect();
+    const { id, ...settingsData } = settings;
+    
+    if (id) {
+      await db.collection('queue_settings').updateOne(
+        { _id: new ObjectId(id) },
+        { $set: { ...settingsData, updatedAt: new Date() } }
+      );
+      return id;
+    } else {
+      const result = await db.collection('queue_settings').insertOne({
+        ...settingsData,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      return result.insertedId.toString();
+    }
+  }
+
+
+  // Thread Management Methods
+  async saveThread(thread: any): Promise<string> {
+    const db = await this.connect();
+    const { id, ...threadData } = thread;
+    
+    if (id) {
+      await db.collection('threads').updateOne(
+        { _id: new ObjectId(id) },
+        { $set: { ...threadData, updatedAt: new Date() } }
+      );
+      return id;
+    } else {
+      const result = await db.collection('threads').insertOne({
+        ...threadData,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      return result.insertedId.toString();
+    }
+  }
+
+  async getThread(threadId: string): Promise<any | null> {
+    const db = await this.connect();
+    const thread = await db.collection('threads').findOne({ _id: new ObjectId(threadId) });
+    if (!thread) return null;
+    
+    return {
+      ...thread,
+      id: thread._id.toString(),
+      _id: undefined
+    };
+  }
+
+  async getThreads(userId: string, status?: any): Promise<any[]> {
+    const db = await this.connect();
+    const query: any = { userId };
+    if (status) {
+      query.status = Array.isArray(status) ? { $in: status } : status;
+    }
+    
+    const threads = await db.collection('threads')
+      .find(query)
+      .sort({ scheduledDate: -1 })
+      .toArray();
+    
+    return threads.map(thread => ({
+      ...thread,
+      id: thread._id.toString(),
+      _id: undefined
+    }));
+  }
+
+  async deleteThread(threadId: string): Promise<void> {
+    const db = await this.connect();
+    await db.collection('threads').deleteOne({ _id: new ObjectId(threadId) });
+  }
+
+  async updateThreadStatus(threadId: string, status: any, twitterThreadId?: string): Promise<void> {
+    const db = await this.connect();
+    const update: any = { status, updatedAt: new Date() };
+    if (twitterThreadId) {
+      update.twitterThreadId = twitterThreadId;
+    }
+    await db.collection('threads').updateOne(
+      { _id: new ObjectId(threadId) },
+      { $set: update }
+    );
+  }  
+  
   // API Usage Tracking for X API compliance
   async getApiUsage(userId: string): Promise<{ posts: number; reads: number; month: string }> {
     const db = await this.connect();
