@@ -48,6 +48,7 @@
 			logger.info('Dashboard data loaded successfully', {
 				appsCount: dashboardData.apps?.length || 0,
 				tweetsCount: dashboardData.tweets?.length || 0,
+				analytics: dashboardData.analytics,
 				source: 'page-server'
 			});
 		} catch (error) {

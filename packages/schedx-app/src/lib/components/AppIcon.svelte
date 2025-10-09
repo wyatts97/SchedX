@@ -26,7 +26,7 @@
 	<img
 		src={`/app-icon-${theme === 'lightsout' ? 'lightsout' : theme}.png`}
 		alt="SchedX App Icon"
-		class="h-full w-full rounded-xl object-contain transition-all duration-300"
+		class="h-full w-full object-contain transition-all duration-300"
 		on:error={(e) => {
 			const target = e.target as HTMLImageElement;
 			target.src = '/app-icon-dark.png';

@@ -453,32 +453,7 @@
 	opacity: 1 !important;
 }
 
-/* Lightsout mode: Sidebar navigation links */
-[data-theme='lightsout'] nav a,
-[data-theme='lightsout'] .hs-accordion-group a,
-[data-theme='lightsout'] .sidebar a {
-	background-color: transparent !important;
-	color: #ffffff88 !important;
-	transition:
-		background 0.2s,
-		color 0.2s,
-		text-shadow 0.2s;
-}
-[data-theme='lightsout'] nav a:hover,
-[data-theme='lightsout'] .hs-accordion-group a:hover,
-[data-theme='lightsout'] .sidebar a:hover {
-	background-color: #111 !important;
-	color: #fff !important;
-	text-shadow: 0 0 5px #ffffff88;
-}
-[data-theme='lightsout'] nav a[aria-current='page'],
-[data-theme='lightsout'] .hs-accordion-group a[aria-current='page'],
-[data-theme='lightsout'] .sidebar a[aria-current='page'],
-[data-theme='lightsout'] .sidebar .active {
-	background-color: #000 !important;
-	color: #fff !important;
-	text-shadow: 0 0 8px #ffffffaa;
-}
+/* Lightsout mode: Sidebar navigation links - removed !important to allow Tailwind classes to work */
 
 /* Lightsout mode: Dropdowns and dropdown items */
 [data-theme='lightsout'] .dropdown,

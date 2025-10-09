@@ -15,6 +15,8 @@ export const load: PageServerLoad = async ({ fetch }) => {
 		const tweets = await tweetsRes.json();
 		const accounts = await accountsRes.json();
 
+		logger.info(`Page server loaded data: apps=${appsRes.status}, analytics=${analyticsRes.status}, tweets=${tweetsRes.status}, accounts=${accountsRes.status}`);
+
 		return {
 			apps: apps.apps || [],
 			analytics: analytics.analytics || {},

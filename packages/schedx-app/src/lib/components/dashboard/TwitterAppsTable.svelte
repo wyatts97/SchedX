@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Settings, TestTube, Edit, Trash2 } from 'lucide-svelte';
+	import { Settings, TestTube, Edit, Trash2, Users } from 'lucide-svelte';
 	import { dashboardStore, type TwitterApp } from '$lib/stores/dashboardStore';
 	import { toastStore } from '$lib/stores/toastStore';
 	import { API } from '$lib/api';
@@ -142,13 +142,22 @@
 			<h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">
 				Twitter Applications
 			</h3>
-			<button
-				class="inline-flex items-center justify-center rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-				on:click={() => dashboardStore.openAppForm()}
-			>
-				<Settings class="mr-2 h-4 w-4" />
-				Add App
-			</button>
+			<div class="flex gap-3">
+				<a
+					href="/accounts"
+					class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all duration-200 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+				>
+					<Users class="mr-2 h-4 w-4" />
+					Manage Accounts
+				</a>
+				<button
+					class="inline-flex items-center justify-center rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+					on:click={() => dashboardStore.openAppForm()}
+				>
+					<Settings class="mr-2 h-4 w-4" />
+					Add App
+				</button>
+			</div>
 		</div>
 
 		{#if apps}

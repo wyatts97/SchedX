@@ -7,8 +7,8 @@ import { log } from './logger.js';
 import { startHealthServer } from './health-server.js';
 import cron from 'node-cron';
 
-// Initialize database client
-const dbClient = DatabaseClient.getInstance(MONGODB_URI, AUTH_SECRET);
+// Initialize database client with DB_ENCRYPTION_KEY (not AUTH_SECRET!)
+const dbClient = DatabaseClient.getInstance(MONGODB_URI, DB_ENCRYPTION_KEY);
 // Initialize token manager
 const tokenManager = new TokenManager(dbClient);
 // Initialize TweetProcessor

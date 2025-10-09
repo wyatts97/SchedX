@@ -57,7 +57,12 @@ export default {
 			}
 		}
 	},
-	plugins: [],
+	plugins: [
+		function ({ addVariant }) {
+			addVariant('theme-lightsout', '.theme-lightsout &');
+			addVariant('theme-dark', '.theme-dark &');
+		}
+	],
 	darkMode: 'class',
 	safelist: []
 };

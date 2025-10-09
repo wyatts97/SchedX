@@ -1,19 +1,9 @@
-import dotenv from 'dotenv';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-// ES module equivalent of __dirname
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Load .env from the project root (3 levels up from packages/schedx-scheduler/src)
-const envPath = path.resolve(__dirname, '../../../.env');
-console.log('Loading .env from:', envPath);
-dotenv.config({ path: envPath });
-
-// Debug: Check if AUTH_SECRET is loaded
+// Debug: Check if critical environment variables are loaded
 console.log('AUTH_SECRET loaded:', !!process.env.AUTH_SECRET);
 console.log('AUTH_SECRET value:', process.env.AUTH_SECRET ? '***SET***' : 'NOT SET');
+console.log('DB_ENCRYPTION_KEY loaded:', !!process.env.DB_ENCRYPTION_KEY);
+console.log('DB_ENCRYPTION_KEY value:', process.env.DB_ENCRYPTION_KEY ? '***SET***' : 'NOT SET');
+console.log('Environment:', process.env.NODE_ENV || 'development');
 
 export const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
 export const DB_ENCRYPTION_KEY = process.env.DB_ENCRYPTION_KEY || '';

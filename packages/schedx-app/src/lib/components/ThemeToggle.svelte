@@ -48,6 +48,10 @@
 	}
 
 	onMount(() => {
+		// Get the saved theme from storage
+		const savedTheme = getCookie('theme') || localStorage.getItem('theme') || 'light';
+		currentTheme = savedTheme;
+		
 		if (currentTheme === 'light') {
 			currentPosition = 0;
 		} else if (currentTheme === 'dark') {

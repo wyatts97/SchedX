@@ -137,19 +137,20 @@ export class TweetProcessor {
         return;
       }
 
-      // Get OAuth 2.0 client for text tweets
-      const twitterClient: TwitterApi = await this.tokenManager.getTwitterApiClient(twitterAccount as UserAccount);
-      
-      // Get OAuth 1.0a client for media uploads (if needed)
+      // Get OAuth 1.0a client for posting tweets and media uploads
+      // Note: Twitter API v2 requires OAuth 1.0a for write operations (posting tweets)
       let oauth1Client: TwitterApi | null = null;
       try {
         oauth1Client = await this.tokenManager.getOAuth1Client(twitterAccount as UserAccount);
-        log.info('OAuth 1.0a client created successfully for media uploads', { userId });
+        log.info('OAuth 1.0a client created successfully for posting tweets', { userId });
       } catch (error) {
-        log.warn('OAuth 1.0a client not available for media uploads', { 
+        const errorMsg = `OAuth 1.0a credentials not configured. Cannot post tweets without OAuth 1.0a authentication.`;
+        log.error(errorMsg, { 
           userId, 
           error: error instanceof Error ? error.message : 'Unknown error' 
         });
+        await this.markTweetsAsFailed(tweets, errorMsg, userId);
+        return;
       }
 
       for (const tweet of tweets) {
@@ -209,8 +210,16 @@ export class TweetProcessor {
             }
           }
 
-          // Post tweet using v2 API
-          const postedTweet = await twitterClient.v2.tweet(tweetData);
+          // Post tweet using v2 API with OAuth 1.0a authentication
+          log.info('Attempting to post tweet', {
+            userId,
+            tweetId: tweet.id,
+            hasMedia: !!tweetData.media,
+            mediaCount: tweetData.media?.media_ids?.length || 0,
+            contentLength: tweetData.text?.length || 0
+          });
+          
+          const postedTweet = await oauth1Client.v2.tweet(tweetData);
           
           if (postedTweet.data) {
             await this.dbClient.updateTweetStatus(tweet.id!, TweetStatus.POSTED);
@@ -255,8 +264,15 @@ export class TweetProcessor {
         }
       }
     } catch (error) {
-      log.error(`Error processing tweets for user ${userId}:`, { userId, error });
-      await this.markTweetsAsFailed(tweets, `Error processing tweets: ${error}`, userId);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      log.error(`Error processing tweets for user ${userId}:`, { 
+        userId, 
+        error: errorMessage,
+        stack: errorStack,
+        fullError: error
+      });
+      await this.markTweetsAsFailed(tweets, `Error processing tweets: ${errorMessage}`, userId);
     }
   }
 

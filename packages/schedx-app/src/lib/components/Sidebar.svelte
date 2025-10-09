@@ -75,21 +75,19 @@
 				<div class="relative flex flex-col overflow-visible">
 					<!-- Header -->
 					<div
-						class="theme-lightsout:border-gray-800/50 flex items-center border-b border-gray-200/50 px-6 pb-4 pt-6 dark:border-gray-700/50"
+						class="theme-lightsout:border-gray-800/50 flex flex-col items-center justify-center border-b border-gray-200/50 px-6 pb-3 pt-4 dark:border-gray-700/50"
 					>
 						<!-- Logo -->
 						<a
-							class="inline-block flex-none rounded-md text-xl font-semibold focus:opacity-90 focus:outline-none"
+							class="group flex flex-col items-center gap-1.5 rounded-lg px-3 py-2 transition-all duration-200 hover:bg-gray-100/50 focus:opacity-90 focus:outline-none dark:hover:bg-gray-700/50"
 							href="/"
 							aria-label="SchedX"
 						>
-							<div class="flex items-center space-x-2">
-								<AppIcon className="w-12 h-12" />
-								<span
-									class="theme-lightsout:text-white text-xl font-bold text-gray-900 dark:text-white"
-									>SchedX</span
-								>
-							</div>
+							<AppIcon className="w-10 h-10 rounded-none transition-transform duration-200 group-hover:scale-105" />
+							<span
+								class="theme-lightsout:text-white text-sm font-semibold tracking-tight text-gray-900 dark:text-white"
+								>SchedX</span
+							>
 						</a>
 						<!-- End Logo -->
 					</div>
@@ -104,10 +102,10 @@
 								{#each navigationConfig.main as item}
 									<li>
 										<a
-											class="focus:outline-hidden theme-lightsout:text-gray-100 theme-lightsout:hover:bg-gray-800/80 theme-lightsout:focus:bg-gray-800/80 flex items-center gap-x-3.5 rounded-xl px-3 py-2.5 text-sm text-gray-700 transition-all duration-200 hover:bg-gray-100/80 focus:bg-gray-100/80 dark:text-gray-300 dark:hover:bg-gray-700/80 dark:focus:bg-gray-700/80 {currentPath ===
+											class="focus:outline-hidden flex items-center gap-x-3.5 rounded-xl px-3 py-2.5 text-sm transition-all duration-200 {currentPath ===
 											item.href
-												? 'theme-lightsout:bg-blue-900/30 theme-lightsout:text-blue-300 bg-blue-50/80 text-blue-700 shadow-sm dark:bg-blue-900/20 dark:text-blue-400'
-												: ''}"
+												? 'bg-blue-100 text-blue-700 font-semibold shadow-sm dark:bg-gray-700/50 dark:text-gray-200 theme-lightsout:!bg-[#2a2a2a] theme-lightsout:!text-white theme-lightsout:!shadow-none'
+												: 'text-gray-700 hover:bg-gray-100/80 focus:bg-gray-100/80 dark:text-gray-300 dark:hover:bg-gray-700/80 dark:focus:bg-gray-700/80 theme-lightsout:!text-gray-100 theme-lightsout:hover:!bg-[#1a1a1a] theme-lightsout:focus:!bg-[#1a1a1a]'}"
 											href={item.href}
 											title={item.description}
 										>

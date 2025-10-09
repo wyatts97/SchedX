@@ -81,10 +81,24 @@ export class TokenManager {
     }
 
     // Check if OAuth 1.0a credentials are available
-    if (!twitterApp.consumerKey || !twitterApp.consumerSecret || 
-        !twitterApp.accessToken || !twitterApp.accessTokenSecret) {
-      throw new Error(`OAuth 1.0a credentials not configured for Twitter app ${twitterApp.id}. Media uploads require OAuth 1.0a authentication.`);
+    const missingCreds = [];
+    if (!twitterApp.consumerKey) missingCreds.push('consumerKey');
+    if (!twitterApp.consumerSecret) missingCreds.push('consumerSecret');
+    if (!twitterApp.accessToken) missingCreds.push('accessToken');
+    if (!twitterApp.accessTokenSecret) missingCreds.push('accessTokenSecret');
+    
+    if (missingCreds.length > 0) {
+      throw new Error(`OAuth 1.0a credentials not configured for Twitter app ${twitterApp.id}. Missing: ${missingCreds.join(', ')}. All OAuth 1.0a credentials are required for posting tweets.`);
     }
+
+    log.info('Creating OAuth 1.0a client', {
+      userId: account.userId,
+      twitterAppId: twitterApp.id,
+      hasConsumerKey: !!twitterApp.consumerKey,
+      hasConsumerSecret: !!twitterApp.consumerSecret,
+      hasAccessToken: !!twitterApp.accessToken,
+      hasAccessTokenSecret: !!twitterApp.accessTokenSecret
+    });
 
     // Create OAuth1.0a client for v1.1 API media uploads
     return new TwitterApi({
