@@ -380,7 +380,8 @@ export class DatabaseClient {
       status: tweet.status,
       createdAt: new Date(tweet.createdAt),
       updatedAt: tweet.updatedAt ? new Date(tweet.updatedAt) : undefined,
-      twitterAccountId: tweet.twitterAccountId
+      twitterAccountId: tweet.twitterAccountId,
+      media: tweet.media || []
     }));
   }
 

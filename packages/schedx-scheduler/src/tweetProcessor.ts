@@ -167,6 +167,13 @@ export class TweetProcessor {
 
           // Add media if present
           if (tweet.media && tweet.media.length > 0) {
+            log.info(`Tweet has ${tweet.media.length} media items to upload`, {
+              userId,
+              tweetId: tweet.id,
+              mediaCount: tweet.media.length,
+              mediaUrls: tweet.media.map(m => m.url)
+            });
+            
             if (!oauth1Client) {
               log.error(`Cannot upload media for tweet ${tweet.id}: OAuth 1.0a credentials not configured`, { 
                 userId, 
@@ -177,8 +184,19 @@ export class TweetProcessor {
               const mediaIds = [];
               for (const media of tweet.media) {
                 try {
+                  log.info(`Uploading media: ${media.url}`, {
+                    userId,
+                    tweetId: tweet.id,
+                    mediaUrl: media.url,
+                    mediaType: media.type
+                  });
                   const mediaId = await this.uploadMedia(oauth1Client, media.url, media.type);
                   mediaIds.push(mediaId);
+                  log.info(`Media uploaded successfully: ${mediaId}`, {
+                    userId,
+                    tweetId: tweet.id,
+                    mediaId
+                  });
                 } catch (mediaError: any) {
                   // Handle rate limiting specifically
                   if (mediaError?.code === 429) {
