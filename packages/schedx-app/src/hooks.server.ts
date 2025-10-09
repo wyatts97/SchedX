@@ -28,6 +28,40 @@ const initDb = async () => {
 };
 
 /**
+ * CORS and Origin handling middleware
+ */
+const corsHandle: Handle = async ({ event, resolve }) => {
+	const origin = event.request.headers.get('origin');
+	const allowedOrigins = (process.env.ORIGIN || '').split(',').map(o => o.trim());
+	
+	// Check if origin is allowed
+	let isAllowedOrigin = origin && allowedOrigins.includes(origin);
+	
+	// SECURITY: Allow local network IPs only if explicitly enabled
+	// This is useful for self-hosted/home lab deployments but should be disabled for production
+	const allowLocalNetwork = process.env.ALLOW_LOCAL_NETWORK === 'true';
+	
+	if (!isAllowedOrigin && origin && allowLocalNetwork) {
+		const localNetworkPattern = /^https?:\/\/(localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2[0-9]|3[0-1])\.\d{1,3}\.\d{1,3})(:\d+)?$/;
+		isAllowedOrigin = localNetworkPattern.test(origin);
+		
+		if (isAllowedOrigin) {
+			logger.debug({ origin }, 'Allowing local network origin');
+		}
+	}
+	
+	const response = await resolve(event);
+	
+	// Add CORS headers if origin is allowed
+	if (isAllowedOrigin && origin) {
+		response.headers.set('Access-Control-Allow-Origin', origin);
+		response.headers.set('Access-Control-Allow-Credentials', 'true');
+	}
+	
+	return response;
+};
+
+/**
  * Rate limiting middleware
  */
 const rateLimitHandle: Handle = async ({ event, resolve }) => {
@@ -154,6 +188,7 @@ export const handle = sequence(
 		await initDb();
 		return resolve(event);
 	},
+	corsHandle,
 	rateLimitHandle,
 	loggingHandle,
 	errorHandle,

@@ -66,7 +66,7 @@ services:
       - schedx-network
 
   mongo:
-    image: mongo:6
+    image: mongo:4.4
     # MongoDB port exposure - DISABLED by default for security
     # Uncomment the ports section below ONLY for local development/debugging
     # ports:
@@ -79,7 +79,7 @@ services:
       - mongo-data:/data/db
       - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')", "--quiet"]
+      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')", "--quiet"]
       interval: 10s
       timeout: 5s
       retries: 10
