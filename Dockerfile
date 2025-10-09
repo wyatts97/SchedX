@@ -16,9 +16,9 @@ RUN npm ci
 COPY . .
 
 # Build in correct order: shared-lib MUST be built first
-RUN npm run build --workspace=@schedx/shared-lib
-RUN npm run build --workspace=@schedx/app
-RUN npm run build --workspace=@schedx/scheduler
+RUN npm run build -w @schedx/shared-lib
+RUN npm run build -w @schedx/app
+RUN npm run build -w @schedx/scheduler
 
 # Stage 2: Production image
 FROM node:22-bullseye-slim
@@ -51,4 +51,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:${PORT}/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"
 
 # Default command (overridden by compose for scheduler)
-CMD ["npm", "start", "--workspace=@schedx/app"]
+CMD ["npm", "start", "-w", "@schedx/app"]
