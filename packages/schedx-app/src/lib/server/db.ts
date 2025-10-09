@@ -1,7 +1,6 @@
 import { getEnvironmentConfig } from '$lib/server/env';
 import { DatabaseClient } from '@schedx/shared-lib/backend';
 import logger from '$lib/logger';
-import { createDatabaseIndexes } from './db-indexes';
 
 // Create a lazy-loaded singleton pattern
 let dbInstance: DatabaseClient | null = null;
@@ -10,7 +9,11 @@ export function getDbInstance(): DatabaseClient {
 	if (!dbInstance) {
 		try {
 			const config = getEnvironmentConfig();
-			dbInstance = DatabaseClient.getInstance(config.MONGODB_URI, config.DB_ENCRYPTION_KEY);
+			dbInstance = DatabaseClient.getInstance(
+				config.DATABASE_PATH,
+				config.DB_ENCRYPTION_KEY,
+				config.AUTH_SECRET
+			);
 		} catch (error) {
 			logger.error('Database client initialization failed', { error });
 			throw error;
@@ -23,13 +26,8 @@ export const initializeDatabase = async (): Promise<DatabaseClient> => {
 	const db = getDbInstance();
 	await db.connect();
 
-	// Create database indexes for optimal performance
-	try {
-		await createDatabaseIndexes();
-	} catch (error) {
-		logger.error('Failed to create database indexes during initialization', { error });
-		// Don't throw - indexes can be created later
-	}
+	// SQLite migrations are run automatically on first connection
+	logger.info('Database initialized successfully');
 
 	return db;
 };

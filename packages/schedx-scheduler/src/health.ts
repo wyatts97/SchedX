@@ -1,5 +1,5 @@
 import { DatabaseClient } from '@schedx/shared-lib/backend';
-import { MONGODB_URI, AUTH_SECRET } from './config.js';
+import { DATABASE_PATH, DB_ENCRYPTION_KEY, AUTH_SECRET } from './config.js';
 import { log } from './logger.js';
 
 export interface HealthCheck {
@@ -27,18 +27,12 @@ async function checkDatabase(): Promise<HealthCheck> {
 	const startTime = Date.now();
 	
 	try {
-		const dbClient = DatabaseClient.getInstance(MONGODB_URI, AUTH_SECRET);
-		const database = await dbClient.connect();
-		
-		// Test basic connectivity
-		await database.admin().ping();
+		const dbClient = DatabaseClient.getInstance(DATABASE_PATH, DB_ENCRYPTION_KEY, AUTH_SECRET);
+		await dbClient.connect();
 		
 		// Test finding due tweets (main scheduler operation)
 		const testStart = Date.now();
-		const dueTweets = await database.collection('tweets').find({
-			status: 'scheduled',
-			scheduledDate: { $lte: new Date() }
-		}).limit(1).toArray();
+		const dueTweets = await dbClient.findDueTweets();
 		const queryTime = Date.now() - testStart;
 		
 		const responseTime = Date.now() - startTime;
@@ -158,21 +152,21 @@ async function checkTwitterAPI(): Promise<HealthCheck> {
 	const startTime = Date.now();
 	
 	try {
-		const dbClient = DatabaseClient.getInstance(MONGODB_URI, AUTH_SECRET);
-		const database = await dbClient.connect();
+		const dbClient = DatabaseClient.getInstance(DATABASE_PATH, DB_ENCRYPTION_KEY, AUTH_SECRET);
+		await dbClient.connect();
 		
 		// Check if we have Twitter apps configured
-		const twitterApps = await database.collection('twitter_apps').countDocuments();
-		const userAccounts = await database.collection('accounts').countDocuments();
+		const twitterApps = await dbClient.listTwitterApps();
+		const userAccounts = await dbClient.getAllUserAccounts();
 		
 		return {
 			name: 'twitter_api',
-			status: twitterApps > 0 ? 'healthy' : 'degraded',
-			message: `Twitter API configuration: ${twitterApps} apps, ${userAccounts} accounts`,
+			status: twitterApps.length > 0 ? 'healthy' : 'degraded',
+			message: `Twitter API configuration: ${twitterApps.length} apps, ${userAccounts.length} accounts`,
 			details: {
-				twitterApps,
-				userAccounts,
-				configured: twitterApps > 0
+				twitterApps: twitterApps.length,
+				userAccounts: userAccounts.length,
+				configured: twitterApps.length > 0
 			},
 			responseTime: Date.now() - startTime,
 			lastChecked: new Date().toISOString()
@@ -243,9 +237,8 @@ export async function runHealthChecks(): Promise<HealthStatus> {
  */
 export async function getSimpleHealthCheck(): Promise<{ status: string; timestamp: string }> {
 	try {
-		const dbClient = DatabaseClient.getInstance(MONGODB_URI, AUTH_SECRET);
+		const dbClient = DatabaseClient.getInstance(DATABASE_PATH, DB_ENCRYPTION_KEY, AUTH_SECRET);
 		await dbClient.connect();
-		await dbClient.connect().then(db => db.admin().ping());
 		
 		return {
 			status: 'ok',

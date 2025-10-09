@@ -5,7 +5,7 @@ console.log('DB_ENCRYPTION_KEY loaded:', !!process.env.DB_ENCRYPTION_KEY);
 console.log('DB_ENCRYPTION_KEY value:', process.env.DB_ENCRYPTION_KEY ? '***SET***' : 'NOT SET');
 console.log('Environment:', process.env.NODE_ENV || 'development');
 
-export const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
+export const DATABASE_PATH = process.env.DATABASE_PATH || './data/schedx.db';
 export const DB_ENCRYPTION_KEY = process.env.DB_ENCRYPTION_KEY || '';
 export const AUTH_SECRET = process.env.AUTH_SECRET || '';
 export const CRON_SCHEDULE = process.env.CRON_SCHEDULE || '* * * * *';

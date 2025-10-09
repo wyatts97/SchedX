@@ -30,10 +30,9 @@ const requiredVars = {
     minLength: 32,
     description: 'Encryption key for sensitive data in database'
   },
-  MONGODB_URI: {
+  DATABASE_PATH: {
     required: true,
-    pattern: /^mongodb(\+srv)?:\/\/.+/,
-    description: 'MongoDB connection string'
+    description: 'Path to SQLite database file'
   },
   ORIGIN: {
     required: true,

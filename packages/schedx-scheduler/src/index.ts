@@ -1,14 +1,14 @@
 import { DatabaseClient } from '@schedx/shared-lib/backend';
 import { Tweet } from '@schedx/shared-lib';
 import { TokenManager } from './tokenManager.js';
-import { MONGODB_URI, DB_ENCRYPTION_KEY, AUTH_SECRET, CRON_SCHEDULE } from './config.js';
+import { DATABASE_PATH, DB_ENCRYPTION_KEY, AUTH_SECRET, CRON_SCHEDULE } from './config.js';
 import { TweetProcessor } from './tweetProcessor.js';
 import { log } from './logger.js';
 import { startHealthServer } from './health-server.js';
 import cron from 'node-cron';
 
-// Initialize database client with DB_ENCRYPTION_KEY (not AUTH_SECRET!)
-const dbClient = DatabaseClient.getInstance(MONGODB_URI, DB_ENCRYPTION_KEY);
+// Initialize database client with SQLite
+const dbClient = DatabaseClient.getInstance(DATABASE_PATH, DB_ENCRYPTION_KEY, AUTH_SECRET);
 // Initialize token manager
 const tokenManager = new TokenManager(dbClient);
 // Initialize TweetProcessor

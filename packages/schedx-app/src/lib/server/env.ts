@@ -5,7 +5,7 @@ export interface EnvironmentConfig {
 	AUTH_SECRET: string;
 
 	// Database
-	MONGODB_URI: string;
+	DATABASE_PATH: string;
 	DB_ENCRYPTION_KEY: string;
 
 	// Server
@@ -27,7 +27,7 @@ export function validateEnvironment(): EnvironmentConfig {
 		AUTH_SECRET: getRequiredEnv('AUTH_SECRET'),
 
 		// Database
-		MONGODB_URI: getRequiredEnv('MONGODB_URI'),
+		DATABASE_PATH: getRequiredEnv('DATABASE_PATH'),
 		DB_ENCRYPTION_KEY: getRequiredEnv('DB_ENCRYPTION_KEY'),
 
 		// Server
@@ -67,7 +67,7 @@ function getRequiredEnv(key: string): string {
  * Validate required fields
  */
 function validateRequiredFields(config: EnvironmentConfig): void {
-	const requiredFields = ['AUTH_SECRET', 'MONGODB_URI', 'DB_ENCRYPTION_KEY'];
+	const requiredFields = ['AUTH_SECRET', 'DATABASE_PATH', 'DB_ENCRYPTION_KEY'];
 
 	for (const field of requiredFields) {
 		if (!config[field as keyof EnvironmentConfig]) {
@@ -107,12 +107,9 @@ function validateFieldFormats(config: EnvironmentConfig): void {
 		throw new Error('ORIGIN must be a valid URL');
 	}
 
-	// Validate MONGODB_URI format
-	if (
-		!config.MONGODB_URI.startsWith('mongodb://') &&
-		!config.MONGODB_URI.startsWith('mongodb+srv://')
-	) {
-		throw new Error('MONGODB_URI must be a valid MongoDB connection string');
+	// Validate DATABASE_PATH format
+	if (!config.DATABASE_PATH || config.DATABASE_PATH.trim() === '') {
+		throw new Error('DATABASE_PATH must be a valid file path');
 	}
 }
 

@@ -4,9 +4,6 @@ services:
     command: npm start -w @schedx/app
     ports:
       - "${PORT:-5173}:${PORT:-5173}"
-    depends_on:
-      mongo:
-        condition: service_healthy
     env_file:
       - .env.docker
     environment:
@@ -16,6 +13,7 @@ services:
       - NODE_ENV=production
     volumes:
       - uploads-data:/app/packages/schedx-app/uploads
+      - db-data:/data
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:${PORT:-5173}/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"]
       interval: 30s
@@ -37,9 +35,6 @@ services:
   scheduler:
     build: .
     command: npm start -w @schedx/scheduler
-    depends_on:
-      mongo:
-        condition: service_healthy
     env_file:
       - .env.docker
     environment:
@@ -47,6 +42,7 @@ services:
       - NODE_ENV=production
     volumes:
       - uploads-data:/app/packages/schedx-app/uploads
+      - db-data:/data
     healthcheck:
       test: ["CMD", "pgrep", "node"]
       interval: 30s
@@ -65,39 +61,8 @@ services:
     networks:
       - schedx-network
 
-  mongo:
-    image: mongo:4.4
-    # MongoDB port exposure - DISABLED by default for security
-    # Uncomment the ports section below ONLY for local development/debugging
-    # ports:
-    #   - "127.0.0.1:27017:27017"
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-root}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-example}
-      MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-schedx}
-    volumes:
-      - mongo-data:/data/db
-      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
-    healthcheck:
-      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')", "--quiet"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 2G
-        reservations:
-          cpus: '0.5'
-          memory: 1G
-    networks:
-      - schedx-network
-
 volumes:
-  mongo-data:
+  db-data:
   uploads-data:
 
 networks:

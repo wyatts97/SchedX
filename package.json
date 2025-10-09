@@ -51,20 +51,20 @@
   "keywords": [
     "svelte",
     "sveltekit",
-    "mongodb",
+    "sqlite",
     "typescript",
     "twitter",
     "scheduling",
     "schedx"
   ],
-  "author": "SchedX Team",
+  "author": "wyatts97",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/schedx"
+    "url": "https://github.com/wyatts97/schedx"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/schedx/issues"
+    "url": "https://github.com/wyatts97/schedx/issues"
   },
   "dependencies": {
     "@sentry/node": "^10.18.0",
