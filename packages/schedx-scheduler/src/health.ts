@@ -67,7 +67,7 @@ async function checkConfiguration(): Promise<HealthCheck> {
 	
 	try {
 		// Check critical configuration
-		const criticalConfig = ['MONGODB_URI', 'AUTH_SECRET'];
+		const criticalConfig = ['DATABASE_PATH', 'AUTH_SECRET'];
 		const missingConfig = criticalConfig.filter(key => !process.env[key]);
 		
 		if (missingConfig.length > 0) {
@@ -85,7 +85,7 @@ async function checkConfiguration(): Promise<HealthCheck> {
 			status: 'healthy',
 			message: 'Configuration is valid',
 			details: {
-				mongodbUri: MONGODB_URI ? 'configured' : 'missing',
+				databasePath: DATABASE_PATH ? 'configured' : 'missing',
 				authSecret: AUTH_SECRET ? 'configured' : 'missing'
 			},
 			responseTime: Date.now() - startTime,

@@ -3,7 +3,6 @@ import { getDbInstance } from '$lib/server/db';
 import type { TwitterApp } from '@schedx/shared-lib/types/types';
 import logger, { log } from '$lib/server/logger';
 import { TwitterAuthService } from '$lib/server/twitterAuth';
-import { ObjectId } from 'mongodb';
 
 const twitterAuth = TwitterAuthService.getInstance();
 
@@ -155,8 +154,9 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
 			}
 		);
 	} catch (error) {
-		logger.error('Error creating Twitter app');
-		return new Response(JSON.stringify({ error: 'Failed to create app' }), {
+		const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+		logger.error({ error, errorMessage }, 'Error creating Twitter app');
+		return new Response(JSON.stringify({ error: errorMessage }), {
 			status: 500,
 			headers: { 'Content-Type': 'application/json' }
 		});
@@ -295,21 +295,20 @@ export const DELETE: RequestHandler = async ({ cookies, request }) => {
 	}
 
 	try {
-		const db = getDbInstance();
-		const user = await (db as any).getAdminUserByUsername('admin');
-		if (!user) {
-			return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
-		}
-
 		const data = await request.json();
 		if (!data.id) {
 			return new Response(JSON.stringify({ error: 'Missing id' }), { status: 400 });
 		}
-		const dbConn = await db.connect();
-		await dbConn.collection('twitter_apps').deleteOne({ _id: new ObjectId(data.id) });
+		
+		const db = getDbInstance();
+		await db.deleteTwitterApp(data.id);
+		
+		log.info('Twitter app deleted successfully', { appId: data.id });
+		
 		return new Response(JSON.stringify({ success: true }), { status: 200 });
 	} catch (error) {
-		logger.error('Error deleting Twitter app');
-		return new Response(JSON.stringify({ error: 'Failed to delete app' }), { status: 500 });
+		const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+		logger.error({ error, errorMessage }, 'Error deleting Twitter app');
+		return new Response(JSON.stringify({ error: errorMessage }), { status: 500 });
 	}
 };

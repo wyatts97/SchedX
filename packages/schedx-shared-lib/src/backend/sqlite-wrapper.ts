@@ -1,7 +1,11 @@
 import { randomUUID } from 'crypto';
+import { createRequire } from 'module';
 
-// Dynamic import for @journeyapps/sqlcipher to handle ESM/CJS compatibility
-let sqlite3Module: any;
+// Create require function for ES modules
+const require = createRequire(import.meta.url);
+
+// Import better-sqlite3
+const Database = require('better-sqlite3');
 
 export interface SqliteConfig {
   path: string;
@@ -10,7 +14,7 @@ export interface SqliteConfig {
 }
 
 /**
- * SQLite database wrapper with encryption support
+ * SQLite database wrapper (using better-sqlite3 - synchronous)
  */
 export class SqliteDatabase {
   private db: any = null;
@@ -28,34 +32,23 @@ export class SqliteDatabase {
       return this.db;
     }
 
-    // Lazy load the database module
-    if (!sqlite3Module) {
-      const sqlcipher = require('@journeyapps/sqlcipher');
-      // Use verbose mode if requested
-      sqlite3Module = this.config.verbose ? sqlcipher.verbose() : sqlcipher;
-    }
-
-    // Open database with encryption
-    // @journeyapps/sqlcipher uses the same API as node-sqlite3
-    this.db = new sqlite3Module.Database(this.config.path);
-
-    // Use serialize to ensure commands run in order
-    this.db.serialize(() => {
-      // Set cipher compatibility (SQLCipher 4.x)
-      this.db.run("PRAGMA cipher_compatibility = 4");
-      
-      // Set encryption key if provided (SQLCipher)
-      if (this.config.encryptionKey) {
-        this.db.run(`PRAGMA key = '${this.config.encryptionKey}'`);
-      }
-
-      // Performance optimizations
-      this.db.run('PRAGMA journal_mode = WAL');
-      this.db.run('PRAGMA synchronous = NORMAL');
-      this.db.run('PRAGMA cache_size = 10000');
-      this.db.run('PRAGMA temp_store = MEMORY');
-      this.db.run('PRAGMA foreign_keys = ON');
+    // Open database with better-sqlite3 (synchronous)
+    this.db = new Database(this.config.path, {
+      verbose: this.config.verbose ? console.log : undefined
     });
+
+    // Performance optimizations
+    this.db.pragma('journal_mode = WAL');
+    this.db.pragma('synchronous = NORMAL');
+    this.db.pragma('cache_size = 10000');
+    this.db.pragma('temp_store = MEMORY');
+    this.db.pragma('foreign_keys = ON');
+
+    // Note: better-sqlite3 doesn't support encryption natively
+    // For production, consider using SQLCipher build of better-sqlite3
+    if (this.config.encryptionKey) {
+      console.warn('Warning: Encryption key provided but better-sqlite3 does not support encryption by default');
+    }
 
     return this.db;
   }
@@ -71,43 +64,21 @@ export class SqliteDatabase {
   }
 
   /**
-   * Execute a query that returns rows (synchronous wrapper)
+   * Execute a query that returns rows (synchronous with better-sqlite3)
    */
   query<T = any>(sql: string, params: any[] = []): T[] {
     const db = this.connect();
-    let results: T[] = [];
-    
-    // Use synchronous execution with serialize
-    db.serialize(() => {
-      const stmt = db.prepare(sql);
-      stmt.all(params, (err: Error | null, rows: any[]) => {
-        if (err) throw err;
-        results = rows as T[];
-      });
-      stmt.finalize();
-    });
-    
-    // Wait for serialize to complete (it's synchronous in this context)
-    return results;
+    const stmt = db.prepare(sql);
+    return stmt.all(...params) as T[];
   }
 
   /**
-   * Execute a query that returns a single row (synchronous wrapper)
+   * Execute a query that returns a single row (synchronous)
    */
   queryOne<T = any>(sql: string, params: any[] = []): T | undefined {
     const db = this.connect();
-    let result: T | undefined;
-    
-    db.serialize(() => {
-      const stmt = db.prepare(sql);
-      stmt.get(params, (err: Error | null, row: any) => {
-        if (err) throw err;
-        result = row as T | undefined;
-      });
-      stmt.finalize();
-    });
-    
-    return result;
+    const stmt = db.prepare(sql);
+    return stmt.get(...params) as T | undefined;
   }
 
   /**
@@ -115,37 +86,17 @@ export class SqliteDatabase {
    */
   execute(sql: string, params: any[] = []): any {
     const db = this.connect();
-    let info: any = {};
-    
-    db.serialize(() => {
-      db.run(sql, params, function(this: any, err: Error | null) {
-        if (err) throw err;
-        info = { changes: this.changes, lastID: this.lastID };
-      });
-    });
-    
-    return info;
+    const stmt = db.prepare(sql);
+    return stmt.run(...params);
   }
 
   /**
-   * Execute multiple statements in a transaction
+   * Execute multiple statements in a transaction (synchronous)
    */
   transaction<T>(fn: () => T): T {
     const db = this.connect();
-    let result: T;
-    
-    db.serialize(() => {
-      db.run('BEGIN TRANSACTION');
-      try {
-        result = fn();
-        db.run('COMMIT');
-      } catch (error) {
-        db.run('ROLLBACK');
-        throw error;
-      }
-    });
-    
-    return result!;
+    const transaction = db.transaction(fn);
+    return transaction();
   }
 
   /**

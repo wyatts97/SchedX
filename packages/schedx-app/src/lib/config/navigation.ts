@@ -14,8 +14,8 @@ export const navigationConfig: NavigationConfig = {
 	main: [
 		{
 			href: '/',
-			label: 'Dashboard',
-			icon: `<rect width="18" height="18" x="3" y="3" rx="2" /><path d="M3 9h18" /><path d="M9 21V9" />`,
+			label: 'Home',
+			icon: `<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />`,
 			description: 'Overview and analytics'
 		},
 		{
@@ -70,8 +70,8 @@ export const navigationConfig: NavigationConfig = {
 	mobile: [
 		{
 			href: '/',
-			label: 'Dashboard',
-			icon: `<rect x="3" y="3" width="18" height="18" rx="2" fill="none" stroke="currentColor" /><path d="M3 9h18" /><path d="M9 21V9" />`
+			label: 'Home',
+			icon: `<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />`
 		},
 		{
 			href: '/queue',

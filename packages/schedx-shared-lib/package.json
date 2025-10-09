@@ -11,7 +11,8 @@
     ".": "./dist/index.js"
   },
   "scripts": {
-    "build": "rimraf dist/ && tsc",
+    "build": "rimraf dist/ && tsc && npm run copy:sql",
+    "copy:sql": "node -e \"require('fs').cpSync('src/backend/migrations', 'dist/backend/migrations', {recursive: true})\"",
     "dev": "tsc -w"
   },
   "keywords": [],
@@ -19,7 +20,7 @@
   "license": "ISC",
   "dependencies": {
     "@isaacs/brace-expansion": "^5.0.0",
-    "@journeyapps/sqlcipher": "^5.3.1",
+    "better-sqlite3": "^11.0.0",
     "minimatch": "^10.0.3",
     "mongodb": "^6.3.0",
     "resend": "^4.0.1",

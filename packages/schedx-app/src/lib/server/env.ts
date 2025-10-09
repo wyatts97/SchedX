@@ -1,4 +1,6 @@
 import { log } from './logger';
+import { resolve, dirname } from 'path';
+import { mkdirSync, existsSync } from 'fs';
 
 export interface EnvironmentConfig {
 	// Authentication
@@ -19,6 +21,28 @@ export interface EnvironmentConfig {
 }
 
 /**
+ * Resolve and prepare database path
+ */
+function prepareDatabasePath(dbPath: string): string {
+	// If relative path, resolve from project root
+	let resolvedPath = dbPath;
+	if (!dbPath.startsWith('/') && !dbPath.match(/^[A-Z]:\\/i)) {
+		// Relative path - resolve from project root
+		// We're in packages/schedx-app/src/lib/server, so go up 5 levels
+		resolvedPath = resolve(process.cwd(), dbPath);
+	}
+
+	// Ensure the directory exists
+	const dbDir = dirname(resolvedPath);
+	if (!existsSync(dbDir)) {
+		mkdirSync(dbDir, { recursive: true });
+		log.info('Created database directory', { path: dbDir });
+	}
+
+	return resolvedPath;
+}
+
+/**
  * Validate and load environment configuration
  */
 export function validateEnvironment(): EnvironmentConfig {
@@ -27,7 +51,7 @@ export function validateEnvironment(): EnvironmentConfig {
 		AUTH_SECRET: getRequiredEnv('AUTH_SECRET'),
 
 		// Database
-		DATABASE_PATH: getRequiredEnv('DATABASE_PATH'),
+		DATABASE_PATH: prepareDatabasePath(getRequiredEnv('DATABASE_PATH')),
 		DB_ENCRYPTION_KEY: getRequiredEnv('DB_ENCRYPTION_KEY'),
 
 		// Server

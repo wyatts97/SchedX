@@ -2,6 +2,13 @@ import { SqliteDatabase } from './sqlite-wrapper';
 import { TweetStatus, Tweet, UserAccount, Notification } from '../types/types';
 import { EncryptionService } from './encryption';
 import pino from 'pino';
+import { createRequire } from 'module';
+import { fileURLToPath } from 'url';
+
+// Create require function for ES modules
+const require = createRequire(import.meta.url);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = require('path').dirname(__filename);
 
 // Create logger for database operations
 const logger = pino({
@@ -40,8 +47,7 @@ export class DatabaseClient {
     try {
       // Import and run migrations synchronously
       const { readFileSync } = require('fs');
-      const { join, dirname } = require('path');
-      const { fileURLToPath } = require('url');
+      const { join } = require('path');
       
       // Try to load schema from multiple possible locations
       let schemaPath: string;
@@ -67,15 +73,22 @@ export class DatabaseClient {
         .map((s: string) => s.trim())
         .filter((s: string) => s.length > 0);
 
+      logger.info({ statementCount: statements.length }, 'Running database migrations');
+
       this.db.transaction(() => {
         for (const statement of statements) {
-          this.db.execute(statement + ';');
+          try {
+            this.db.execute(statement);
+          } catch (err) {
+            logger.error({ error: err, statement: statement.substring(0, 100) }, 'Failed to execute migration statement');
+            throw err;
+          }
         }
       });
       
-      logger.info('Database migrations completed');
+      logger.info('Database migrations completed successfully');
     } catch (error) {
-      logger.error({ error }, 'Migration failed - database may already be initialized');
+      logger.error({ error, message: error instanceof Error ? error.message : 'Unknown error' }, 'Migration failed - database may already be initialized');
       // Don't throw - database might already exist
     }
   }
@@ -185,8 +198,21 @@ export class DatabaseClient {
     onSuccess: boolean;
     onFailure: boolean;
   } | null> {
-    // For now, return null - email preferences need schema update
-    return null;
+    const user = this.db.queryOne<{ email: string; emailOnSuccess: number; emailOnFailure: number }>(
+      'SELECT email, emailOnSuccess, emailOnFailure FROM users WHERE id = ?',
+      [userId]
+    );
+    
+    if (!user) {
+      return null;
+    }
+    
+    return {
+      enabled: true,
+      email: user.email,
+      onSuccess: user.emailOnSuccess === 1,
+      onFailure: user.emailOnFailure === 1
+    };
   }
 
   async updateEmailNotificationPreferences(
@@ -198,7 +224,34 @@ export class DatabaseClient {
       onFailure?: boolean;
     }
   ): Promise<void> {
-    // For now, no-op - email preferences need schema update
+    const updates: string[] = [];
+    const params: any[] = [];
+    
+    if (preferences.email !== undefined) {
+      updates.push('email = ?');
+      params.push(preferences.email);
+    }
+    
+    if (preferences.onSuccess !== undefined) {
+      updates.push('emailOnSuccess = ?');
+      params.push(preferences.onSuccess ? 1 : 0);
+    }
+    
+    if (preferences.onFailure !== undefined) {
+      updates.push('emailOnFailure = ?');
+      params.push(preferences.onFailure ? 1 : 0);
+    }
+    
+    if (updates.length > 0) {
+      updates.push('updatedAt = ?');
+      params.push(Date.now());
+      params.push(userId);
+      
+      this.db.execute(
+        `UPDATE users SET ${updates.join(', ')} WHERE id = ?`,
+        params
+      );
+    }
   }
 
   // ============================================
@@ -853,8 +906,31 @@ export class DatabaseClient {
   }
 
   async getTemplates(userId: string, twitterAccountId?: string): Promise<Tweet[]> {
-    // Templates need schema update - return empty for now
-    return [];
+    // Templates are just tweets with status 'template'
+    const query = twitterAccountId
+      ? 'SELECT * FROM tweets WHERE userId = ? AND twitterAccountId = ? AND status = ? ORDER BY createdAt DESC'
+      : 'SELECT * FROM tweets WHERE userId = ? AND status = ? ORDER BY createdAt DESC';
+    
+    const params = twitterAccountId
+      ? [userId, twitterAccountId, 'template']
+      : [userId, 'template'];
+    
+    const templates = this.db.query<any>(query, params);
+    
+    return templates.map((t: any) => ({
+      id: t.id,
+      userId: t.userId,
+      twitterAccountId: t.twitterAccountId,
+      content: t.content,
+      scheduledDate: t.scheduledDate ? new Date(t.scheduledDate) : new Date(),
+      community: '',
+      status: t.status as TweetStatus,
+      twitterTweetId: t.twitterTweetId,
+      error: t.error,
+      media: t.media ? JSON.parse(t.media) : undefined,
+      createdAt: new Date(t.createdAt),
+      updatedAt: t.updatedAt ? new Date(t.updatedAt) : undefined
+    }));
   }
 
   // ============================================
@@ -923,8 +999,8 @@ export class DatabaseClient {
     const now = this.db.now();
     
     this.db.execute(
-      `INSERT INTO twitter_apps (id, userId, name, apiKey, apiSecret, bearerToken, clientId, clientSecret, isActive, createdAt, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO twitter_apps (id, userId, name, apiKey, apiSecret, bearerToken, bearerTokenSecret, clientId, clientSecret, callbackUrl, isActive, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         '',  // userId not in TwitterApp type
@@ -932,8 +1008,10 @@ export class DatabaseClient {
         app.consumerKey || app.clientId || '',
         app.consumerSecret || app.clientSecret || '',
         app.accessToken || '',
+        app.accessTokenSecret || '',
         app.clientId || '',
         app.clientSecret || '',
+        app.callbackUrl || '',
         1,
         now,
         now
@@ -999,8 +1077,8 @@ export class DatabaseClient {
       consumerKey: app.apiKey,
       consumerSecret: app.apiSecret,
       accessToken: app.bearerToken,
-      accessTokenSecret: '',
-      callbackUrl: '',
+      accessTokenSecret: app.bearerTokenSecret || '',
+      callbackUrl: app.callbackUrl || '',
       createdAt: new Date(app.createdAt),
       updatedAt: new Date(app.updatedAt)
     };
@@ -1017,8 +1095,8 @@ export class DatabaseClient {
       consumerKey: app.apiKey,
       consumerSecret: app.apiSecret,
       accessToken: app.bearerToken,
-      accessTokenSecret: '',
-      callbackUrl: '',
+      accessTokenSecret: app.bearerTokenSecret || '',
+      callbackUrl: app.callbackUrl || '',
       createdAt: new Date(app.createdAt),
       updatedAt: new Date(app.updatedAt)
     }));
@@ -1037,46 +1115,242 @@ export class DatabaseClient {
   }
 
   async getQueueSettings(userId: string): Promise<any | null> {
-    // Queue settings need separate table
-    return null;
+    const settings = this.db.queryOne<any>(
+      'SELECT * FROM queue_settings WHERE userId = ?',
+      [userId]
+    );
+    
+    if (!settings) {
+      return null;
+    }
+    
+    return {
+      id: settings.id,
+      userId: settings.userId,
+      timeSlots: JSON.parse(settings.timeSlots),
+      timezone: settings.timezone,
+      enabled: settings.enabled === 1,
+      createdAt: new Date(settings.createdAt),
+      updatedAt: settings.updatedAt ? new Date(settings.updatedAt) : null
+    };
   }
 
   async saveQueueSettings(settings: any): Promise<string> {
-    // Queue settings need separate table
-    return '';
+    const now = Date.now();
+    
+    // Check if settings already exist
+    const existing = this.db.queryOne<{ id: string }>(
+      'SELECT id FROM queue_settings WHERE userId = ?',
+      [settings.userId]
+    );
+    
+    if (existing) {
+      // Update existing settings
+      this.db.execute(
+        `UPDATE queue_settings SET timeSlots = ?, timezone = ?, enabled = ?, updatedAt = ?
+         WHERE userId = ?`,
+        [
+          JSON.stringify(settings.timeSlots),
+          settings.timezone || 'UTC',
+          settings.enabled ? 1 : 0,
+          now,
+          settings.userId
+        ]
+      );
+      return existing.id;
+    } else {
+      // Create new settings
+      const id = this.db.generateId();
+      this.db.execute(
+        `INSERT INTO queue_settings (id, userId, timeSlots, timezone, enabled, createdAt, updatedAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          settings.userId,
+          JSON.stringify(settings.timeSlots),
+          settings.timezone || 'UTC',
+          settings.enabled ? 1 : 0,
+          now,
+          now
+        ]
+      );
+      return id;
+    }
   }
 
   async saveThread(thread: any): Promise<string> {
-    // Threads need separate table
-    return '';
+    const now = Date.now();
+    
+    if (thread.id) {
+      // Update existing thread
+      this.db.execute(
+        `UPDATE threads SET title = ?, tweets = ?, status = ?, scheduledDate = ?, error = ?, updatedAt = ?
+         WHERE id = ?`,
+        [
+          thread.title || null,
+          JSON.stringify(thread.tweets),
+          thread.status || 'draft',
+          thread.scheduledDate ? new Date(thread.scheduledDate).getTime() : null,
+          thread.error || null,
+          now,
+          thread.id
+        ]
+      );
+      return thread.id;
+    } else {
+      // Create new thread
+      const id = this.db.generateId();
+      this.db.execute(
+        `INSERT INTO threads (id, userId, twitterAccountId, title, tweets, status, scheduledDate, error, createdAt, updatedAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          thread.userId,
+          thread.twitterAccountId,
+          thread.title || null,
+          JSON.stringify(thread.tweets),
+          thread.status || 'draft',
+          thread.scheduledDate ? new Date(thread.scheduledDate).getTime() : null,
+          thread.error || null,
+          now,
+          now
+        ]
+      );
+      return id;
+    }
   }
 
   async getThread(threadId: string): Promise<any | null> {
-    // Threads need separate table
-    return null;
+    const thread = this.db.queryOne<any>(
+      'SELECT * FROM threads WHERE id = ?',
+      [threadId]
+    );
+    
+    if (!thread) {
+      return null;
+    }
+    
+    return {
+      id: thread.id,
+      userId: thread.userId,
+      twitterAccountId: thread.twitterAccountId,
+      title: thread.title,
+      tweets: JSON.parse(thread.tweets),
+      status: thread.status,
+      scheduledDate: thread.scheduledDate ? new Date(thread.scheduledDate) : null,
+      twitterThreadId: thread.twitterThreadId,
+      error: thread.error,
+      createdAt: new Date(thread.createdAt),
+      updatedAt: thread.updatedAt ? new Date(thread.updatedAt) : null
+    };
   }
 
   async getThreads(userId: string, status?: any): Promise<any[]> {
-    // Threads need separate table
-    return [];
+    const query = status
+      ? 'SELECT * FROM threads WHERE userId = ? AND status = ? ORDER BY createdAt DESC'
+      : 'SELECT * FROM threads WHERE userId = ? ORDER BY createdAt DESC';
+    
+    const params = status ? [userId, status] : [userId];
+    const threads = this.db.query<any>(query, params);
+    
+    return threads.map((thread: any) => ({
+      id: thread.id,
+      userId: thread.userId,
+      twitterAccountId: thread.twitterAccountId,
+      title: thread.title,
+      tweets: JSON.parse(thread.tweets),
+      status: thread.status,
+      scheduledDate: thread.scheduledDate ? new Date(thread.scheduledDate) : null,
+      twitterThreadId: thread.twitterThreadId,
+      error: thread.error,
+      createdAt: new Date(thread.createdAt),
+      updatedAt: thread.updatedAt ? new Date(thread.updatedAt) : null
+    }));
   }
 
   async deleteThread(threadId: string): Promise<void> {
-    // Threads need separate table
+    this.db.execute('DELETE FROM threads WHERE id = ?', [threadId]);
   }
 
   async updateThreadStatus(threadId: string, status: any, twitterThreadId?: string): Promise<void> {
-    // Threads need separate table
+    const now = Date.now();
+    
+    if (twitterThreadId) {
+      this.db.execute(
+        'UPDATE threads SET status = ?, twitterThreadId = ?, updatedAt = ? WHERE id = ?',
+        [status, twitterThreadId, now, threadId]
+      );
+    } else {
+      this.db.execute(
+        'UPDATE threads SET status = ?, updatedAt = ? WHERE id = ?',
+        [status, now, threadId]
+      );
+    }
   }
 
   async getApiUsage(userId: string): Promise<{ posts: number; reads: number; month: string }> {
-    // API usage needs separate table
     const currentMonth = new Date().toISOString().slice(0, 7);
-    return { posts: 0, reads: 0, month: currentMonth };
+    
+    const usage = this.db.queryOne<{ posts: number; reads: number }>(
+      'SELECT posts, reads FROM api_usage WHERE userId = ? AND month = ?',
+      [userId, currentMonth]
+    );
+    
+    if (!usage) {
+      return { posts: 0, reads: 0, month: currentMonth };
+    }
+    
+    return {
+      posts: usage.posts,
+      reads: usage.reads,
+      month: currentMonth
+    };
   }
 
   async incrementApiUsage(userId: string, endpoint: string): Promise<void> {
-    // API usage needs separate table
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    const now = Date.now();
+    
+    // Check if usage record exists
+    const existing = this.db.queryOne<{ id: string; posts: number; reads: number }>(
+      'SELECT id, posts, reads FROM api_usage WHERE userId = ? AND month = ?',
+      [userId, currentMonth]
+    );
+    
+    if (existing) {
+      // Update existing record
+      const isPost = endpoint.includes('POST') || endpoint.includes('tweet') || endpoint.includes('thread');
+      
+      if (isPost) {
+        this.db.execute(
+          'UPDATE api_usage SET posts = posts + 1, updatedAt = ? WHERE id = ?',
+          [now, existing.id]
+        );
+      } else {
+        this.db.execute(
+          'UPDATE api_usage SET reads = reads + 1, updatedAt = ? WHERE id = ?',
+          [now, existing.id]
+        );
+      }
+    } else {
+      // Create new record
+      const id = this.db.generateId();
+      const isPost = endpoint.includes('POST') || endpoint.includes('tweet') || endpoint.includes('thread');
+      
+      this.db.execute(
+        `INSERT INTO api_usage (id, userId, month, posts, reads, createdAt, updatedAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          userId,
+          currentMonth,
+          isPost ? 1 : 0,
+          isPost ? 0 : 1,
+          now,
+          now
+        ]
+      );
+    }
   }
 
   async checkApiLimits(userId: string, plan: string = 'free'): Promise<{ allowed: boolean; reason?: string }> {
@@ -1085,19 +1359,40 @@ export class DatabaseClient {
   }
 
   async saveSession(sessionId: string, sessionData: any, expiresAt: Date): Promise<void> {
-    // Sessions need separate table
+    const now = Date.now();
+    const expiresAtMs = expiresAt.getTime();
+    
+    this.db.execute(
+      `INSERT OR REPLACE INTO sessions (id, data, expiresAt, createdAt) VALUES (?, ?, ?, ?)`,
+      [sessionId, JSON.stringify(sessionData), expiresAtMs, now]
+    );
   }
 
   async getSession(sessionId: string): Promise<any | null> {
-    // Sessions need separate table
-    return null;
+    const now = Date.now();
+    
+    const session = this.db.queryOne<{ id: string; data: string; expiresAt: number }>(
+      `SELECT id, data, expiresAt FROM sessions WHERE id = ? AND expiresAt > ?`,
+      [sessionId, now]
+    );
+    
+    if (!session) {
+      return null;
+    }
+    
+    return {
+      id: session.id,
+      data: JSON.parse(session.data),
+      expiresAt: new Date(session.expiresAt)
+    };
   }
 
   async deleteSession(sessionId: string): Promise<void> {
-    // Sessions need separate table
+    this.db.execute(`DELETE FROM sessions WHERE id = ?`, [sessionId]);
   }
 
   async cleanupExpiredSessions(): Promise<void> {
-    // Sessions need separate table
+    const now = Date.now();
+    this.db.execute(`DELETE FROM sessions WHERE expiresAt <= ?`, [now]);
   }
 }
