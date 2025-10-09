@@ -329,7 +329,10 @@
 								/>
 							</ErrorBoundary>
 							<ErrorBoundary errorId="quick-actions">
-								<QuickActions />
+								<QuickActions 
+									accounts={$dashboardStore.data.accounts}
+									tweets={$dashboardStore.data.tweets}
+								/>
 							</ErrorBoundary>
 						</div>
 					{:else if activeTab === 'twitter'}

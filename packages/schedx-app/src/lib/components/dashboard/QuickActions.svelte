@@ -1,72 +1,115 @@
 <script lang="ts">
-	import { Edit3, Users, FileText } from 'lucide-svelte';
+	import { Edit3, Calendar, FileText } from 'lucide-svelte';
+	import type { UserAccount, Tweet } from '$lib/types';
+
+	export let accounts: UserAccount[] = [];
+	export let tweets: Tweet[] = [];
+
+	// Calculate stats for each account
+	function getAccountStats(accountId: string) {
+		const accountTweets = tweets.filter(t => t.twitterAccountId === accountId);
+		return {
+			published: accountTweets.filter(t => t.status === 'posted').length,
+			scheduled: accountTweets.filter(t => t.status === 'scheduled').length,
+			drafts: accountTweets.filter(t => t.status === 'draft').length
+		};
+	}
 </script>
 
-<div class="theme-lightsout:bg-gray-900 rounded-lg bg-white shadow dark:bg-gray-800">
+<div class="rounded-lg bg-white shadow dark:bg-gray-800">
 	<div class="px-4 py-5 sm:p-6">
-		<h3
-			class="theme-lightsout:text-white mb-4 text-lg font-medium leading-6 text-gray-900 dark:text-white"
-		>
-			Quick Actions
+		<h3 class="mb-4 text-lg font-medium leading-6 text-gray-900 dark:text-white">
+			Connected Accounts
 		</h3>
-		<div class="grid grid-cols-1 gap-4">
-			<a
-				href="/post"
-				class="group flex items-center rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-all duration-200 hover:scale-[1.02] hover:border-blue-300 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-600"
-			>
-				<div class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 transition-colors group-hover:bg-blue-100 dark:bg-blue-900/20 dark:group-hover:bg-blue-900/30">
-					<Edit3 class="h-6 w-6 text-blue-600 dark:text-blue-400" />
-				</div>
-				<div class="ml-4 flex-1">
-					<p class="text-sm font-semibold text-gray-900 dark:text-white">
-						Create New Tweet
-					</p>
+		
+		<!-- Scrollable container -->
+		<div class="max-h-[600px] space-y-4 overflow-y-auto pr-2 scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400 dark:scrollbar-track-gray-800 dark:scrollbar-thumb-gray-600 dark:hover:scrollbar-thumb-gray-500 theme-lightsout:scrollbar-track-black theme-lightsout:scrollbar-thumb-gray-800 theme-lightsout:hover:scrollbar-thumb-gray-700">
+			{#if accounts && accounts.length > 0}
+				{#each accounts as account}
+					{@const stats = getAccountStats(account.providerAccountId)}
+					<div class="overflow-hidden rounded-xl border border-gray-200 bg-white transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-800">
+						<!-- Profile Header -->
+						<div class="relative">
+							<!-- Banner (placeholder gradient) -->
+							<div class="h-20 bg-gradient-to-r from-blue-400 to-purple-500"></div>
+							
+							<!-- Avatar -->
+							<div class="absolute -bottom-8 left-4">
+								<img
+									src={account.profileImage || '/avatar.png'}
+									alt={account.displayName || account.username}
+									class="h-16 w-16 rounded-full border-4 border-white dark:border-gray-800"
+								/>
+							</div>
+						</div>
+
+						<!-- Profile Info -->
+						<div class="px-4 pb-4 pt-10">
+							<div class="mb-3">
+								<h4 class="font-bold text-gray-900 dark:text-white">
+									{account.displayName || account.username}
+								</h4>
+								<p class="text-sm text-gray-500 dark:text-gray-400">
+									@{account.username}
+								</p>
+							</div>
+
+							<!-- Stats -->
+							<div class="mb-3 flex gap-4 text-sm">
+								<div>
+									<span class="font-semibold text-gray-900 dark:text-white">{stats.published}</span>
+									<span class="text-gray-500 dark:text-gray-400"> Published</span>
+								</div>
+								<div>
+									<span class="font-semibold text-gray-900 dark:text-white">{stats.scheduled}</span>
+									<span class="text-gray-500 dark:text-gray-400"> Scheduled</span>
+								</div>
+								<div>
+									<span class="font-semibold text-gray-900 dark:text-white">{stats.drafts}</span>
+									<span class="text-gray-500 dark:text-gray-400"> Drafts</span>
+								</div>
+							</div>
+
+							<!-- Action Buttons -->
+							<div class="flex gap-2">
+								<a
+									href="/post?account={account.id}"
+									class="flex-1 rounded-lg bg-blue-600 px-3 py-2.5 text-center text-sm font-semibold text-white shadow-sm transition-all hover:bg-blue-700 hover:shadow-md"
+								>
+									<Edit3 class="inline h-4 w-4 mr-1.5 -mt-0.5" />
+									Post
+								</a>
+								<a
+									href="/post?account={account.id}&action=schedule"
+									class="flex-1 rounded-lg bg-orange-600 px-3 py-2.5 text-center text-sm font-semibold text-white shadow-sm transition-all hover:bg-orange-700 hover:shadow-md dark:bg-orange-600 dark:hover:bg-orange-700"
+								>
+									<Calendar class="inline h-4 w-4 mr-1.5 -mt-0.5" />
+									Schedule
+								</a>
+								<a
+									href="/post?account={account.id}&action=draft"
+									class="flex-1 rounded-lg bg-purple-600 px-3 py-2.5 text-center text-sm font-semibold text-white shadow-sm transition-all hover:bg-purple-700 hover:shadow-md dark:bg-purple-600 dark:hover:bg-purple-700"
+								>
+									<FileText class="inline h-4 w-4 mr-1.5 -mt-0.5" />
+									Draft
+								</a>
+							</div>
+						</div>
+					</div>
+				{/each}
+			{:else}
+				<div class="py-8 text-center">
 					<p class="text-sm text-gray-500 dark:text-gray-400">
-						Schedule or post a new tweet
+						No accounts connected yet
 					</p>
+					<a
+						href="/accounts"
+						class="mt-4 inline-block rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+					>
+						Connect Account
+					</a>
 				</div>
-				<svg class="h-5 w-5 text-gray-400 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-				</svg>
-			</a>
-			<a
-				href="/accounts"
-				class="group flex items-center rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-all duration-200 hover:scale-[1.02] hover:border-purple-300 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 dark:hover:border-purple-600"
-			>
-				<div class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-purple-50 transition-colors group-hover:bg-purple-100 dark:bg-purple-900/20 dark:group-hover:bg-purple-900/30">
-					<Users class="h-6 w-6 text-purple-600 dark:text-purple-400" />
-				</div>
-				<div class="ml-4 flex-1">
-					<p class="text-sm font-semibold text-gray-900 dark:text-white">
-						Manage Accounts
-					</p>
-					<p class="text-sm text-gray-500 dark:text-gray-400">
-						View and configure Twitter accounts
-					</p>
-				</div>
-				<svg class="h-5 w-5 text-gray-400 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-				</svg>
-			</a>
-			<a
-				href="/templates"
-				class="group flex items-center rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-all duration-200 hover:scale-[1.02] hover:border-green-300 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 dark:hover:border-green-600"
-			>
-				<div class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-green-50 transition-colors group-hover:bg-green-100 dark:bg-green-900/20 dark:group-hover:bg-green-900/30">
-					<FileText class="h-6 w-6 text-green-600 dark:text-green-400" />
-				</div>
-				<div class="ml-4 flex-1">
-					<p class="text-sm font-semibold text-gray-900 dark:text-white">
-						Templates
-					</p>
-					<p class="text-sm text-gray-500 dark:text-gray-400">
-						Create and manage tweet templates
-					</p>
-				</div>
-				<svg class="h-5 w-5 text-gray-400 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-				</svg>
-			</a>
+			{/if}
 		</div>
 	</div>
 </div>

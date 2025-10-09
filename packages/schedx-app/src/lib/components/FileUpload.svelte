@@ -265,8 +265,8 @@
 		selectedGalleryIds.clear();
 
 		try {
-			const url = selectedAccountId ? `/api/gallery?accountId=${selectedAccountId}` : '/api/gallery';
-			const response = await fetch(url);
+			// Don't filter by account - show all media
+			const response = await fetch('/api/gallery');
 			if (response.ok) {
 				const data = await response.json();
 				galleryMedia = data.media || [];

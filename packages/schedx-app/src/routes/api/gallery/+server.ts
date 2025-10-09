@@ -5,7 +5,11 @@ import { readFileSync, existsSync } from 'fs';
 import path from 'path';
 import logger from '$lib/server/logger';
 
-const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
+// In Docker, uploads are at /app/packages/schedx-app/uploads
+// In dev, they're at process.cwd()/uploads
+const UPLOADS_DIR = process.env.NODE_ENV === 'production' 
+	? '/app/packages/schedx-app/uploads'
+	: path.join(process.cwd(), 'uploads');
 const MEDIA_METADATA_FILE = path.join(UPLOADS_DIR, 'media-metadata.json');
 
 interface MediaItem {
@@ -87,12 +91,16 @@ export const GET: RequestHandler = async ({ url }) => {
 		// Filter by account if specified
 		let filteredMedia = mediaFiles;
 		if (accountId) {
+			logger.info(`Filtering gallery by accountId: ${accountId}`);
+			logger.info(`Total media before filter: ${mediaFiles.length}`);
 			filteredMedia = mediaFiles.filter((media) => media.accountId === accountId);
+			logger.info(`Total media after filter: ${filteredMedia.length}`);
 		}
 
 		// Sort by upload date (newest first)
 		filteredMedia.sort((a, b) => b.uploadedAt.getTime() - a.uploadedAt.getTime());
 
+		logger.info(`Returning ${filteredMedia.length} media items`);
 		return json({ media: filteredMedia });
 	} catch (error) {
 		logger.error('Error fetching gallery media');

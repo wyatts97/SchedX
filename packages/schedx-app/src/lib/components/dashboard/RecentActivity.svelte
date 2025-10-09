@@ -17,6 +17,41 @@
 	function handleEditTweet(tweet: Tweet) {
 		dispatch('editTweet', tweet);
 	}
+
+	// Format timestamp like Twitter (e.g., "2h", "Oct 9", etc.)
+	function formatTwitterTime(date: Date): string {
+		const now = new Date();
+		const diffMs = now.getTime() - date.getTime();
+		const diffMins = Math.floor(diffMs / 60000);
+		const diffHours = Math.floor(diffMs / 3600000);
+		const diffDays = Math.floor(diffMs / 86400000);
+
+		if (diffMins < 1) return 'now';
+		if (diffMins < 60) return `${diffMins}m`;
+		if (diffHours < 24) return `${diffHours}h`;
+		if (diffDays < 7) return `${diffDays}d`;
+		
+		// For older tweets, show date like "Oct 9"
+		return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+	}
+
+	// Get the display time based on tweet status
+	function getDisplayTime(tweet: Tweet): string | null {
+		if (tweet.status === 'draft') return null;
+		
+		try {
+			if (tweet.status === 'posted') {
+				// For posted tweets, show time since posted (using createdAt or updatedAt)
+				const date = tweet.updatedAt || tweet.createdAt;
+				return date ? formatTwitterTime(new Date(date)) : null;
+			}
+			// For scheduled/queued, show the scheduled time as if it's posted
+			return tweet.scheduledDate ? formatTwitterTime(new Date(tweet.scheduledDate)) : null;
+		} catch (e) {
+			console.error('Error formatting time:', e);
+			return null;
+		}
+	}
 </script>
 
 <div class="rounded-lg bg-white shadow dark:bg-gray-800">
@@ -24,70 +59,51 @@
 		<h3 class="mb-4 text-lg font-medium leading-6 text-gray-900 dark:text-white">
 			Recent Activity
 		</h3>
-		<div class="space-y-4">
+		<!-- Scrollable container with custom scrollbar -->
+		<div class="max-h-[600px] space-y-4 overflow-y-auto pr-2 scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400 dark:scrollbar-track-gray-800 dark:scrollbar-thumb-gray-600 dark:hover:scrollbar-thumb-gray-500 theme-lightsout:scrollbar-track-black theme-lightsout:scrollbar-thumb-gray-800 theme-lightsout:hover:scrollbar-thumb-gray-700">
 			{#if tweets && tweets.length > 0}
 				{@const sortedTweets = [...tweets].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())}
 				{#each sortedTweets.slice(0, 5) as tweet}
 					{@const account = tweet.twitterAccountId ? accountByProviderId[tweet.twitterAccountId] : undefined}
-					<div class="flex items-start space-x-3 rounded-lg border border-gray-200 p-3 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800/50">
-						<!-- Account Avatar -->
-						<div class="flex-shrink-0">
-							<img
-								src={account?.profileImage || '/avatar.png'}
-								alt={account?.displayName || account?.username || 'Account'}
-							/>
-						</div>
-
-						<!-- Tweet Content -->
-						<div class="min-w-0 flex-1">
-							<!-- Account Name & Date/Time -->
-							<div class="mb-1 flex items-center gap-2">
-								<p class="text-sm font-semibold text-gray-900 dark:text-white">
-									{account?.displayName || account?.username || 'Unknown Account'}
-								</p>
-								<span class="text-xs text-gray-500 dark:text-gray-400">
-									{new Date(tweet.createdAt).toLocaleDateString()} at {new Date(tweet.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-								</span>
-							</div>
-
-							<!-- Tweet Text -->
-							<p class="text-sm text-gray-700 dark:text-gray-300">
-								{tweet.content}
-							</p>
-						</div>
-
-						<!-- Status Badge & Action Buttons Column -->
-						<div class="flex flex-col items-end gap-2">
-							<!-- Status Badge -->
-							<span
-								class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold {tweet.status === 'scheduled'
-									? 'bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/30'
-									: tweet.status === 'posted'
-										? 'bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20 dark:bg-green-500/10 dark:text-green-400 dark:ring-green-500/30'
+					{@const displayTime = getDisplayTime(tweet)}
+					<div class="group relative rounded-lg border border-gray-200 bg-white p-4 transition-all hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-800/80">
+						<!-- Status Badge & Actions - Top Right -->
+						<div class="absolute right-3 top-3 flex items-center gap-2">
+							<!-- Status Badge (clickable for posted tweets) -->
+							{#if tweet.status === 'posted' && account}
+								{@const tweetId = tweet.twitterTweetId || (tweet as any).twitterTweetId}
+								{#if tweetId}
+									<a
+										href="https://twitter.com/{account.username}/status/{tweetId}"
+										target="_blank"
+										rel="noopener noreferrer"
+										class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20 dark:bg-green-500/10 dark:text-green-400 dark:ring-green-500/30 hover:bg-green-100 dark:hover:bg-green-500/20 transition-colors cursor-pointer"
+										title="View on Twitter"
+									>
+										Posted
+										<ExternalLink class="h-3 w-3" />
+									</a>
+								{:else}
+									<span
+										class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20 dark:bg-green-500/10 dark:text-green-400 dark:ring-green-500/30"
+									>
+										Posted
+									</span>
+								{/if}
+							{:else}
+								<span
+									class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold {tweet.status === 'scheduled'
+										? 'bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/30'
 										: tweet.status === 'draft'
 											? 'bg-gray-50 text-gray-700 ring-1 ring-inset ring-gray-600/20 dark:bg-gray-500/10 dark:text-gray-400 dark:ring-gray-500/30'
 											: 'bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20 dark:bg-red-500/10 dark:text-red-400 dark:ring-red-500/30'}"
-							>
-								{tweet.status === 'scheduled'
-									? 'Scheduled'
-									: tweet.status === 'posted'
-										? 'Posted'
+								>
+									{tweet.status === 'scheduled'
+										? 'Scheduled'
 										: tweet.status === 'draft'
 											? 'Draft'
 											: 'Failed'}
-							</span>
-
-							<!-- View Tweet Button (for posted tweets) -->
-							{#if tweet.status === 'posted' && account}
-								<a
-									href="https://twitter.com/{account.username}/status/{(tweet as any).twitterTweetId || (tweet as any).id}"
-									target="_blank"
-									rel="noopener noreferrer"
-									class="inline-flex items-center gap-1.5 rounded-md bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30"
-								>
-									<ExternalLink class="h-3 w-3" />
-									View Tweet
-								</a>
+								</span>
 							{/if}
 
 							<!-- Edit Button (for scheduled/draft tweets) -->
@@ -95,12 +111,62 @@
 								<button
 									type="button"
 									on:click={() => handleEditTweet(tweet)}
-									class="inline-flex items-center gap-1.5 rounded-md bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+									class="inline-flex items-center gap-1 rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+									title="Edit tweet"
 								>
 									<Edit class="h-3 w-3" />
-									Edit
 								</button>
 							{/if}
+						</div>
+
+						<!-- Twitter-style tweet preview -->
+						<div class="flex gap-3 pr-24">
+							<!-- Avatar -->
+							<div class="flex-shrink-0">
+								<img
+									src={account?.profileImage || '/avatar.png'}
+									alt={account?.displayName || account?.username || 'Account'}
+									class="h-10 w-10 rounded-full"
+								/>
+							</div>
+
+							<!-- Tweet content -->
+							<div class="min-w-0 flex-1">
+								<!-- Header: Name, username, time -->
+								<div class="mb-1 flex items-center gap-1.5 text-sm">
+									<span class="font-bold text-gray-900 dark:text-white">
+										{account?.displayName || account?.username || 'Unknown'}
+									</span>
+									<span class="text-gray-500 dark:text-gray-400">
+										@{account?.username || 'unknown'}
+									</span>
+									{#if displayTime}
+										<span class="text-gray-500 dark:text-gray-400">·</span>
+										<span class="text-gray-500 dark:text-gray-400">
+											{displayTime}
+										</span>
+									{/if}
+								</div>
+
+								<p class="whitespace-pre-wrap text-sm text-gray-900 dark:text-white">
+									{tweet.content}
+								</p>
+
+								<!-- Media preview if present -->
+								{#if tweet.media && tweet.media.length > 0}
+									<div class="mt-3 grid gap-2 {tweet.media.length === 1 ? 'grid-cols-1' : tweet.media.length === 2 ? 'grid-cols-2' : 'grid-cols-2'}">
+										{#each tweet.media.slice(0, 4) as media}
+											<div class="overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700">
+												<img
+													src={media.url}
+													alt="Tweet media"
+													class="{tweet.media.length === 1 ? 'max-h-64' : 'h-32'} w-full object-cover"
+												/>
+											</div>
+										{/each}
+									</div>
+								{/if}
+							</div>
 						</div>
 					</div>
 				{/each}

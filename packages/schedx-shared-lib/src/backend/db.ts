@@ -98,6 +98,7 @@ export class DatabaseClient {
       createdAt: new Date(tweet.createdAt),
       updatedAt: tweet.updatedAt ? new Date(tweet.updatedAt) : undefined,
       twitterAccountId: tweet.twitterAccountId,
+      twitterTweetId: tweet.twitterTweetId,
       media: tweet.media || []
     }));
   }
@@ -681,6 +682,7 @@ export class DatabaseClient {
       createdAt: new Date(tweet.createdAt),
       updatedAt: tweet.updatedAt ? new Date(tweet.updatedAt) : undefined,
       twitterAccountId: tweet.twitterAccountId,
+      twitterTweetId: tweet.twitterTweetId,
       error: tweet.error,
       media: tweet.media || []
     }));
