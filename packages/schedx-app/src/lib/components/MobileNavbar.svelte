@@ -48,14 +48,14 @@
 	<div
 		class="relative flex w-full justify-between overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-lg dark:border-white dark:bg-gray-800"
 	>
-		{#each navigationConfig.mobile as item, index}
+		<!-- Left side items (first 3) -->
+		{#each navigationConfig.mobile.slice(0, 3) as item}
 			<a
 				href={item.href}
-				class="inline-flex flex-grow flex-col items-center px-2 py-3 text-xs font-medium text-blue-600 dark:text-white"
-				class:invisible={index === 3}
+				class="inline-flex flex-1 flex-col items-center justify-center gap-1 py-2 text-xs font-medium text-blue-600 dark:text-white"
 			>
 				<svg
-					class="mobile-navbar-icon h-6 w-6 transition-all duration-200 hover:drop-shadow-[0_0_8px_#1da1f2] dark:hover:drop-shadow-[0_0_8px_#60a5fa]"
+					class="mobile-navbar-icon h-5 w-5 transition-all duration-200 hover:drop-shadow-[0_0_8px_#1da1f2] dark:hover:drop-shadow-[0_0_8px_#60a5fa]"
 					fill="none"
 					stroke="currentColor"
 					stroke-width="2"
@@ -65,7 +65,31 @@
 				>
 					{@html item.icon}
 				</svg>
-				<span class="sr-only">{item.label}</span>
+				<span class="text-[10px]">{item.label}</span>
+			</a>
+		{/each}
+		
+		<!-- Spacer for center button -->
+		<div class="flex-1"></div>
+		
+		<!-- Right side items (last 3) -->
+		{#each navigationConfig.mobile.slice(3) as item}
+			<a
+				href={item.href}
+				class="inline-flex flex-1 flex-col items-center justify-center gap-1 py-2 text-xs font-medium text-blue-600 dark:text-white"
+			>
+				<svg
+					class="mobile-navbar-icon h-5 w-5 transition-all duration-200 hover:drop-shadow-[0_0_8px_#1da1f2] dark:hover:drop-shadow-[0_0_8px_#60a5fa]"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					viewBox="0 0 24 24"
+				>
+					{@html item.icon}
+				</svg>
+				<span class="text-[10px]">{item.label}</span>
 			</a>
 		{/each}
 	</div>

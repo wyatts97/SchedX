@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
-	import { Plus, X, GripVertical, Image as ImageIcon } from 'lucide-svelte';
+	import { createEventDispatcher, onMount } from 'svelte';
+	import { Plus, X, GripVertical, Image as ImageIcon, Smile } from 'lucide-svelte';
 	import { toastStore } from '$lib/stores/toastStore';
 	import FileUpload from '$lib/components/FileUpload.svelte';
 
@@ -22,8 +22,39 @@
 
 	let autoNumbering = true;
 	let numberingStyle: '1/5' | '(1/5)' | '[1/5]' | '1.' = '1/5';
+	let showEmojiPicker: { [key: number]: boolean } = {};
+	let textareaRefs: { [key: number]: HTMLTextAreaElement } = {};
 
 	$: totalTweets = tweets.length;
+
+	onMount(async () => {
+		if (typeof window !== 'undefined') {
+			await import('emoji-picker-element');
+		}
+	});
+
+	function handleEmojiSelect(index: number, event: any) {
+		const emoji = event.detail.unicode;
+		if (textareaRefs[index]) {
+			const textarea = textareaRefs[index];
+			const start = textarea.selectionStart;
+			const end = textarea.selectionEnd;
+			const text = tweets[index].content;
+			tweets[index].content = text.substring(0, start) + emoji + text.substring(end);
+			showEmojiPicker[index] = false;
+			
+			// Restore cursor position
+			setTimeout(() => {
+				textarea.focus();
+				textarea.setSelectionRange(start + emoji.length, start + emoji.length);
+			}, 0);
+		}
+	}
+
+	function toggleEmojiPicker(index: number) {
+		showEmojiPicker[index] = !showEmojiPicker[index];
+		showEmojiPicker = { ...showEmojiPicker }; // Trigger reactivity
+	}
 
 	function addTweet() {
 		if (tweets.length >= maxTweets) {
@@ -136,7 +167,7 @@
 	<!-- Thread Tweets -->
 	<div class="space-y-3">
 		{#each tweets as tweet, index (tweet.position)}
-			<div class="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+			<div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
 				<div class="mb-2 flex items-center justify-between">
 					<div class="flex items-center gap-2">
 						<GripVertical class="h-4 w-4 text-gray-400" />
@@ -172,13 +203,29 @@
 					</div>
 				</div>
 
-				<textarea
-					bind:value={tweet.content}
-					placeholder="What's happening?"
-					rows="3"
-					maxlength="280"
-					class="block w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
-				></textarea>
+				<div class="relative">
+					<textarea
+						bind:this={textareaRefs[index]}
+						bind:value={tweet.content}
+						placeholder="What's happening?"
+						rows="3"
+						maxlength="280"
+						class="block w-full rounded-lg border-2 border-gray-300 bg-white px-3 py-2 shadow-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
+					></textarea>
+					<button
+						type="button"
+						class="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-600 transition-colors hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500"
+						on:click={() => toggleEmojiPicker(index)}
+						title="Add emoji"
+					>
+						<Smile class="h-4 w-4" />
+					</button>
+					{#if showEmojiPicker[index]}
+						<div class="absolute right-0 top-full z-50 mt-2">
+							<emoji-picker on:emoji-click={(e: any) => handleEmojiSelect(index, e)}></emoji-picker>
+						</div>
+					{/if}
+				</div>
 
 				<!-- Media Upload for this tweet -->
 				<div class="mt-2">

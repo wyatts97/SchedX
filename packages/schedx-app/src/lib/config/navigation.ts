@@ -27,7 +27,7 @@ export const navigationConfig: NavigationConfig = {
 		{
 			href: '/thread',
 			label: 'Thread',
-			icon: `<path d="M4 6h16M4 12h16M4 18h16" /><circle cx="20" cy="6" r="2" /><circle cx="20" cy="18" r="2" />`,
+			icon: `<line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><circle cx="4" cy="6" r="1" /><circle cx="4" cy="12" r="1" /><circle cx="4" cy="18" r="1" /><line x1="4" y1="7" x2="4" y2="11" /><line x1="4" y1="13" x2="4" y2="17" />`,
 			description: 'Create tweet threads'
 		},
 		{
@@ -86,7 +86,7 @@ export const navigationConfig: NavigationConfig = {
 		{
 			href: '/thread',
 			label: 'Thread',
-			icon: `<path d="M4 6h16M4 12h16M4 18h16" /><circle cx="20" cy="6" r="2" /><circle cx="20" cy="18" r="2" />`
+			icon: `<line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><circle cx="4" cy="6" r="1" /><circle cx="4" cy="12" r="1" /><circle cx="4" cy="18" r="1" /><line x1="4" y1="7" x2="4" y2="11" /><line x1="4" y1="13" x2="4" y2="17" />`
 		},
 		{
 			href: '/scheduled',

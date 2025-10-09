@@ -12,7 +12,7 @@
 	import flatpickr from 'flatpickr';
 	import 'flatpickr/dist/flatpickr.css';
 	import FileUpload from '$lib/components/FileUpload.svelte';
-	import { CheckCircle, XCircle, Loader2 } from 'lucide-svelte';
+	import { CheckCircle, XCircle, Loader2, Save, FileText, ListPlus, Calendar, Send } from 'lucide-svelte';
 	import logger from '$lib/logger';
 	import { toastStore } from '$lib/stores/toastStore';
 
@@ -375,7 +375,7 @@
 	</div>
 	<textarea
 		id="tweet-content"
-		class="block w-full rounded-lg border-gray-200 px-3 py-2 focus:border-blue-500 focus:ring-blue-500 disabled:pointer-events-none disabled:opacity-50 dark:border-neutral-700 dark:bg-gray-700 dark:text-white dark:placeholder-neutral-500 dark:focus:ring-neutral-600 sm:px-4 sm:py-3 sm:text-sm"
+		class="block w-full rounded-lg border-2 border-gray-300 bg-white px-3 py-2 shadow-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:pointer-events-none disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 sm:px-4 sm:py-3 sm:text-sm"
 		rows="3"
 		maxlength="280"
 		placeholder="What's happening?"
@@ -410,8 +410,9 @@
 		<input
 			id="schedule-date"
 			type="text"
-			class="block w-full rounded-lg border-gray-200 px-3 py-2 focus:border-blue-500 focus:ring-blue-500 dark:border-neutral-700 dark:bg-gray-700 dark:text-white sm:text-sm"
+			class="block w-full rounded-lg border-2 border-gray-300 bg-white px-3 py-2 shadow-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
 			bind:this={dateInputEl}
+			placeholder="Select date and time"
 			readonly
 			disabled={submitting}
 		/>
@@ -422,7 +423,7 @@
 		>
 		<select
 			id="recurrence"
-			class="block w-full rounded-lg border-gray-200 px-3 py-2 focus:border-blue-500 focus:ring-blue-500 dark:border-neutral-700 dark:bg-gray-700 dark:text-white sm:text-sm"
+			class="block w-full rounded-lg border-2 border-gray-300 bg-white px-3 py-2 shadow-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
 			bind:value={recurrence}
 			disabled={submitting}
 		>
@@ -491,72 +492,84 @@
 {/if}
 
 <!-- Button Group -->
-<div class="shadow-2xs mt-4 flex flex-col gap-2 rounded-lg sm:inline-flex sm:flex-row">
+<div class="mt-4 flex flex-wrap gap-3">
 	{#if mode === 'schedule' || mode === 'edit'}
 		<button
 			type="button"
-			class="shadow-2xs focus:outline-hidden inline-flex items-center gap-x-2 border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-green-600 hover:bg-green-50 focus:z-10 focus:bg-green-50 disabled:pointer-events-none disabled:opacity-50 dark:border-neutral-700 dark:bg-gray-700 dark:text-green-400 dark:hover:bg-gray-600 dark:focus:bg-neutral-800"
+			class="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
 			on:click={() => handleSubmit(mode === 'edit' ? 'update' : 'schedule')}
 			disabled={submitting}
 		>
 			{#if submitting && (currentAction === 'schedule' || currentAction === 'update')}
 				<Loader2 class="h-4 w-4 animate-spin" />
+			{:else}
+				<Calendar class="h-4 w-4" />
 			{/if}
 			{mode === 'edit' ? 'Update Schedule' : 'Schedule'}
 		</button>
 	{:else}
 		<button
 			type="button"
-			class="shadow-2xs focus:outline-hidden inline-flex items-center gap-x-2 border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-blue-600 hover:bg-blue-50 focus:z-10 focus:bg-blue-50 disabled:pointer-events-none disabled:opacity-50 dark:border-neutral-700 dark:bg-gray-700 dark:text-blue-400 dark:hover:bg-gray-600 dark:focus:bg-neutral-800"
+			class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all duration-200 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
 			on:click={() => handleSubmit('template')}
 			disabled={submitting}
 		>
 			{#if submitting && currentAction === 'template'}
 				<Loader2 class="h-4 w-4 animate-spin" />
+			{:else}
+				<FileText class="h-4 w-4" />
 			{/if}
 			Save Template
 		</button>
 		<button
 			type="button"
-			class="shadow-2xs focus:outline-hidden inline-flex items-center gap-x-2 border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-purple-600 hover:bg-purple-50 focus:z-10 focus:bg-purple-50 disabled:pointer-events-none disabled:opacity-50 dark:border-neutral-700 dark:bg-gray-700 dark:text-purple-400 dark:hover:bg-gray-600 dark:focus:bg-neutral-800"
+			class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all duration-200 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
 			on:click={() => handleSubmit('draft')}
 			disabled={submitting}
 		>
 			{#if submitting && currentAction === 'draft'}
 				<Loader2 class="h-4 w-4 animate-spin" />
+			{:else}
+				<Save class="h-4 w-4" />
 			{/if}
 			Save Draft
 		</button>
 		<button
 			type="button"
-			class="shadow-2xs focus:outline-hidden inline-flex items-center gap-x-2 border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-orange-600 hover:bg-orange-50 focus:z-10 focus:bg-orange-50 disabled:pointer-events-none disabled:opacity-50 dark:border-neutral-700 dark:bg-gray-700 dark:text-orange-400 dark:hover:bg-gray-600 dark:focus:bg-neutral-800"
+			class="inline-flex items-center gap-2 rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-50"
 			on:click={() => handleSubmit('queue')}
 			disabled={submitting}
 		>
 			{#if submitting && currentAction === 'queue'}
 				<Loader2 class="h-4 w-4 animate-spin" />
+			{:else}
+				<ListPlus class="h-4 w-4" />
 			{/if}
 			Add to Queue
 		</button>
 		<button
 			type="button"
-			class="shadow-2xs focus:outline-hidden inline-flex items-center gap-x-2 border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-green-600 hover:bg-green-50 focus:z-10 focus:bg-green-50 disabled:pointer-events-none disabled:opacity-50 dark:border-neutral-700 dark:bg-gray-700 dark:text-green-400 dark:hover:bg-gray-600 dark:focus:bg-neutral-800"
+			class="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
 			on:click={() => handleSubmit('schedule')}
 			disabled={submitting}
 		>
 			{#if submitting && currentAction === 'schedule'}
 				<Loader2 class="h-4 w-4 animate-spin" />
+			{:else}
+				<Calendar class="h-4 w-4" />
 			{/if}
 			Schedule
 		</button>
 		<button
 			type="button"
-			class="shadow-2xs focus:outline-hidden inline-flex items-center gap-x-2 border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 focus:z-10 focus:bg-red-50 disabled:pointer-events-none disabled:opacity-50 dark:border-neutral-700 dark:bg-gray-700 dark:text-red-400 dark:hover:bg-gray-600 dark:focus:bg-neutral-800"
+			class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
 			on:click={() => handleSubmit('publish')}
 			disabled={submitting}
 		>
 			{#if submitting && currentAction === 'publish'}
 				<Loader2 class="h-4 w-4 animate-spin" />
+			{:else}
+				<Send class="h-4 w-4" />
 			{/if}
 			Publish Now
 		</button>

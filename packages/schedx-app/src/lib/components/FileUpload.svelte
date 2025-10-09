@@ -422,7 +422,7 @@
 </script>
 
 <div class="mx-auto max-w-xl">
-	<h2 class="mb-4 text-xl font-semibold text-gray-900 dark:text-white">Media Upload (Auto)</h2>
+	<h2 class="mb-4 text-xl font-semibold text-gray-900 dark:text-white">Media Upload</h2>
 
 	<!-- File Input Section -->
 	<div class="mb-4">

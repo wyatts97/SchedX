@@ -17,7 +17,7 @@ export const load: PageServerLoad = async ({ cookies }) => {
 	}
 
 	// Fetch connected Twitter accounts
-	const accounts = await db.getAccounts('admin');
+	const accounts = await db.getUserAccounts('admin');
 
 	return {
 		accounts: accounts || [],
