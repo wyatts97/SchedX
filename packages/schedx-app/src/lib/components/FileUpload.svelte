@@ -50,6 +50,12 @@
 	let fileInput: HTMLInputElement;
 	let dropZone: HTMLDivElement;
 
+	// Gallery selection
+	let showGalleryModal = false;
+	let galleryMedia: any[] = [];
+	let loadingGallery = false;
+	let selectedGalleryIds = new Set<string>();
+
 	// Load initial media on mount (for edit mode)
 	onMount(() => {
 		if (initialMedia && initialMedia.length > 0) {
@@ -252,6 +258,65 @@
 		}
 	}
 
+	// Gallery selection functions
+	async function openGalleryModal() {
+		showGalleryModal = true;
+		loadingGallery = true;
+		selectedGalleryIds.clear();
+
+		try {
+			const url = selectedAccountId ? `/api/gallery?accountId=${selectedAccountId}` : '/api/gallery';
+			const response = await fetch(url);
+			if (response.ok) {
+				const data = await response.json();
+				galleryMedia = data.media || [];
+			}
+		} catch (error) {
+			console.error('Failed to load gallery:', error);
+		} finally {
+			loadingGallery = false;
+		}
+	}
+
+	function toggleGallerySelection(mediaId: string) {
+		if (selectedGalleryIds.has(mediaId)) {
+			selectedGalleryIds.delete(mediaId);
+		} else {
+			// Check if we've reached max files
+			if (mediaFiles.length + selectedGalleryIds.size >= maxFiles) {
+				return;
+			}
+			selectedGalleryIds.add(mediaId);
+		}
+		selectedGalleryIds = selectedGalleryIds; // Trigger reactivity
+	}
+
+	function addSelectedFromGallery() {
+		const selectedMedia = galleryMedia.filter(m => selectedGalleryIds.has(m.id));
+		
+		selectedMedia.forEach(media => {
+			mediaFiles = [...mediaFiles, {
+				url: media.url,
+				type: media.type as 'image' | 'video' | 'photo' | 'gif',
+				file: null as any,
+				name: media.filename,
+				size: media.fileSize || 0,
+				uploaded: true
+			}];
+		});
+
+		// Dispatch change event
+		const mediaForDispatch = mediaFiles.map((m) => ({
+			url: m.url,
+			type: m.type === 'image' ? 'photo' : m.type
+		}));
+		dispatch('changeMedia', mediaForDispatch as any);
+
+		// Close modal and reset
+		showGalleryModal = false;
+		selectedGalleryIds.clear();
+	}
+
 	async function uploadFiles() {
 		if (files.length === 0 || uploading) return;
 
@@ -402,6 +467,21 @@
 						maxFileSize / (1024 * 1024)
 					)}MB • Auto-upload
 				</p>
+
+				<!-- Gallery Selection Button -->
+				<button
+					type="button"
+					on:click={openGalleryModal}
+					disabled={uploading || disabled || mediaFiles.length >= maxFiles}
+					class="mt-3 inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+				>
+					<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+						<circle cx="9" cy="9" r="2" />
+						<path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+					</svg>
+					Select from Gallery
+				</button>
 			</div>
 
 			<!-- Hidden File Input -->
@@ -517,3 +597,90 @@
 		</div>
 	{/if}
 </div>
+
+<!-- Gallery Selection Modal -->
+{#if showGalleryModal}
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" on:click={() => showGalleryModal = false}>
+		<div class="max-h-[80vh] w-full max-w-4xl overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-gray-800" on:click|stopPropagation>
+			<!-- Modal Header -->
+			<div class="flex items-center justify-between border-b border-gray-200 p-4 dark:border-gray-700">
+				<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Select from Gallery</h3>
+				<button
+					on:click={() => showGalleryModal = false}
+					class="rounded-lg p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+				>
+					<X class="h-5 w-5" />
+				</button>
+			</div>
+
+			<!-- Modal Body -->
+			<div class="max-h-[60vh] overflow-y-auto p-4">
+				{#if loadingGallery}
+					<div class="flex items-center justify-center py-12">
+						<div class="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
+					</div>
+				{:else if galleryMedia.length === 0}
+					<div class="py-12 text-center">
+						<p class="text-gray-500 dark:text-gray-400">No media in gallery</p>
+					</div>
+				{:else}
+					<div class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+						{#each galleryMedia as media}
+							<button
+								type="button"
+								on:click={() => toggleGallerySelection(media.id)}
+								class="group relative aspect-square overflow-hidden rounded-lg border-2 transition-all {selectedGalleryIds.has(media.id) ? 'border-blue-500 ring-2 ring-blue-500' : 'border-gray-200 hover:border-gray-300 dark:border-gray-700'}"
+								disabled={!selectedGalleryIds.has(media.id) && mediaFiles.length + selectedGalleryIds.size >= maxFiles}
+							>
+								{#if media.type === 'video'}
+									<video src={media.url} class="h-full w-full object-cover" />
+									<div class="absolute inset-0 flex items-center justify-center bg-black/30">
+										<svg class="h-8 w-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+											<path d="M8 5v14l11-7z" />
+										</svg>
+									</div>
+								{:else}
+									<img src={media.url} alt={media.filename} class="h-full w-full object-cover" />
+								{/if}
+
+								<!-- Selection Indicator -->
+								{#if selectedGalleryIds.has(media.id)}
+									<div class="absolute right-2 top-2 rounded-full bg-blue-600 p-1">
+										<CheckCircle class="h-4 w-4 text-white" />
+									</div>
+								{/if}
+
+								<!-- Disabled Overlay -->
+								{#if !selectedGalleryIds.has(media.id) && mediaFiles.length + selectedGalleryIds.size >= maxFiles}
+									<div class="absolute inset-0 bg-gray-900/50"></div>
+								{/if}
+							</button>
+						{/each}
+					</div>
+				{/if}
+			</div>
+
+			<!-- Modal Footer -->
+			<div class="flex items-center justify-between border-t border-gray-200 p-4 dark:border-gray-700">
+				<p class="text-sm text-gray-600 dark:text-gray-400">
+					{selectedGalleryIds.size} selected • {maxFiles - mediaFiles.length} slots available
+				</p>
+				<div class="flex gap-2">
+					<button
+						on:click={() => showGalleryModal = false}
+						class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+					>
+						Cancel
+					</button>
+					<button
+						on:click={addSelectedFromGallery}
+						disabled={selectedGalleryIds.size === 0}
+						class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+					>
+						Add Selected ({selectedGalleryIds.size})
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+{/if}

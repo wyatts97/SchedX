@@ -74,19 +74,24 @@ export const navigationConfig: NavigationConfig = {
 			icon: `<rect x="3" y="3" width="18" height="18" rx="2" fill="none" stroke="currentColor" /><path d="M3 9h18" /><path d="M9 21V9" />`
 		},
 		{
+			href: '/queue',
+			label: 'Queue',
+			icon: `<path d="M3 12h18" /><path d="M3 6h18" /><path d="M3 18h18" />`
+		},
+		{
 			href: '/drafts',
 			label: 'Drafts',
 			icon: `<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14,2 14,8 20,8" />`
 		},
 		{
+			href: '/thread',
+			label: 'Thread',
+			icon: `<path d="M4 6h16M4 12h16M4 18h16" /><circle cx="20" cy="6" r="2" /><circle cx="20" cy="18" r="2" />`
+		},
+		{
 			href: '/scheduled',
 			label: 'Scheduled',
 			icon: `<circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" /><polyline points="12,6 12,12 16,14" />`
-		},
-		{
-			href: '/gallery',
-			label: 'Gallery',
-			icon: `<rect width="18" height="18" x="3" y="3" rx="2" ry="2" fill="none" stroke="currentColor" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />`
 		},
 		{
 			href: '/history',

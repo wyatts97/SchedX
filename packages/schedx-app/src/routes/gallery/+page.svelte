@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
-	import { Search, X, Trash2, Loader2, CheckCircle } from 'lucide-svelte';
+	import { Search, X, Trash2, Loader2, CheckCircle, Upload as UploadIcon } from 'lucide-svelte';
 	import VideoModal from '$lib/components/VideoModal.svelte';
+	import FileUpload from '$lib/components/FileUpload.svelte';
 	import logger from '$lib/logger';
 
 	interface MediaItem {
@@ -46,6 +47,9 @@
 	let isSelectMode = false;
 	let isSelectAll = false;
 
+	// Upload section
+	let showUploadSection = false;
+
 	// Fetch accounts
 	async function fetchAccounts() {
 		try {
@@ -55,7 +59,7 @@
 				accounts = data.accounts || [];
 			}
 		} catch (err) {
-			logger.error('Failed to fetch accounts:', err);
+			logger.error('Failed to fetch accounts:', err instanceof Error ? { error: err.message } : { error: String(err) });
 		}
 	}
 
@@ -116,24 +120,26 @@
 		};
 		showDeleteConfirm = true;
 	}
-
+	
 	function closeDeleteConfirm() {
 		showDeleteConfirm = false;
 		mediaToDelete = null;
 	}
 
-	async function confirmDelete() {
+	async function confirmDeleteMedia() {
 		if (!mediaToDelete) return;
 
+		const mediaToDeleteCopy = mediaToDelete; // Store in local variable for type safety
+
 		try {
-			deletingMediaId = mediaToDelete.id;
+			deletingMediaId = mediaToDeleteCopy.id;
 			deleteError = '';
 			deleteSuccess = '';
 
 			// Extract filename from URL (e.g., "/uploads/image.jpg" -> "image.jpg")
-			const actualFilename = mediaToDelete.url.includes('/')
-				? mediaToDelete.url.split('/').pop()
-				: mediaToDelete.url;
+			const actualFilename = mediaToDeleteCopy.url.includes('/')
+				? mediaToDeleteCopy.url.split('/').pop()
+				: mediaToDeleteCopy.url;
 
 			const response = await fetch('/api/media/delete', {
 				method: 'DELETE',
@@ -152,7 +158,7 @@
 			deleteSuccess = 'Media deleted successfully';
 
 			// Remove the deleted item from the local state
-			mediaItems = mediaItems.filter((item) => item.id !== mediaToDelete.id);
+			mediaItems = mediaItems.filter((item) => item.id !== mediaToDeleteCopy.id);
 
 			// Clear success message after 3 seconds
 			setTimeout(() => {
@@ -171,7 +177,6 @@
 		}
 	}
 
-	// Multi-select functions
 	function toggleSelectMode() {
 		isSelectMode = !isSelectMode;
 		if (!isSelectMode) {
@@ -338,6 +343,40 @@
 			</div>
 		</div>
 	{/if}
+
+	<!-- Upload Section -->
+	<div class="mb-6">
+		<button
+			on:click={() => showUploadSection = !showUploadSection}
+			class="flex w-full items-center justify-between rounded-lg border border-gray-300 bg-white px-4 py-3 text-left transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:hover:bg-gray-700"
+		>
+			<div class="flex items-center gap-3">
+				<UploadIcon class="h-5 w-5 text-blue-600 dark:text-blue-400" />
+				<span class="font-medium text-gray-900 dark:text-white">Upload Media</span>
+			</div>
+			<svg
+				class="h-5 w-5 text-gray-500 transition-transform dark:text-gray-400"
+				class:rotate-180={showUploadSection}
+				fill="none"
+				stroke="currentColor"
+				viewBox="0 0 24 24"
+			>
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+			</svg>
+		</button>
+
+		{#if showUploadSection}
+			<div class="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50">
+				<FileUpload
+					selectedAccountId={selectedAccountId}
+					on:uploadComplete={() => {
+						fetchMedia();
+						showUploadSection = false;
+					}}
+				/>
+			</div>
+		{/if}
+	</div>
 
 	<!-- Delete Messages -->
 	{#if deleteSuccess}
@@ -551,7 +590,7 @@
 									muted
 									playsinline
 									preload="metadata"
-								/>
+								></video>
 							{:else}
 								<img
 									class="h-auto w-full cursor-pointer object-cover"
@@ -631,9 +670,16 @@
 	<div
 		class="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 backdrop-blur-sm transition-opacity duration-200"
 		on:click={closeImageModal}
+		role="button"
+		tabindex="0"
+		on:keydown={(e) => e.key === 'Enter' && closeImageModal()}
 	>
 		<div
 			class="relative max-h-[90vh] max-w-[90vw] overflow-hidden rounded-lg bg-white dark:bg-gray-900"
+			on:click|stopPropagation
+			role="dialog"
+			tabindex="-1"
+			on:keydown={(e) => e.key === 'Escape' && closeImageModal()}
 		>
 			<!-- Close Button -->
 			<button
@@ -647,7 +693,7 @@
 			<!-- Image -->
 			<img
 				src={modalImageUrl}
-				alt="Full size image"
+				alt="Full size"
 				class="max-h-[90vh] max-w-[90vw] object-contain"
 			/>
 		</div>
@@ -662,10 +708,16 @@
 	<div
 		class="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 backdrop-blur-sm transition-opacity duration-200"
 		on:click={closeDeleteConfirm}
+		role="button"
+		tabindex="0"
+		on:keydown={(e) => e.key === 'Enter' && closeDeleteConfirm()}
 	>
 		<div
 			class="relative mx-4 w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-900"
-			on:click|stopPropagation={() => {}}
+			on:click|stopPropagation
+			role="dialog"
+			tabindex="-1"
+			on:keydown={(e) => e.key === 'Escape' && closeDeleteConfirm()}
 		>
 			<!-- Header -->
 			<div class="mb-4 flex items-center gap-3">
@@ -705,7 +757,7 @@
 				<button
 					type="button"
 					class="rounded-lg border border-transparent bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:focus:ring-offset-gray-900"
-					on:click={confirmDelete}
+					on:click={confirmDeleteMedia}
 					disabled={deletingMediaId === mediaToDelete.id}
 				>
 					{#if deletingMediaId === mediaToDelete.id}
