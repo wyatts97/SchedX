@@ -10,7 +10,7 @@ export async function initializeDatabase(
   encryptionKey: string,
   authSecret: string,
   adminEmail: string = 'admin@schedx.local',
-  adminPassword: string = 'admin123'
+  adminPassword: string = 'changeme'
 ): Promise<DatabaseClient> {
   // Get database instance
   const db = DatabaseClient.getInstance(dbPath, encryptionKey, authSecret);

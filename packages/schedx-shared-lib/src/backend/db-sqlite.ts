@@ -275,7 +275,7 @@ export class DatabaseClient {
       this.db.execute(
         `UPDATE accounts SET
           userId = ?, provider = ?, username = ?, displayName = ?,
-          profileImage = ?, accessToken = ?, refreshToken = ?, expiresAt = ?, updatedAt = ?
+          profileImage = ?, accessToken = ?, refreshToken = ?, expiresAt = ?, isDefault = ?, updatedAt = ?
          WHERE id = ?`,
         [
           userAccount.userId,
@@ -286,6 +286,7 @@ export class DatabaseClient {
           encryptedAccessToken,
           encryptedRefreshToken,
           userAccount.expires_at || null,
+          (userAccount as any).isDefault ? 1 : 0,
           now,
           existingAccount.id
         ]
@@ -297,8 +298,8 @@ export class DatabaseClient {
       const id = this.db.generateId();
       
       this.db.execute(
-        `INSERT INTO accounts (id, userId, provider, providerAccountId, username, displayName, profileImage, accessToken, refreshToken, expiresAt, createdAt, updatedAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO accounts (id, userId, provider, providerAccountId, username, displayName, profileImage, accessToken, refreshToken, expiresAt, isDefault, createdAt, updatedAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           id,
           userAccount.userId,
@@ -310,6 +311,7 @@ export class DatabaseClient {
           encryptedAccessToken,
           encryptedRefreshToken,
           userAccount.expires_at || null,
+          (userAccount as any).isDefault ? 1 : 0,
           now,
           now
         ]
@@ -337,7 +339,8 @@ export class DatabaseClient {
       profileImage: account.profileImage,
       access_token: this.encryptionService.decrypt(account.accessToken),
       refresh_token: this.encryptionService.decrypt(account.refreshToken),
-      expires_at: account.expiresAt
+      expires_at: account.expiresAt,
+      isDefault: account.isDefault === 1
     } as UserAccount;
   }
 
@@ -359,7 +362,8 @@ export class DatabaseClient {
       profileImage: account.profileImage,
       access_token: this.encryptionService.decrypt(account.accessToken),
       refresh_token: this.encryptionService.decrypt(account.refreshToken),
-      expires_at: account.expiresAt
+      expires_at: account.expiresAt,
+      isDefault: account.isDefault === 1
     } as UserAccount;
   }
 
@@ -400,7 +404,8 @@ export class DatabaseClient {
       profileImage: account.profileImage,
       access_token: this.encryptionService.decrypt(account.accessToken),
       refresh_token: this.encryptionService.decrypt(account.refreshToken),
-      expires_at: account.expiresAt
+      expires_at: account.expiresAt,
+      isDefault: account.isDefault === 1
     } as UserAccount;
   }
 
@@ -420,7 +425,8 @@ export class DatabaseClient {
       profileImage: account.profileImage,
       access_token: this.encryptionService.decrypt(account.accessToken),
       refresh_token: this.encryptionService.decrypt(account.refreshToken),
-      expires_at: account.expiresAt
+      expires_at: account.expiresAt,
+      isDefault: account.isDefault === 1
     } as UserAccount));
   }
 
@@ -437,14 +443,15 @@ export class DatabaseClient {
       profileImage: account.profileImage,
       access_token: this.encryptionService.decrypt(account.accessToken),
       refresh_token: this.encryptionService.decrypt(account.refreshToken),
-      expires_at: account.expiresAt
+      expires_at: account.expiresAt,
+      isDefault: account.isDefault === 1
     } as UserAccount));
   }
 
   async clearDefaultAccounts(): Promise<void> {
     const now = this.db.now();
     this.db.execute(
-      'UPDATE accounts SET updatedAt = ? WHERE 1=1',
+      'UPDATE accounts SET isDefault = 0, updatedAt = ? WHERE isDefault = 1',
       [now]
     );
   }
@@ -452,7 +459,7 @@ export class DatabaseClient {
   async setDefaultAccount(accountId: string): Promise<void> {
     const now = this.db.now();
     this.db.execute(
-      'UPDATE accounts SET updatedAt = ? WHERE id = ?',
+      'UPDATE accounts SET isDefault = 1, updatedAt = ? WHERE id = ?',
       [now, accountId]
     );
   }
@@ -482,16 +489,37 @@ export class DatabaseClient {
     const now = this.db.now();
     
     this.db.execute(
-      `INSERT INTO tweets (id, userId, twitterAccountId, content, scheduledDate, status, media, createdAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO tweets (
+        id, userId, twitterAccountId, content, scheduledDate, community, status, media,
+        likeCount, retweetCount, replyCount, impressionCount,
+        recurrenceType, recurrenceInterval, recurrenceEndDate,
+        templateName, templateCategory, queuePosition,
+        isThread, threadId, threadPosition, threadTotal,
+        createdAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         tweet.userId,
         tweet.twitterAccountId,
         tweet.content,
         tweet.scheduledDate ? tweet.scheduledDate.getTime() : null,
+        tweet.community || '',
         tweet.status || TweetStatus.SCHEDULED,
         this.db.stringifyJson(tweet.media || []),
+        tweet.likeCount || 0,
+        tweet.retweetCount || 0,
+        tweet.replyCount || 0,
+        tweet.impressionCount || 0,
+        tweet.recurrenceType || null,
+        tweet.recurrenceInterval || null,
+        tweet.recurrenceEndDate ? tweet.recurrenceEndDate.getTime() : null,
+        tweet.templateName || null,
+        tweet.templateCategory || null,
+        tweet.queuePosition || null,
+        tweet.isThread ? 1 : 0,
+        tweet.threadId || null,
+        tweet.threadPosition || null,
+        tweet.threadTotal || null,
         now
       ]
     );
@@ -538,14 +566,29 @@ export class DatabaseClient {
       id: tweet.id,
       userId: tweet.userId,
       content: tweet.content,
-      scheduledDate: tweet.scheduledDate ? new Date(tweet.scheduledDate) : null,
+      scheduledDate: tweet.scheduledDate ? new Date(tweet.scheduledDate) : new Date(),
+      community: tweet.community || '',
       status: tweet.status,
       createdAt: new Date(tweet.createdAt),
       updatedAt: tweet.updatedAt ? new Date(tweet.updatedAt) : undefined,
       twitterAccountId: tweet.twitterAccountId,
       twitterTweetId: tweet.twitterTweetId,
       error: tweet.error,
-      media: this.db.parseJson(tweet.media) || []
+      media: this.db.parseJson(tweet.media) || [],
+      likeCount: tweet.likeCount || 0,
+      retweetCount: tweet.retweetCount || 0,
+      replyCount: tweet.replyCount || 0,
+      impressionCount: tweet.impressionCount || 0,
+      recurrenceType: tweet.recurrenceType || null,
+      recurrenceInterval: tweet.recurrenceInterval || null,
+      recurrenceEndDate: tweet.recurrenceEndDate ? new Date(tweet.recurrenceEndDate) : null,
+      templateName: tweet.templateName || undefined,
+      templateCategory: tweet.templateCategory || undefined,
+      queuePosition: tweet.queuePosition || undefined,
+      isThread: tweet.isThread === 1,
+      threadId: tweet.threadId || undefined,
+      threadPosition: tweet.threadPosition || undefined,
+      threadTotal: tweet.threadTotal || undefined
     }));
   }
 
@@ -623,12 +666,27 @@ export class DatabaseClient {
       userId: tweet.userId,
       content: tweet.content,
       scheduledDate: new Date(tweet.scheduledDate),
-      community: '',
+      community: tweet.community || '',
       status: tweet.status,
       createdAt: new Date(tweet.createdAt),
       updatedAt: tweet.updatedAt ? new Date(tweet.updatedAt) : undefined,
       twitterAccountId: tweet.twitterAccountId,
-      media: this.db.parseJson(tweet.media) || []
+      twitterTweetId: tweet.twitterTweetId,
+      media: this.db.parseJson(tweet.media) || [],
+      likeCount: tweet.likeCount || 0,
+      retweetCount: tweet.retweetCount || 0,
+      replyCount: tweet.replyCount || 0,
+      impressionCount: tweet.impressionCount || 0,
+      recurrenceType: tweet.recurrenceType || null,
+      recurrenceInterval: tweet.recurrenceInterval || null,
+      recurrenceEndDate: tweet.recurrenceEndDate ? new Date(tweet.recurrenceEndDate) : null,
+      templateName: tweet.templateName || undefined,
+      templateCategory: tweet.templateCategory || undefined,
+      queuePosition: tweet.queuePosition || undefined,
+      isThread: tweet.isThread === 1,
+      threadId: tweet.threadId || undefined,
+      threadPosition: tweet.threadPosition || undefined,
+      threadTotal: tweet.threadTotal || undefined
     }));
   }
 
@@ -661,6 +719,10 @@ export class DatabaseClient {
       updateFields.push('scheduledDate = ?');
       params.push(updates.scheduledDate ? updates.scheduledDate.getTime() : null);
     }
+    if (updates.community !== undefined) {
+      updateFields.push('community = ?');
+      params.push(updates.community);
+    }
     if (updates.status !== undefined) {
       updateFields.push('status = ?');
       params.push(updates.status);
@@ -672,6 +734,30 @@ export class DatabaseClient {
     if (updates.media !== undefined) {
       updateFields.push('media = ?');
       params.push(this.db.stringifyJson(updates.media));
+    }
+    if (updates.templateName !== undefined) {
+      updateFields.push('templateName = ?');
+      params.push(updates.templateName);
+    }
+    if (updates.templateCategory !== undefined) {
+      updateFields.push('templateCategory = ?');
+      params.push(updates.templateCategory);
+    }
+    if (updates.queuePosition !== undefined) {
+      updateFields.push('queuePosition = ?');
+      params.push(updates.queuePosition);
+    }
+    if (updates.recurrenceType !== undefined) {
+      updateFields.push('recurrenceType = ?');
+      params.push(updates.recurrenceType);
+    }
+    if (updates.recurrenceInterval !== undefined) {
+      updateFields.push('recurrenceInterval = ?');
+      params.push(updates.recurrenceInterval);
+    }
+    if (updates.recurrenceEndDate !== undefined) {
+      updateFields.push('recurrenceEndDate = ?');
+      params.push(updates.recurrenceEndDate ? updates.recurrenceEndDate.getTime() : null);
     }
     
     updateFields.push('updatedAt = ?');
@@ -690,14 +776,29 @@ export class DatabaseClient {
       id: tweet.id,
       userId: tweet.userId,
       content: tweet.content,
-      scheduledDate: tweet.scheduledDate ? new Date(tweet.scheduledDate) : null,
+      scheduledDate: tweet.scheduledDate ? new Date(tweet.scheduledDate) : new Date(),
+      community: tweet.community || '',
       status: tweet.status,
       createdAt: new Date(tweet.createdAt),
       updatedAt: tweet.updatedAt ? new Date(tweet.updatedAt) : undefined,
       twitterAccountId: tweet.twitterAccountId,
       twitterTweetId: tweet.twitterTweetId,
       error: tweet.error,
-      media: this.db.parseJson(tweet.media) || []
+      media: this.db.parseJson(tweet.media) || [],
+      likeCount: tweet.likeCount || 0,
+      retweetCount: tweet.retweetCount || 0,
+      replyCount: tweet.replyCount || 0,
+      impressionCount: tweet.impressionCount || 0,
+      recurrenceType: tweet.recurrenceType || null,
+      recurrenceInterval: tweet.recurrenceInterval || null,
+      recurrenceEndDate: tweet.recurrenceEndDate ? new Date(tweet.recurrenceEndDate) : null,
+      templateName: tweet.templateName || undefined,
+      templateCategory: tweet.templateCategory || undefined,
+      queuePosition: tweet.queuePosition || undefined,
+      isThread: tweet.isThread === 1,
+      threadId: tweet.threadId || undefined,
+      threadPosition: tweet.threadPosition || undefined,
+      threadTotal: tweet.threadTotal || undefined
     }));
   }
 
@@ -773,11 +874,27 @@ export class DatabaseClient {
       userId: tweet.userId,
       content: tweet.content,
       scheduledDate: new Date(tweet.scheduledDate),
-      community: '',
+      community: tweet.community || '',
       status: tweet.status,
       createdAt: new Date(tweet.createdAt),
       updatedAt: tweet.updatedAt ? new Date(tweet.updatedAt) : undefined,
-      twitterTweetId: tweet.twitterTweetId
+      twitterAccountId: tweet.twitterAccountId,
+      twitterTweetId: tweet.twitterTweetId,
+      media: this.db.parseJson(tweet.media) || [],
+      likeCount: tweet.likeCount || 0,
+      retweetCount: tweet.retweetCount || 0,
+      replyCount: tweet.replyCount || 0,
+      impressionCount: tweet.impressionCount || 0,
+      recurrenceType: tweet.recurrenceType || null,
+      recurrenceInterval: tweet.recurrenceInterval || null,
+      recurrenceEndDate: tweet.recurrenceEndDate ? new Date(tweet.recurrenceEndDate) : null,
+      templateName: tweet.templateName || undefined,
+      templateCategory: tweet.templateCategory || undefined,
+      queuePosition: tweet.queuePosition || undefined,
+      isThread: tweet.isThread === 1,
+      threadId: tweet.threadId || undefined,
+      threadPosition: tweet.threadPosition || undefined,
+      threadTotal: tweet.threadTotal || undefined
     }));
   }
 
@@ -851,13 +968,28 @@ export class DatabaseClient {
       id: tweet.id,
       userId: tweet.userId,
       content: tweet.content,
-      scheduledDate: tweet.scheduledDate ? new Date(tweet.scheduledDate) : null,
-      community: '',
+      scheduledDate: tweet.scheduledDate ? new Date(tweet.scheduledDate) : new Date(),
+      community: tweet.community || '',
       status: tweet.status,
       createdAt: new Date(tweet.createdAt),
       updatedAt: tweet.updatedAt ? new Date(tweet.updatedAt) : undefined,
       twitterAccountId: tweet.twitterAccountId,
-      media: this.db.parseJson(tweet.media) || []
+      twitterTweetId: tweet.twitterTweetId,
+      media: this.db.parseJson(tweet.media) || [],
+      likeCount: tweet.likeCount || 0,
+      retweetCount: tweet.retweetCount || 0,
+      replyCount: tweet.replyCount || 0,
+      impressionCount: tweet.impressionCount || 0,
+      recurrenceType: tweet.recurrenceType || null,
+      recurrenceInterval: tweet.recurrenceInterval || null,
+      recurrenceEndDate: tweet.recurrenceEndDate ? new Date(tweet.recurrenceEndDate) : null,
+      templateName: tweet.templateName || undefined,
+      templateCategory: tweet.templateCategory || undefined,
+      queuePosition: tweet.queuePosition || undefined,
+      isThread: tweet.isThread === 1,
+      threadId: tweet.threadId || undefined,
+      threadPosition: tweet.threadPosition || undefined,
+      threadTotal: tweet.threadTotal || undefined
     }) as Tweet);
   }
 
@@ -1127,9 +1259,12 @@ export class DatabaseClient {
     return {
       id: settings.id,
       userId: settings.userId,
-      timeSlots: JSON.parse(settings.timeSlots),
-      timezone: settings.timezone,
       enabled: settings.enabled === 1,
+      postingTimes: JSON.parse(settings.postingTimes),
+      timezone: settings.timezone,
+      minInterval: settings.minInterval,
+      maxPostsPerDay: settings.maxPostsPerDay,
+      skipWeekends: settings.skipWeekends === 1,
       createdAt: new Date(settings.createdAt),
       updatedAt: settings.updatedAt ? new Date(settings.updatedAt) : null
     };
@@ -1147,12 +1282,15 @@ export class DatabaseClient {
     if (existing) {
       // Update existing settings
       this.db.execute(
-        `UPDATE queue_settings SET timeSlots = ?, timezone = ?, enabled = ?, updatedAt = ?
+        `UPDATE queue_settings SET enabled = ?, postingTimes = ?, timezone = ?, minInterval = ?, maxPostsPerDay = ?, skipWeekends = ?, updatedAt = ?
          WHERE userId = ?`,
         [
-          JSON.stringify(settings.timeSlots),
-          settings.timezone || 'UTC',
           settings.enabled ? 1 : 0,
+          JSON.stringify(settings.postingTimes || []),
+          settings.timezone || 'UTC',
+          settings.minInterval || 60,
+          settings.maxPostsPerDay || 10,
+          settings.skipWeekends ? 1 : 0,
           now,
           settings.userId
         ]
@@ -1162,14 +1300,17 @@ export class DatabaseClient {
       // Create new settings
       const id = this.db.generateId();
       this.db.execute(
-        `INSERT INTO queue_settings (id, userId, timeSlots, timezone, enabled, createdAt, updatedAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO queue_settings (id, userId, enabled, postingTimes, timezone, minInterval, maxPostsPerDay, skipWeekends, createdAt, updatedAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           id,
           settings.userId,
-          JSON.stringify(settings.timeSlots),
-          settings.timezone || 'UTC',
           settings.enabled ? 1 : 0,
+          JSON.stringify(settings.postingTimes || []),
+          settings.timezone || 'UTC',
+          settings.minInterval || 60,
+          settings.maxPostsPerDay || 10,
+          settings.skipWeekends ? 1 : 0,
           now,
           now
         ]
