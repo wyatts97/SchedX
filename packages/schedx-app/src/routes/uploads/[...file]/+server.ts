@@ -12,12 +12,15 @@ export const GET: RequestHandler = async ({ params }) => {
 			throw error(404, 'File not found');
 		}
 
-		// Construct the file path - Docker-compatible path//
-		// In Docker container, cwd is /app, so we need the full path to uploads
-		const uploadsDir = path.join(process.cwd(), 'packages', 'schedx-app', 'uploads');
+		// Construct the file path
+		// When running in dev, cwd is already in packages/schedx-app
+		// In Docker container, cwd is /app, so we need packages/schedx-app/uploads
+		const cwd = process.cwd();
+		const uploadsDir = path.join(cwd, 'uploads');
 		const filePath = path.join(uploadsDir, file);
 
 		logger.debug(`Attempting to serve file: ${file}`);
+		logger.debug(`Current working directory: ${cwd}`);
 		logger.debug(`Uploads directory: ${uploadsDir}`);
 		logger.debug(`File path: ${filePath}`);
 

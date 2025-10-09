@@ -116,7 +116,8 @@ export const DELETE: RequestHandler = async ({ cookies, request }) => {
 
 		// Get account info before deletion for logging
 		const accounts = await (db as any).getAllUserAccounts();
-		const accountToDelete = accounts.find((acc: any) => acc.providerAccountId === accountId);
+		// accountId can be either the database id or providerAccountId
+		const accountToDelete = accounts.find((acc: any) => acc.id === accountId || acc.providerAccountId === accountId);
 
 		if (!accountToDelete) {
 			return new Response(JSON.stringify({ error: 'Account not found' }), {

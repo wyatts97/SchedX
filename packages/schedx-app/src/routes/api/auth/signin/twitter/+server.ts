@@ -53,7 +53,7 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 		});
 	} catch (error) {
 		// Check if this is a redirect (which is expected behavior)
-		if (error && typeof error === 'object' && 'status' in error && error.status === 302) {
+		if (error && typeof error === 'object' && 'status' in error && (error.status === 302 || error.status === 303)) {
 			// This is a successful redirect, not an error
 			throw error; // Re-throw the redirect
 		}

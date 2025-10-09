@@ -30,5 +30,21 @@
     "uploadedAt": "2025-10-08T05:33:28.732Z",
     "fileSize": 4386199,
     "accountId": null
+  },
+  "1759990845084-0kqomwi5v31.gif": {
+    "url": "/uploads/1759990845084-0kqomwi5v31.gif",
+    "type": "gif",
+    "filename": "twitchwedg1.gif",
+    "uploadedAt": "2025-10-09T06:20:45.098Z",
+    "fileSize": 4130056,
+    "accountId": null
+  },
+  "1759990851549-93u77k5rsb9.gif": {
+    "url": "/uploads/1759990851549-93u77k5rsb9.gif",
+    "type": "gif",
+    "filename": "twitchwedg2.gif",
+    "uploadedAt": "2025-10-09T06:20:51.564Z",
+    "fileSize": 4642672,
+    "accountId": null
   }
 }

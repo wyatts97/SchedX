@@ -47,6 +47,14 @@
 			pollCount = 0;
 			// Clean URL immediately
 			window.history.replaceState({}, '', '/accounts');
+			
+			// Set a 5-second timeout to refresh the page if polling doesn't complete
+			setTimeout(() => {
+				if (pollingForAccount) {
+					// Still polling after 5 seconds, just refresh the page
+					window.location.reload();
+				}
+			}, 5000);
 		} else if (errorParam) {
 			toastStore.error('Connection Failed', decodeURIComponent(errorParam));
 			// Clean URL
@@ -438,7 +446,7 @@
 							href={`/api/auth/signin/twitter?twitterAppId=${app.id}`}
 							class="block rounded-lg border border-gray-200 p-4 text-center font-medium text-gray-900 transition-all duration-200 hover:bg-gray-100 dark:border-gray-700 dark:text-white dark:hover:bg-gray-700"
 						>
-							{app.appName}
+							{app.name}
 						</a>
 					{/each}
 				</div>
