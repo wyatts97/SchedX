@@ -11,8 +11,7 @@
     ".": "./dist/index.js"
   },
   "scripts": {
-    "build": "rimraf dist/ && tsc && npm run copy:sql",
-    "copy:sql": "node -e \"require('fs').cpSync('src/backend/migrations', 'dist/backend/migrations', {recursive: true})\"",
+    "build": "rimraf dist/ && tsc && node scripts/copy-migrations.js",
     "dev": "tsc -w"
   },
   "keywords": [],

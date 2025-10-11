@@ -1,6 +1,6 @@
 // Export SQLite database client (new)
-export { DatabaseClient } from './db-sqlite';
-export { SqliteDatabase } from './sqlite-wrapper';
+export { DatabaseClient } from './db-sqlite.js';
+export { SqliteDatabase } from './sqlite-wrapper.js';
 
 // Keep MongoDB client available for migration period
 export { DatabaseClient as MongoDBClient } from './db';
