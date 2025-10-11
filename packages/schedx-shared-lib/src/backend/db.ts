@@ -564,7 +564,7 @@ export class DatabaseClient {
   }
 
   // --- Twitter Apps Management ---
-  async createTwitterApp(app: import('../types/types').TwitterApp): Promise<string> {
+  async createTwitterApp(app: import('../types/types.js').TwitterApp): Promise<string> {
     const db = await this.connect();
     const result = await db.collection('twitter_apps').insertOne({
       ...app,
@@ -574,7 +574,7 @@ export class DatabaseClient {
     return result.insertedId.toString();
   }
 
-  async updateTwitterApp(id: string, updates: Partial<import('../types/types').TwitterApp>): Promise<void> {
+  async updateTwitterApp(id: string, updates: Partial<import('../types/types.js').TwitterApp>): Promise<void> {
     const db = await this.connect();
     logger.debug({ id, updateFields: Object.keys(updates) }, 'Updating Twitter app');
     await db.collection('twitter_apps').updateOne(
@@ -584,7 +584,7 @@ export class DatabaseClient {
     logger.debug({ id }, 'Twitter app updated successfully');
   }
 
-  async getTwitterApp(id: string): Promise<import('../types/types').TwitterApp | null> {
+  async getTwitterApp(id: string): Promise<import('../types/types.js').TwitterApp | null> {
     const db = await this.connect();
     const app = await db.collection('twitter_apps').findOne({ _id: new ObjectId(id) });
     if (!app) return null;
@@ -635,7 +635,7 @@ export class DatabaseClient {
   }
 
   // --- Admin User Management ---
-  async createAdminUser(user: import('../types/types').AdminUser): Promise<string> {
+  async createAdminUser(user: import('../types/types.js').AdminUser): Promise<string> {
     const db = await this.connect();
     const result = await db.collection('users').insertOne({
       ...user,
@@ -645,7 +645,7 @@ export class DatabaseClient {
     return result.insertedId.toString();
   }
 
-  async getAdminUserByUsername(username: string): Promise<import('../types/types').AdminUser | null> {
+  async getAdminUserByUsername(username: string): Promise<import('../types/types.js').AdminUser | null> {
     const db = await this.connect();
     const user = await db.collection('users').findOne({ username });
     if (!user) return null;

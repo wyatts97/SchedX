@@ -172,7 +172,7 @@ export class DatabaseClient {
   // USER & ADMIN METHODS
   // ============================================
 
-  async createAdminUser(user: import('../types/types').AdminUser): Promise<string> {
+  async createAdminUser(user: import('../types/types.js').AdminUser): Promise<string> {
     const id = this.db.generateId();
     const now = this.db.now();
     
@@ -193,7 +193,7 @@ export class DatabaseClient {
     return id;
   }
 
-  async getAdminUserByUsername(username: string): Promise<import('../types/types').AdminUser | null> {
+  async getAdminUserByUsername(username: string): Promise<import('../types/types.js').AdminUser | null> {
     const user = this.db.queryOne<any>(
       'SELECT * FROM users WHERE email = ? OR displayName = ?',
       [username, username]
@@ -1185,7 +1185,7 @@ export class DatabaseClient {
   // TWITTER APPS MANAGEMENT
   // ============================================
 
-  async createTwitterApp(app: import('../types/types').TwitterApp, userId: string): Promise<string> {
+  async createTwitterApp(app: import('../types/types.js').TwitterApp, userId: string): Promise<string> {
     const id = this.db.generateId();
     const now = this.db.now();
     
@@ -1212,7 +1212,7 @@ export class DatabaseClient {
     return id;
   }
 
-  async updateTwitterApp(id: string, updates: Partial<import('../types/types').TwitterApp>): Promise<void> {
+  async updateTwitterApp(id: string, updates: Partial<import('../types/types.js').TwitterApp>): Promise<void> {
     const now = this.db.now();
     const updateFields: string[] = [];
     const params: any[] = [];
@@ -1255,7 +1255,7 @@ export class DatabaseClient {
     logger.debug({ id }, 'Twitter app updated successfully');
   }
 
-  async getTwitterApp(id: string): Promise<import('../types/types').TwitterApp | null> {
+  async getTwitterApp(id: string): Promise<import('../types/types.js').TwitterApp | null> {
     const app = this.db.queryOne<any>('SELECT * FROM twitter_apps WHERE id = ?', [id]);
     
     if (!app) return null;
@@ -1275,7 +1275,7 @@ export class DatabaseClient {
     };
   }
 
-  async listTwitterApps(): Promise<import('../types/types').TwitterApp[]> {
+  async listTwitterApps(): Promise<import('../types/types.js').TwitterApp[]> {
     const apps = this.db.query<any>('SELECT * FROM twitter_apps');
     
     return apps.map((app: any) => ({

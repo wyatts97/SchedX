@@ -1,3 +1,3 @@
-export * from './types/types';
-export * from './types/communityMapping';
-export * from './backend/index';
+export * from './types/types.js';
+export * from './types/communityMapping.js';
+export * from './backend/index.js';
