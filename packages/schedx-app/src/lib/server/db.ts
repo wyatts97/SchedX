@@ -1,5 +1,5 @@
 import { getEnvironmentConfig } from '$lib/server/env';
-import { DatabaseClient } from '@schedx/shared-lib/backend';
+import { DatabaseClient, runMigrations } from '@schedx/shared-lib/backend';
 import logger from '$lib/logger';
 
 // Create a lazy-loaded singleton pattern
@@ -26,7 +26,15 @@ export const initializeDatabase = async (): Promise<DatabaseClient> => {
 	const db = getDbInstance();
 	await db.connect();
 
-	// SQLite migrations are run automatically on first connection
+	// Run migrations to create tables
+	try {
+		await runMigrations(db['db']); // Access private db property
+		logger.info('Database migrations completed successfully');
+	} catch (error) {
+		logger.error('Database migrations failed', { error });
+		throw error;
+	}
+
 	logger.info('Database initialized successfully');
 
 	return db;

@@ -3,12 +3,12 @@ export { DatabaseClient } from './db-sqlite.js';
 export { SqliteDatabase } from './sqlite-wrapper.js';
 
 // Keep MongoDB client available for migration period
-export { DatabaseClient as MongoDBClient } from './db';
+export { DatabaseClient as MongoDBClient } from './db.js';
 
-export { EncryptionService } from './encryption';
-export { EmailService, type EmailNotificationConfig, type TweetNotificationData } from './emailService';
-export { QueueProcessorService } from './queueProcessorService';
+export { EncryptionService } from './encryption.js';
+export { EmailService, type EmailNotificationConfig, type TweetNotificationData } from './emailService.js';
+export { QueueProcessorService } from './queueProcessorService.js';
 
 // Export migration utilities
-export { runMigrations, seedDefaultAdmin } from './migrations/runner';
-export { initializeDatabase } from './init-db';
+export { runMigrations, seedDefaultAdmin } from './migrations/runner.js';
+export { initializeDatabase } from './init-db.js';
