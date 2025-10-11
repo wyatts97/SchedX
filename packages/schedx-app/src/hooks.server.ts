@@ -4,13 +4,9 @@ import { handle as authHandle } from '$lib/server/auth';
 import { initializeDatabase, ensureDefaultAdminUser } from '$lib/server/db';
 import logger from '$lib/server/logger';
 import { RequestContext, logApiRequest, logApiError } from '$lib/server/logging';
-import { initSentry, captureException, setUser, addBreadcrumb } from '$lib/server/sentry';
 import { apiRateLimiter, authRateLimiter, getRateLimitIdentifier, createRateLimitResponse } from '$lib/server/rate-limiter';
 import { TweetSchedulerService } from '$lib/server/tweetScheduler';
 import { ThreadSchedulerService } from '$lib/server/threadScheduler';
-
-// Initialize Sentry
-initSentry();
 
 // Initialize database and ensure default admin user
 let dbInitialized = false;
@@ -54,7 +50,6 @@ const initDb = async () => {
 			}
 		} catch (error) {
 			logger.error({ error }, 'Database initialization failed');
-			captureException(error as Error, { context: 'database_initialization' });
 			// Reset promise so it can be retried
 			initPromise = null;
 			throw error;
@@ -211,9 +206,6 @@ const errorHandle: Handle = async ({ event, resolve }) => {
 		};
 		
 		logger.error(errorContext, 'Unhandled error in request');
-		
-		// Send to Sentry
-		captureException(error as Error, errorContext);
 		
 		throw error;
 	}
