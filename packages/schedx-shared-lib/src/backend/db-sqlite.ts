@@ -1,6 +1,6 @@
-import { SqliteDatabase } from './sqlite-wrapper';
-import { TweetStatus, Tweet, UserAccount, Notification } from '../types/types';
-import { EncryptionService } from './encryption';
+import { SqliteDatabase } from './sqlite-wrapper.js';
+import { TweetStatus, Tweet, UserAccount, Notification } from '../types/types.js';
+import { EncryptionService } from './encryption.js';
 import pino from 'pino';
 import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
