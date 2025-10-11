@@ -67,7 +67,7 @@
 			try {
 				await onClick();
 			} catch (error) {
-				logger.error('Button onClick error:', error);
+				logger.error('Button onClick error', { error });
 			}
 		}
 	};

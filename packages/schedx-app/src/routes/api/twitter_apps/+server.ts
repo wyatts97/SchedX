@@ -139,7 +139,7 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
 			});
 		}
 
-		const id = await db.createTwitterApp(app);
+		const id = await db.createTwitterApp(app, user.id);
 
 		log.info('Twitter app created successfully', { appId: id, appName: app.name });
 

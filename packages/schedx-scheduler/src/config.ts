@@ -15,8 +15,15 @@ console.log('Environment:', process.env.NODE_ENV || 'development');
 // Resolve database path - if relative, make it relative to project root
 let dbPath = process.env.DATABASE_PATH || './data/schedx.db';
 if (!dbPath.startsWith('/') && !dbPath.match(/^[A-Z]:\\/i)) {
-  // Relative path - resolve from project root (3 levels up from src/)
-  dbPath = resolve(__dirname, '../../../', dbPath);
+  // Relative path - resolve from project root
+  // In Docker, use absolute paths from env; in dev, resolve from __dirname
+  if (process.env.DOCKER === 'true') {
+    // In Docker, DATABASE_PATH should be absolute (e.g., /data/schedx.db)
+    console.warn('Warning: DATABASE_PATH should be absolute in Docker environment');
+  } else {
+    // In dev, resolve from project root (3 levels up from src/)
+    dbPath = resolve(__dirname, '../../../', dbPath);
+  }
 }
 
 // Ensure the directory exists
@@ -31,7 +38,9 @@ export const DB_ENCRYPTION_KEY = process.env.DB_ENCRYPTION_KEY || '';
 export const AUTH_SECRET = process.env.AUTH_SECRET || '';
 export const CRON_SCHEDULE = process.env.CRON_SCHEDULE || '* * * * *';
 export const PORT = process.env.PORT || '5173';
-export const ORIGIN = process.env.ORIGIN || `http://localhost:${PORT}`;
+export const ORIGIN = process.env.ORIGIN || (process.env.NODE_ENV === 'production'
+  ? (() => { throw new Error('ORIGIN must be set in production'); })()
+  : `http://localhost:${PORT}`);
 
 // Email notification configuration
 export const EMAIL_NOTIFICATIONS_ENABLED = process.env.EMAIL_NOTIFICATIONS_ENABLED === 'true';

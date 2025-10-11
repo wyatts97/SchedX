@@ -315,20 +315,25 @@
 </script>
 
 <!-- Enhanced Account Selector with Avatars -->
-<div class="mb-4">
-	<label class="mb-3 block text-sm font-medium dark:text-white">Select Account</label>
+<div class="mb-4" role="group" aria-labelledby="account-selector-label">
+	<div id="account-selector-label" class="mb-3 block text-sm font-medium dark:text-white">Select Account</div>
 	<div class="flex flex-wrap gap-3">
 		{#each accounts as account}
 			<div class="group relative">
-				<div class="relative">
+				<button
+					type="button"
+					class="relative rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+					on:click={() => handleAccountSelect(account.id)}
+					aria-label="Select account {account.displayName || account.username}"
+					aria-pressed={selectedAccountId === account.id}
+				>
 					<img
 						class="border-3 inline-block size-12 rounded-full {selectedAccountId === account.id
 							? 'border-blue-500 ring-2 ring-blue-200 dark:ring-blue-800'
-							: 'border-gray-200 dark:border-gray-600'} cursor-pointer transition-all duration-200 hover:scale-110 hover:shadow-lg"
+							: 'border-gray-200 dark:border-gray-600'} transition-all duration-200 hover:scale-110 hover:shadow-lg"
 						src={account.profileImage || '/avatar.png'}
-						alt={account.displayName || account.username}
+						alt=""
 						title={account.displayName || account.username}
-						on:click={() => handleAccountSelect(account.id)}
 					/>
 					<!-- Selected indicator -->
 					{#if selectedAccountId === account.id}
@@ -342,7 +347,7 @@
 							</svg>
 						</div>
 					{/if}
-				</div>
+				</button>
 				<!-- Tooltip -->
 				<div
 					class="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 transform whitespace-nowrap rounded-lg bg-gray-900 px-3 py-2 text-xs text-white opacity-0 shadow-lg transition-opacity duration-200 group-hover:opacity-100"

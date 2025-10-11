@@ -349,7 +349,8 @@ async function handleOAuthCallback(state: string, code: string, cookies: any) {
 		const accountId = await twitterAuth.saveUserAccount(
 			userInfo,
 			tokens,
-			validatedState.twitterAppId
+			validatedState.twitterAppId,
+			user.id
 		);
 		log.info('OAuth callback - Account saved successfully', {
 			accountId,

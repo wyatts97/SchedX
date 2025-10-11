@@ -3,7 +3,6 @@ import { getDbInstance } from '$lib/server/db';
 import type { TwitterApp } from '@schedx/shared-lib/types/types';
 import { log } from '$lib/server/logger';
 import { TwitterAuthService } from '$lib/server/twitterAuth';
-import { ObjectId } from 'mongodb';
 import logger from '$lib/logger';
 
 const twitterAuth = TwitterAuthService.getInstance();

@@ -3,14 +3,18 @@ import { getDbInstance } from '$lib/server/db';
 import type { Tweet } from '@schedx/shared-lib/types/types';
 import logger from '$lib/server/logger';
 
-export const GET: RequestHandler = async ({ locals }) => {
-	const session = await locals.auth();
-	if (!session?.user?.id) {
+export const GET: RequestHandler = async ({ cookies }) => {
+	const adminSession = cookies.get('admin_session');
+	if (!adminSession || adminSession.trim() === '') {
 		return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
 	}
 	try {
 		const db = getDbInstance();
-		const drafts = await db.getDrafts(session.user.id);
+		const user = await (db as any).getAdminUserByUsername('admin');
+		if (!user) {
+			return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+		}
+		const drafts = await db.getDrafts(user.id);
 		return new Response(JSON.stringify({ drafts }), { status: 200 });
 	} catch (error) {
 		logger.error('Error fetching drafts');
@@ -18,16 +22,20 @@ export const GET: RequestHandler = async ({ locals }) => {
 	}
 };
 
-export const POST: RequestHandler = async ({ locals, request }) => {
-	const session = await locals.auth();
-	if (!session?.user?.id) {
+export const POST: RequestHandler = async ({ cookies, request }) => {
+	const adminSession = cookies.get('admin_session');
+	if (!adminSession || adminSession.trim() === '') {
 		return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
 	}
 	try {
 		const data = await request.json();
 		const db = getDbInstance();
+		const user = await (db as any).getAdminUserByUsername('admin');
+		if (!user) {
+			return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+		}
 		const draft: any = {
-			userId: session.user.id,
+			userId: user.id,
 			content: data.content,
 			scheduledDate: data.scheduledDate ? new Date(data.scheduledDate) : new Date(),
 			community: data.community || 'general',
@@ -49,9 +57,9 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 	}
 };
 
-export const PUT: RequestHandler = async ({ locals, request }) => {
-	const session = await locals.auth();
-	if (!session?.user?.id) {
+export const PUT: RequestHandler = async ({ cookies, request }) => {
+	const adminSession = cookies.get('admin_session');
+	if (!adminSession || adminSession.trim() === '') {
 		return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
 	}
 	try {
@@ -61,7 +69,11 @@ export const PUT: RequestHandler = async ({ locals, request }) => {
 			return new Response(JSON.stringify({ error: 'Draft ID is required' }), { status: 400 });
 		}
 		const db = getDbInstance();
-		await db.updateDraft(id, session.user.id, updates);
+		const user = await (db as any).getAdminUserByUsername('admin');
+		if (!user) {
+			return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+		}
+		await db.updateDraft(id, user.id, updates);
 		return new Response(JSON.stringify({ success: true }), { status: 200 });
 	} catch (error) {
 		logger.error('Error updating draft');
@@ -69,9 +81,9 @@ export const PUT: RequestHandler = async ({ locals, request }) => {
 	}
 };
 
-export const DELETE: RequestHandler = async ({ locals, request }) => {
-	const session = await locals.auth();
-	if (!session?.user?.id) {
+export const DELETE: RequestHandler = async ({ cookies, request }) => {
+	const adminSession = cookies.get('admin_session');
+	if (!adminSession || adminSession.trim() === '') {
 		return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
 	}
 	try {
@@ -80,7 +92,11 @@ export const DELETE: RequestHandler = async ({ locals, request }) => {
 			return new Response(JSON.stringify({ error: 'Draft ID is required' }), { status: 400 });
 		}
 		const db = getDbInstance();
-		await db.deleteDraft(id, session.user.id);
+		const user = await (db as any).getAdminUserByUsername('admin');
+		if (!user) {
+			return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+		}
+		await db.deleteDraft(id, user.id);
 		return new Response(JSON.stringify({ success: true }), { status: 200 });
 	} catch (error) {
 		logger.error('Error deleting draft');

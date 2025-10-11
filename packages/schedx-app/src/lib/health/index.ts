@@ -28,18 +28,21 @@ async function checkDatabase(): Promise<HealthCheck> {
 
 	try {
 		const db = getDbInstance();
-		const database = await db.connect();
+		await db.connect();
 
-		// Test basic connectivity
-		await database.admin().ping();
-
-		// Test query performance
+		// Test query performance with SQLite
 		const testStart = Date.now();
-		await database.collection('tweets').findOne({}, { limit: 1 });
+		await db.getAllTweets(); // Test a basic query
 		const queryTime = Date.now() - testStart;
 
-		// Get database stats
-		const stats = await database.stats();
+		// Get database stats (SQLite)
+		const config = getEnvironmentConfig();
+		const fs = await import('fs');
+		let dbSize = 0;
+		if (fs.existsSync(config.DATABASE_PATH)) {
+			const stats = fs.statSync(config.DATABASE_PATH);
+			dbSize = stats.size;
+		}
 
 		const responseTime = Date.now() - startTime;
 
@@ -49,10 +52,9 @@ async function checkDatabase(): Promise<HealthCheck> {
 			message: `Database connected successfully`,
 			details: {
 				queryTime: `${queryTime}ms`,
-				collections: stats.collections,
-				documents: stats.objects,
-				dataSize: `${Math.round(stats.dataSize / 1024 / 1024)}MB`,
-				indexSize: `${Math.round(stats.indexSize / 1024 / 1024)}MB`
+				type: 'SQLite',
+				path: config.DATABASE_PATH,
+				size: `${Math.round(dbSize / 1024 / 1024)}MB`
 			},
 			responseTime,
 			lastChecked: new Date().toISOString()
@@ -78,7 +80,7 @@ async function checkEnvironment(): Promise<HealthCheck> {
 		const config = getEnvironmentConfig();
 
 		// Check critical environment variables
-		const criticalVars = ['AUTH_SECRET', 'DB_ENCRYPTION_KEY', 'MONGODB_URI'];
+		const criticalVars = ['AUTH_SECRET', 'DB_ENCRYPTION_KEY', 'DATABASE_PATH'];
 		const missingVars = criticalVars.filter((varName) => !config[varName as keyof typeof config]);
 
 		if (missingVars.length > 0) {
@@ -126,8 +128,12 @@ async function checkFileSystem(): Promise<HealthCheck> {
 		const path = await import('path');
 
 		// Check uploads directory
-		const uploadsDir = path.join(process.cwd(), 'uploads');
-		const avatarsDir = path.join(process.cwd(), 'uploads', 'avatars');
+		// In Docker, uploads are at /app/packages/schedx-app/uploads
+		// In dev, they're at process.cwd()/uploads
+		const uploadsDir = process.env.DOCKER === 'true'
+			? '/app/packages/schedx-app/uploads'
+			: path.join(process.cwd(), 'uploads');
+		const avatarsDir = path.join(uploadsDir, 'avatars');
 
 		// Ensure directories exist
 		if (!fs.existsSync(uploadsDir)) {
@@ -220,20 +226,23 @@ async function checkExternalDependencies(): Promise<HealthCheck> {
 
 	try {
 		const db = getDbInstance();
-		const database = await db.connect();
+		await db.connect();
 
-		// Check if we have any Twitter apps configured
-		const twitterApps = await database.collection('twitter_apps').countDocuments();
-		const userAccounts = await database.collection('accounts').countDocuments();
+		// Check if we have any Twitter apps configured (SQLite)
+		const twitterApps = await db.listTwitterApps();
+		const userAccounts = await db.getAllUserAccounts();
+
+		const twitterAppsCount = twitterApps.length;
+		const userAccountsCount = userAccounts.length;
 
 		return {
 			name: 'external_dependencies',
-			status: twitterApps > 0 ? 'healthy' : 'degraded',
-			message: `External dependencies configured: ${twitterApps} Twitter apps, ${userAccounts} user accounts`,
+			status: twitterAppsCount > 0 ? 'healthy' : 'degraded',
+			message: `External dependencies configured: ${twitterAppsCount} Twitter apps, ${userAccountsCount} user accounts`,
 			details: {
-				twitterApps,
-				userAccounts,
-				configured: twitterApps > 0
+				twitterApps: twitterAppsCount,
+				userAccounts: userAccountsCount,
+				configured: twitterAppsCount > 0
 			},
 			responseTime: Date.now() - startTime,
 			lastChecked: new Date().toISOString()
@@ -307,7 +316,8 @@ export async function getSimpleHealthCheck(): Promise<{ status: string; timestam
 	try {
 		const db = getDbInstance();
 		await db.connect();
-		await db.connect().then((db) => db.admin().ping());
+		// Simple test query to verify database is working
+		await db.getAllTweets();
 
 		return {
 			status: 'ok',

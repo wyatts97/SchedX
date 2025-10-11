@@ -11,7 +11,11 @@ export const GET: RequestHandler = async ({ cookies }) => {
 	}
 	try {
 		const db = getDbInstance();
-		const templates = await db.getTemplates('admin');
+		const user = await (db as any).getAdminUserByUsername('admin');
+		if (!user) {
+			return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+		}
+		const templates = await db.getTemplates(user.id);
 		return new Response(JSON.stringify({ templates }), { status: 200 });
 	} catch (error) {
 		logger.error('Error fetching templates');
@@ -28,8 +32,12 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
 	try {
 		const data = await request.json();
 		const db = getDbInstance();
+		const user = await (db as any).getAdminUserByUsername('admin');
+		if (!user) {
+			return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+		}
 		const template: any = {
-			userId: 'admin',
+			userId: user.id,
 			content: data.content,
 			scheduledDate: data.scheduledDate ? new Date(data.scheduledDate) : new Date(),
 			community: data.community || 'general',
@@ -64,7 +72,11 @@ export const PUT: RequestHandler = async ({ cookies, request }) => {
 			return new Response(JSON.stringify({ error: 'Template ID is required' }), { status: 400 });
 		}
 		const db = getDbInstance();
-		await db.updateDraft(id, 'admin', updates); // Update by id
+		const user = await (db as any).getAdminUserByUsername('admin');
+		if (!user) {
+			return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+		}
+		await db.updateDraft(id, user.id, updates); // Update by id
 		return new Response(JSON.stringify({ success: true }), { status: 200 });
 	} catch (error) {
 		logger.error('Error updating template');
@@ -84,7 +96,11 @@ export const DELETE: RequestHandler = async ({ cookies, request }) => {
 			return new Response(JSON.stringify({ error: 'Template ID is required' }), { status: 400 });
 		}
 		const db = getDbInstance();
-		await db.deleteDraft(id, 'admin'); // Delete by id
+		const user = await (db as any).getAdminUserByUsername('admin');
+		if (!user) {
+			return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+		}
+		await db.deleteDraft(id, user.id); // Delete by id
 		return new Response(JSON.stringify({ success: true }), { status: 200 });
 	} catch (error) {
 		logger.error('Error deleting template');

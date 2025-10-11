@@ -45,51 +45,103 @@ export class DatabaseClient {
 
   private runMigrationsSync(): void {
     try {
-      // Import and run migrations synchronously
-      const { readFileSync } = require('fs');
+      const { readFileSync, readdirSync, existsSync } = require('fs');
       const { join } = require('path');
       
-      // Try to load schema from multiple possible locations
-      let schemaPath: string;
+      // Create migrations tracking table if it doesn't exist
+      this.db.execute(`
+        CREATE TABLE IF NOT EXISTS schema_migrations (
+          version TEXT PRIMARY KEY,
+          applied_at INTEGER NOT NULL
+        )
+      `);
+      
+      // Find migrations directory
+      let migrationsDir: string;
       try {
-        // In production (compiled)
-        schemaPath = join(__dirname, 'migrations', '001_initial_schema.sql');
-        readFileSync(schemaPath, 'utf8');
-      } catch {
-        try {
-          // In development (ts-node)
-          schemaPath = join(__dirname, '..', 'src', 'backend', 'migrations', '001_initial_schema.sql');
-          readFileSync(schemaPath, 'utf8');
-        } catch {
-          // Fallback - schema might already exist
-          logger.warn('Could not find migration files, assuming schema exists');
-          return;
+        migrationsDir = join(__dirname, 'migrations');
+        if (!existsSync(migrationsDir)) {
+          migrationsDir = join(__dirname, '..', 'src', 'backend', 'migrations');
         }
+      } catch {
+        logger.warn('Could not find migrations directory, assuming schema exists');
+        return;
       }
       
-      const schema = readFileSync(schemaPath, 'utf8');
-      const statements = schema
-        .split(';')
-        .map((s: string) => s.trim())
-        .filter((s: string) => s.length > 0);
-
-      logger.info({ statementCount: statements.length }, 'Running database migrations');
-
-      this.db.transaction(() => {
-        for (const statement of statements) {
-          try {
-            this.db.execute(statement);
-          } catch (err) {
-            logger.error({ error: err, statement: statement.substring(0, 100) }, 'Failed to execute migration statement');
-            throw err;
-          }
-        }
-      });
+      if (!existsSync(migrationsDir)) {
+        logger.warn('Migrations directory not found, assuming schema exists');
+        return;
+      }
       
-      logger.info('Database migrations completed successfully');
+      // Get all migration files
+      const migrationFiles = readdirSync(migrationsDir)
+        .filter((f: string) => f.endsWith('.sql'))
+        .sort();
+      
+      if (migrationFiles.length === 0) {
+        logger.warn('No migration files found');
+        return;
+      }
+      
+      // Get already applied migrations
+      const appliedMigrations = new Set(
+        this.db.query<{ version: string }>('SELECT version FROM schema_migrations')
+          .map(row => row.version)
+      );
+      
+      // Run pending migrations
+      const pendingMigrations = migrationFiles.filter((f: string) => !appliedMigrations.has(f));
+      
+      if (pendingMigrations.length === 0) {
+        logger.debug('All migrations already applied');
+        return;
+      }
+      
+      logger.info({ count: pendingMigrations.length, migrations: pendingMigrations }, 'Running pending migrations');
+      
+      for (const migrationFile of pendingMigrations) {
+        const migrationPath = join(migrationsDir, migrationFile);
+        let sql = readFileSync(migrationPath, 'utf8');
+        
+        // Remove comment lines before splitting
+        sql = sql
+          .split('\n')
+          .filter((line: string) => !line.trim().startsWith('--'))
+          .join('\n');
+        
+        const statements = sql
+          .split(';')
+          .map((s: string) => s.trim())
+          .filter((s: string) => s.length > 0);
+        
+        this.db.transaction(() => {
+          for (const statement of statements) {
+            try {
+              this.db.execute(statement);
+              logger.debug({ statement: statement.substring(0, 100) }, 'Statement executed successfully');
+            } catch (err: any) {
+              // Ignore "duplicate column" errors (migration already partially applied)
+              if (!err.message?.includes('duplicate column')) {
+                logger.error({ error: err, migration: migrationFile, statement }, 'Migration statement failed');
+                throw err;
+              }
+            }
+          }
+          
+          // Mark migration as applied
+          this.db.execute(
+            'INSERT OR IGNORE INTO schema_migrations (version, applied_at) VALUES (?, ?)',
+            [migrationFile, Date.now()]
+          );
+        });
+        
+        logger.info({ migration: migrationFile }, 'Migration applied successfully');
+      }
+      
+      logger.info('All migrations completed successfully');
     } catch (error) {
-      logger.error({ error, message: error instanceof Error ? error.message : 'Unknown error' }, 'Migration failed - database may already be initialized');
-      // Don't throw - database might already exist
+      logger.error({ error, message: error instanceof Error ? error.message : 'Unknown error' }, 'Migration failed');
+      // Don't throw - allow app to start even if migrations fail
     }
   }
 
@@ -275,7 +327,7 @@ export class DatabaseClient {
       this.db.execute(
         `UPDATE accounts SET
           userId = ?, provider = ?, username = ?, displayName = ?,
-          profileImage = ?, accessToken = ?, refreshToken = ?, expiresAt = ?, isDefault = ?, updatedAt = ?
+          profileImage = ?, accessToken = ?, refreshToken = ?, expiresAt = ?, twitterAppId = ?, isDefault = ?, updatedAt = ?
          WHERE id = ?`,
         [
           userAccount.userId,
@@ -286,6 +338,7 @@ export class DatabaseClient {
           encryptedAccessToken,
           encryptedRefreshToken,
           userAccount.expires_at || null,
+          userAccount.twitterAppId || null,
           (userAccount as any).isDefault ? 1 : 0,
           now,
           existingAccount.id
@@ -298,8 +351,8 @@ export class DatabaseClient {
       const id = this.db.generateId();
       
       this.db.execute(
-        `INSERT INTO accounts (id, userId, provider, providerAccountId, username, displayName, profileImage, accessToken, refreshToken, expiresAt, isDefault, createdAt, updatedAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO accounts (id, userId, provider, providerAccountId, username, displayName, profileImage, accessToken, refreshToken, expiresAt, twitterAppId, isDefault, createdAt, updatedAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           id,
           userAccount.userId,
@@ -311,6 +364,7 @@ export class DatabaseClient {
           encryptedAccessToken,
           encryptedRefreshToken,
           userAccount.expires_at || null,
+          userAccount.twitterAppId || null,
           (userAccount as any).isDefault ? 1 : 0,
           now,
           now
@@ -340,6 +394,7 @@ export class DatabaseClient {
       access_token: this.encryptionService.decrypt(account.accessToken),
       refresh_token: this.encryptionService.decrypt(account.refreshToken),
       expires_at: account.expiresAt,
+      twitterAppId: account.twitterAppId,
       isDefault: account.isDefault === 1
     } as UserAccount;
   }
@@ -363,6 +418,7 @@ export class DatabaseClient {
       access_token: this.encryptionService.decrypt(account.accessToken),
       refresh_token: this.encryptionService.decrypt(account.refreshToken),
       expires_at: account.expiresAt,
+      twitterAppId: account.twitterAppId,
       isDefault: account.isDefault === 1
     } as UserAccount;
   }
@@ -405,6 +461,7 @@ export class DatabaseClient {
       access_token: this.encryptionService.decrypt(account.accessToken),
       refresh_token: this.encryptionService.decrypt(account.refreshToken),
       expires_at: account.expiresAt,
+      twitterAppId: account.twitterAppId,
       isDefault: account.isDefault === 1
     } as UserAccount;
   }
@@ -426,6 +483,7 @@ export class DatabaseClient {
       access_token: this.encryptionService.decrypt(account.accessToken),
       refresh_token: this.encryptionService.decrypt(account.refreshToken),
       expires_at: account.expiresAt,
+      twitterAppId: account.twitterAppId,
       isDefault: account.isDefault === 1
     } as UserAccount));
   }
@@ -444,6 +502,7 @@ export class DatabaseClient {
       access_token: this.encryptionService.decrypt(account.accessToken),
       refresh_token: this.encryptionService.decrypt(account.refreshToken),
       expires_at: account.expiresAt,
+      twitterAppId: account.twitterAppId,
       isDefault: account.isDefault === 1
     } as UserAccount));
   }
@@ -1126,7 +1185,7 @@ export class DatabaseClient {
   // TWITTER APPS MANAGEMENT
   // ============================================
 
-  async createTwitterApp(app: import('../types/types').TwitterApp): Promise<string> {
+  async createTwitterApp(app: import('../types/types').TwitterApp, userId: string): Promise<string> {
     const id = this.db.generateId();
     const now = this.db.now();
     
@@ -1135,7 +1194,7 @@ export class DatabaseClient {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
-        '',  // userId not in TwitterApp type
+        userId,
         app.name,
         app.consumerKey || app.clientId || '',
         app.consumerSecret || app.clientSecret || '',

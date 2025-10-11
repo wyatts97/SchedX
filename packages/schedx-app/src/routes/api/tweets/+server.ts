@@ -1,12 +1,15 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import { getDbInstance } from '$lib/server/db';
-import { TweetStatus } from '@schedx/shared-lib/types/types';
 import type { Tweet, TwitterApp } from '@schedx/shared-lib/types/types';
+import { TweetStatus } from '@schedx/shared-lib/types/types';
 import logger, { log } from '$lib/server/logger';
 import { TwitterApi } from 'twitter-api-v2';
 import { createValidationMiddleware } from '$lib/validation/middleware';
 import { z } from 'zod';
 import { userRateLimit, RATE_LIMITS } from '$lib/rate-limiting';
+import { TwitterAuthService } from '$lib/server/twitterAuth';
+import { validateAccountOwnership, validateScheduledDate, validateThreadTweets } from '$lib/validation/accountValidation';
+import { getAdminUserId } from '$lib/server/adminCache';
 
 // Tweet API validation schema
 const tweetApiSchema = z.object({
@@ -49,8 +52,8 @@ export const POST = userRateLimit(RATE_LIMITS.tweets)(
 		}
 
 		const db = getDbInstance();
-		const user = await (db as any).getAdminUserByUsername('admin');
-		if (!user) {
+		const userId = await getAdminUserId();
+		if (!userId) {
 			return new Response(JSON.stringify({ error: 'Unauthorized' }), {
 				status: 401,
 				headers: { 'Content-Type': 'application/json' }
@@ -69,23 +72,21 @@ export const POST = userRateLimit(RATE_LIMITS.tweets)(
 			templateCategory
 		} = data;
 
-		// Look up account by database ID (which is what we receive as accountId from frontend)
-		const allAccounts = await (db as any).getAllUserAccounts();
-		const account = allAccounts.find((acc: any) => acc.id === accountId);
-		
-		if (!account) {
-			log.error('Account not found by ID');
-			return new Response(JSON.stringify({ error: 'Selected account not found' }), {
+		// Validate account ownership
+		const accountValidation = await validateAccountOwnership(accountId, userId);
+		if (!accountValidation.valid) {
+			return new Response(JSON.stringify({ error: accountValidation.error }), {
 				status: 400,
 				headers: { 'Content-Type': 'application/json' }
 			});
 		}
+		const account = accountValidation.account;
 
-		log.info('Account found successfully');
+		log.info('Account validated successfully');
 
 		// Create tweet object based on action
 		const tweet: Partial<Tweet> = {
-			userId: 'admin', // Since this is a single-user app
+			userId: userId,
 			content: content.trim(),
 			twitterAccountId: account.providerAccountId, // Use providerAccountId for proper association
 			media: media || [],
@@ -141,7 +142,7 @@ export const POST = userRateLimit(RATE_LIMITS.tweets)(
 					tweet.status = TweetStatus.QUEUED;
 					tweet.scheduledDate = new Date(); // Placeholder, will be set by queue processor
 					// Get current queue length to set position
-					const queuedTweets = await (db as any).getTweetsByStatus(tweet.userId, TweetStatus.QUEUED);
+					const queuedTweets = await (db as any).getTweetsByStatus(userId, TweetStatus.QUEUED);
 					tweet.queuePosition = queuedTweets.length;
 					const queuedId = await db.saveTweet(tweet as Tweet);
 					log.info('Tweet added to queue successfully', { queuedId, queuePosition: tweet.queuePosition });
@@ -164,6 +165,16 @@ export const POST = userRateLimit(RATE_LIMITS.tweets)(
 							headers: { 'Content-Type': 'application/json' }
 						});
 					}
+					
+					// Validate scheduled date
+					const dateValidation = validateScheduledDate(new Date(scheduledDate));
+					if (!dateValidation.valid) {
+						return new Response(JSON.stringify({ error: dateValidation.error }), {
+							status: 400,
+							headers: { 'Content-Type': 'application/json' }
+						});
+					}
+					
 					tweet.status = TweetStatus.SCHEDULED;
 					tweet.scheduledDate = new Date(scheduledDate);
 
@@ -189,15 +200,22 @@ export const POST = userRateLimit(RATE_LIMITS.tweets)(
 
 				case 'publish':
 					try {
-						// Create Twitter client for immediate publishing
-						// Check if token needs refresh
-						const now = Math.floor(Date.now() / 1000);
-						let accessToken = account.access_token;
+						// Log account details for debugging
+						log.info('Publishing tweet - account details:', {
+							accountId: account.id,
+							providerAccountId: account.providerAccountId,
+							twitterAppId: account.twitterAppId,
+							username: account.username
+						});
 
-						// Create Twitter client with proper OAuth2 setup for v2 API calls
+						// Get Twitter app configuration
+						if (!account.twitterAppId) {
+							throw new Error('Account is missing twitterAppId - please reconnect your Twitter account');
+						}
+
 						const twitterApp = await db.getTwitterApp(account.twitterAppId);
 						if (!twitterApp) {
-							throw new Error('Twitter app configuration not found');
+							throw new Error(`Twitter app configuration not found for ID: ${account.twitterAppId}`);
 						}
 
 						// Log the complete Twitter app data for debugging
@@ -213,14 +231,9 @@ export const POST = userRateLimit(RATE_LIMITS.tweets)(
 							callbackUrl: twitterApp.callbackUrl
 						});
 
-						// Create OAuth2 client for token refresh operations
-						const oauthClient = new TwitterApi({
-							clientId: twitterApp.clientId,
-							clientSecret: twitterApp.clientSecret
-						});
-
-						// Create authenticated client for v2 API calls
-						let twitterClient = new TwitterApi(accessToken);
+						// Get authenticated client with automatic token refresh
+						const twitterAuth = TwitterAuthService.getInstance();
+						const { client: twitterClient, accessToken } = await twitterAuth.getAuthenticatedClient(account, twitterApp);
 
 						// Check if OAuth 1.0a credentials are available for media uploads
 						const hasOAuth1Credentials =
@@ -241,44 +254,6 @@ export const POST = userRateLimit(RATE_LIMITS.tweets)(
 							accessTokenSecretLength: (twitterApp as any).accessTokenSecret?.length || 0,
 							hasOAuth1Credentials
 						});
-
-						// Check if token needs refresh
-						if (account.expires_at && now >= account.expires_at - 300) {
-							// Token expires within 5 minutes, try to refresh
-							try {
-								log.info('Refreshing access token for immediate publish', { accountId });
-
-								const {
-									accessToken: newAccessToken,
-									refreshToken: newRefreshToken,
-									expiresIn
-								} = await oauthClient.refreshOAuth2Token(account.refresh_token);
-
-								// Update the account in the database
-								const updatedAccount = {
-									...account,
-									access_token: newAccessToken,
-									refresh_token: newRefreshToken || account.refresh_token,
-									expires_at: Math.floor(Date.now() / 1000) + expiresIn,
-									updatedAt: new Date()
-								};
-
-								await db.saveUserAccount(updatedAccount);
-								accessToken = newAccessToken;
-								log.info('Successfully refreshed access token for immediate publish', {
-									accountId
-								});
-
-								// Create new authenticated client with refreshed token
-								twitterClient = new TwitterApi(accessToken);
-							} catch (refreshError) {
-								log.error('Failed to refresh access token for immediate publish:', {
-									accountId,
-									error: refreshError instanceof Error ? refreshError.message : 'Unknown error'
-								});
-								// Continue with existing token
-							}
-						}
 
 						// Log the Twitter app configuration for debugging
 						log.info('Twitter app configuration for media upload:', {
@@ -433,7 +408,7 @@ export const POST = userRateLimit(RATE_LIMITS.tweets)(
 
 						// Save the tweet to database with posted status
 						const tweet: Tweet = {
-							userId: 'admin',
+							userId: userId,
 							content: content.trim(),
 							scheduledDate: new Date(),
 							community: '',

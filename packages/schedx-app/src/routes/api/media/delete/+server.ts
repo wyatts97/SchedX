@@ -5,7 +5,11 @@ import { existsSync, readFileSync, writeFileSync } from 'fs';
 import path from 'path';
 import logger from '$lib/logger';
 
-const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
+// In Docker, uploads are at /app/packages/schedx-app/uploads
+// In dev, they're at process.cwd()/uploads
+const UPLOADS_DIR = process.env.DOCKER === 'true'
+	? '/app/packages/schedx-app/uploads'
+	: path.join(process.cwd(), 'uploads');
 const MEDIA_METADATA_FILE = path.join(UPLOADS_DIR, 'media-metadata.json');
 
 interface MediaItem {

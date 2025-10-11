@@ -9,6 +9,10 @@
 		dismiss: string;
 	}>();
 
+	let isPaused = false;
+	let progress = 100;
+	let progressInterval: NodeJS.Timeout;
+
 	const icons = {
 		success: CheckCircle,
 		error: XCircle,
@@ -34,22 +38,56 @@
 	};
 
 	let timeoutId: NodeJS.Timeout;
+	let startTime: number;
+	let remainingTime: number;
 
 	const handleDismiss = () => {
+		if (progressInterval) clearInterval(progressInterval);
+		if (timeoutId) clearTimeout(timeoutId);
 		dispatch('dismiss', toast.id);
+	};
+
+	const startTimer = (duration: number) => {
+		startTime = Date.now();
+		remainingTime = duration;
+
+		// Update progress bar
+		progressInterval = setInterval(() => {
+			if (!isPaused) {
+				const elapsed = Date.now() - startTime;
+				progress = Math.max(0, 100 - (elapsed / duration) * 100);
+			}
+		}, 16); // ~60fps
+
+		timeoutId = setTimeout(() => {
+			handleDismiss();
+		}, duration);
+	};
+
+	const pauseTimer = () => {
+		if (!toast.duration || isPaused) return;
+		isPaused = true;
+		if (timeoutId) clearTimeout(timeoutId);
+		remainingTime = (progress / 100) * toast.duration;
+	};
+
+	const resumeTimer = () => {
+		if (!toast.duration || !isPaused) return;
+		isPaused = false;
+		startTime = Date.now();
+		timeoutId = setTimeout(() => {
+			handleDismiss();
+		}, remainingTime);
 	};
 
 	onMount(() => {
 		if (toast.duration && toast.duration > 0) {
-			timeoutId = setTimeout(() => {
-				handleDismiss();
-			}, toast.duration);
+			startTimer(toast.duration);
 		}
 
 		return () => {
-			if (timeoutId) {
-				clearTimeout(timeoutId);
-			}
+			if (timeoutId) clearTimeout(timeoutId);
+			if (progressInterval) clearInterval(progressInterval);
 		};
 	});
 
@@ -57,12 +95,14 @@
 </script>
 
 <div
-	class="pointer-events-auto w-full max-w-sm overflow-hidden rounded-lg border shadow-lg {colorClasses[
+	class="pointer-events-auto w-full max-w-sm overflow-hidden rounded-xl border shadow-xl backdrop-blur-sm transition-all duration-200 hover:shadow-2xl {colorClasses[
 		toast.type
 	]}"
 	role="alert"
 	aria-live="assertive"
 	aria-atomic="true"
+	on:mouseenter={pauseTimer}
+	on:mouseleave={resumeTimer}
 >
 	<div class="p-4">
 		<div class="flex items-start">
@@ -99,6 +139,7 @@
 			{#if toast.dismissible !== false}
 				<div class="ml-4 flex flex-shrink-0">
 					<button
+						type="button"
 						class="inline-flex items-center justify-center rounded-md p-1 transition-opacity hover:opacity-75 focus:outline-none focus:ring-2 focus:ring-current focus:ring-offset-0"
 						on:click={handleDismiss}
 						aria-label="Dismiss notification"
@@ -109,4 +150,13 @@
 			{/if}
 		</div>
 	</div>
+	<!-- Progress bar -->
+	{#if toast.duration && toast.duration > 0}
+		<div class="h-1 w-full bg-black/10 dark:bg-white/10">
+			<div
+				class="h-full transition-all duration-75 ease-linear {iconColorClasses[toast.type]}"
+				style="width: {progress}%; background-color: currentColor;"
+			></div>
+		</div>
+	{/if}
 </div>

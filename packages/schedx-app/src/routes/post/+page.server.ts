@@ -5,6 +5,7 @@ import { TweetStatus, type Tweet, getAvailableCommunities } from '@schedx/shared
 import { fromZonedTime } from 'date-fns-tz';
 import { log } from '$lib/server/logger.js';
 import { getEnvironmentConfig } from '$lib/server/env';
+import { getAdminUserId } from '$lib/server/adminCache';
 
 // Helper function to convert local time to UTC
 function convertToUTC(date: string, time: string, timezone: string): Date {
@@ -56,6 +57,12 @@ export const actions: Actions = {
 		// Check if user is authenticated (admin)
 		const adminSession = cookies.get('admin_session');
 		if (!adminSession || adminSession.trim() === '') {
+			throw redirect(303, '/login');
+		}
+
+		// Get admin user ID
+		const userId = await getAdminUserId();
+		if (!userId) {
 			throw redirect(303, '/login');
 		}
 
@@ -111,7 +118,7 @@ export const actions: Actions = {
 				recurrenceTypeValue = recurrenceType;
 			}
 			const tweet: any = {
-				userId: 'admin', // Use admin as the user ID
+				userId: userId,
 				content,
 				scheduledDate: scheduledDate
 					? convertToUTC(scheduledDate, scheduledTime, timezone)
@@ -141,7 +148,7 @@ export const actions: Actions = {
 				return redirect(303, '/scheduled');
 			}
 		} catch (error) {
-			log.error('Failed to save tweet:', { userId: 'admin', content, error });
+			log.error('Failed to save tweet:', { userId, content, error });
 			return fail(500, { content, error: 'Failed to save tweet. Please try again.' });
 		}
 	}

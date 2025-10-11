@@ -6,7 +6,11 @@ import path from 'path';
 import logger from '$lib/server/logger';
 
 // Save avatars to uploads/avatars so they are publicly accessible and separate from tweet media
-const AVATAR_UPLOADS_DIR = path.join(process.cwd(), 'uploads/avatars');
+// In Docker, uploads are at /app/packages/schedx-app/uploads
+// In dev, they're at process.cwd()/uploads
+const AVATAR_UPLOADS_DIR = process.env.DOCKER === 'true'
+	? '/app/packages/schedx-app/uploads/avatars'
+	: path.join(process.cwd(), 'uploads/avatars');
 
 if (!existsSync(AVATAR_UPLOADS_DIR)) {
 	mkdirSync(AVATAR_UPLOADS_DIR, { recursive: true });

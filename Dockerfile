@@ -34,9 +34,9 @@ COPY --from=builder --chown=schedx:schedx /app/package-lock.json ./
 COPY --from=builder --chown=schedx:schedx /app/node_modules ./node_modules
 COPY --from=builder --chown=schedx:schedx /app/packages ./packages
 
-# Create uploads directory with correct ownership
-RUN mkdir -p /app/packages/schedx-app/uploads && \
-    chown schedx:schedx /app/packages/schedx-app/uploads
+# Create uploads and data directories with correct ownership
+RUN mkdir -p /app/packages/schedx-app/uploads /data && \
+    chown -R schedx:schedx /app/packages/schedx-app/uploads /data
 
 # Switch to non-root user
 USER schedx
@@ -48,7 +48,7 @@ EXPOSE ${PORT}
 
 # Add health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:${PORT}/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"
+  CMD node -e "require('http').get('http://127.0.0.1:${PORT}/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"
 
 # Default command (overridden by compose for scheduler)
 CMD ["npm", "start", "-w", "@schedx/app"]

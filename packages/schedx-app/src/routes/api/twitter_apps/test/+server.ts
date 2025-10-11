@@ -2,6 +2,7 @@ import type { RequestHandler } from '@sveltejs/kit';
 import { getDbInstance } from '$lib/server/db';
 import { log } from '$lib/server/logger';
 import { TwitterApi } from 'twitter-api-v2';
+import { TwitterAuthService } from '$lib/server/twitterAuth';
 
 export const GET: RequestHandler = async ({ cookies, url }) => {
 	const adminSession = cookies.get('admin_session');
@@ -64,7 +65,8 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
 		}
 
 		const account = appAccounts[0];
-		const twitterClient = new TwitterApi(account.access_token);
+		const twitterAuth = TwitterAuthService.getInstance();
+		const { client: twitterClient } = await twitterAuth.getAuthenticatedClient(account, twitterApp);
 
 		// Test basic API access
 		const me = await twitterClient.v2.me();

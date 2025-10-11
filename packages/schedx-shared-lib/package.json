@@ -22,7 +22,6 @@
     "@isaacs/brace-expansion": "^5.0.0",
     "better-sqlite3": "^11.0.0",
     "minimatch": "^10.0.3",
-    "mongodb": "^6.3.0",
     "resend": "^4.0.1",
     "socks": "^2.8.6"
   },

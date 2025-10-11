@@ -6,25 +6,62 @@ import logger from '$lib/server/logger';
 import { RequestContext, logApiRequest, logApiError } from '$lib/server/logging';
 import { initSentry, captureException, setUser, addBreadcrumb } from '$lib/server/sentry';
 import { apiRateLimiter, authRateLimiter, getRateLimitIdentifier, createRateLimitResponse } from '$lib/server/rate-limiter';
+import { TweetSchedulerService } from '$lib/server/tweetScheduler';
+import { ThreadSchedulerService } from '$lib/server/threadScheduler';
 
 // Initialize Sentry
 initSentry();
 
 // Initialize database and ensure default admin user
 let dbInitialized = false;
+let schedulerInitialized = false;
+let initPromise: Promise<void> | null = null;
 
 const initDb = async () => {
-	if (!dbInitialized) {
+	// If already initialized, return immediately
+	if (dbInitialized) {
+		return;
+	}
+	
+	// If initialization is in progress, wait for it
+	if (initPromise) {
+		return initPromise;
+	}
+	
+	// Start initialization
+	initPromise = (async () => {
 		try {
+			logger.info('Starting database initialization...');
+			const startTime = Date.now();
+			
 			await initializeDatabase();
 			await ensureDefaultAdminUser();
 			dbInitialized = true;
-			logger.debug('Database initialized successfully');
+			
+			const duration = Date.now() - startTime;
+			logger.info({ duration }, 'Database initialized successfully');
+			
+			// Start schedulers after database is ready
+			if (!schedulerInitialized) {
+				const tweetScheduler = TweetSchedulerService.getInstance();
+				tweetScheduler.start(60000); // Check every minute
+				
+				const threadScheduler = ThreadSchedulerService.getInstance();
+				threadScheduler.start(60000); // Check every minute
+				
+				schedulerInitialized = true;
+				logger.info('Tweet and thread schedulers initialized');
+			}
 		} catch (error) {
 			logger.error({ error }, 'Database initialization failed');
 			captureException(error as Error, { context: 'database_initialization' });
+			// Reset promise so it can be retried
+			initPromise = null;
+			throw error;
 		}
-	}
+	})();
+	
+	return initPromise;
 };
 
 /**

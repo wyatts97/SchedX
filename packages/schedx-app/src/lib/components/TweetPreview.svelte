@@ -20,41 +20,28 @@
 	let showVideoModal = false;
 	let modalVideoUrl = '';
 	let theme: string = 'light';
+	
+	// Initialize validMediaItems before using it
+	let validMediaItems: { url: string; type: string }[] = [];
 
-	// Safety function to check if media is valid and has items
-	function hasValidMedia(): boolean {
-		logger.debug('=== hasValidMedia called ===');
-		logger.debug('validMediaItems:', validMediaItems);
-		logger.debug('validMediaItems type:', typeof validMediaItems);
-		logger.debug('validMediaItems is array:', Array.isArray(validMediaItems));
-		logger.debug('validMediaItems length:', validMediaItems?.length);
-		logger.debug('validMediaItems content:', JSON.stringify(validMediaItems));
-
-		const result = validMediaItems && validMediaItems.length > 0;
-		logger.debug('hasValidMedia returning:', result);
-		return result;
-	}
-
-	// Safety function to get media items with type checking
+	// Function to get media items with type checking
 	function getValidMediaItems(): { url: string; type: string }[] {
-		logger.debug('=== getValidMediaItems called ===');
-		logger.debug('Media prop:', media);
-		logger.debug('Media type:', typeof media);
-		logger.debug('Is array:', Array.isArray(media));
+		logger.debug('getValidMediaItems called');
+		logger.debug('Media prop validation', { media, type: typeof media, isArray: Array.isArray(media) });
 
 		if (!Array.isArray(media)) {
-			logger.debug('Not an array, returning empty');
+			logger.debug('Media is not an array, returning empty');
 			return [];
 		}
 
-		logger.debug('Array length:', media.length);
-
 		if (media.length > 0) {
 			const firstItem = media[0];
-			logger.debug('First item:', firstItem);
-			logger.debug('First item type:', typeof firstItem);
-			logger.debug('First item url:', firstItem?.url);
-			logger.debug('First item type prop:', firstItem?.type);
+			logger.debug('First media item details', { 
+				firstItem, 
+				type: typeof firstItem, 
+				url: firstItem?.url, 
+				typeProp: firstItem?.type 
+			});
 		}
 
 		const validItems = media.filter((item) => {
@@ -63,11 +50,10 @@
 				typeof item === 'object' &&
 				typeof item.url === 'string' &&
 				typeof item.type === 'string';
-			logger.debug('Item valid:', isValid, item);
 			return isValid;
 		});
 
-		logger.debug('Valid items result:', validItems);
+		logger.debug('Valid items result', { validItems, count: validItems.length });
 		return validItems;
 	}
 
@@ -82,10 +68,6 @@
 				attributes: true,
 				attributeFilter: ['data-theme']
 			});
-
-			// Initialize validMediaItems on mount
-			validMediaItems = getValidMediaItems();
-			logger.debug('=== onMount: Initialized validMediaItems ===', validMediaItems);
 
 			return () => observer.disconnect();
 		}
@@ -108,32 +90,11 @@
 	}
 	$: xLogoFill = theme === 'light' ? '#000' : '#fff';
 
-	// Fix reactivity: Force recalculation when media changes
+	// Reactive: Update validMediaItems when media prop changes
 	$: {
-		logger.debug('=== Media prop changed, recalculating ===');
+		logger.debug('Media prop changed, recalculating validMediaItems', { media });
 		validMediaItems = getValidMediaItems();
-	}
-
-	// Additional reactive statement for extra safety
-	$: if (media && Array.isArray(media)) {
-		logger.debug('=== Reactive media change detected ===');
-		validMediaItems = getValidMediaItems();
-	}
-
-	// Initialize validMediaItems
-	let validMediaItems: { url: string; type: string }[] = [];
-
-	// Debug: Log when media prop changes
-	$: {
-		logger.debug('TweetPreview media prop changed:', media);
-		logger.debug('TweetPreview validMediaItems updated:', validMediaItems);
-	}
-
-	// Debug: Log when validMediaItems changes specifically
-	$: {
-		logger.debug('=== validMediaItems changed ===');
-		logger.debug('New validMediaItems:', validMediaItems);
-		logger.debug('Length:', validMediaItems?.length);
+		logger.debug('ValidMediaItems updated', { validMediaItems, length: validMediaItems?.length });
 	}
 </script>
 
@@ -181,13 +142,26 @@
 						alt="Tweet media"
 					/>
 				{:else if m.type === 'video'}
-					<div class="group relative cursor-pointer" on:click={() => openVideoModal(m.url)}>
+					<div
+						class="group relative cursor-pointer"
+						on:click={() => openVideoModal(m.url)}
+						on:keydown={(e) => {
+							if (e.key === 'Enter' || e.key === ' ') {
+								e.preventDefault();
+								openVideoModal(m.url);
+							}
+						}}
+						role="button"
+						tabindex="0"
+						aria-label="Play video"
+					>
+						<!-- svelte-ignore element_invalid_self_closing_tag -->
 						<video
 							class="theme-dark:border-gray-700 max-h-96 rounded-2xl border border-gray-100 object-contain dark:border-gray-700"
 							src={m.url}
 							muted
 							playsinline
-						/>
+						></video>
 						<div class="absolute inset-0 flex items-center justify-center">
 							<svg
 								class="h-16 w-16 opacity-80 transition-transform group-hover:scale-110"

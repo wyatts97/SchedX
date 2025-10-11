@@ -14,7 +14,14 @@ export const GET: RequestHandler = async ({ cookies }) => {
 		}
 
 		const db = getDbInstance();
-		const userId = 'admin';
+		const user = await (db as any).getAdminUserByUsername('admin');
+		if (!user) {
+			return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+				status: 401,
+				headers: { 'Content-Type': 'application/json' }
+			});
+		}
+		const userId = user.id;
 
 		const settings = await db.getQueueSettings(userId);
 
@@ -62,7 +69,14 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		}
 
 		const db = getDbInstance();
-		const userId = 'admin';
+		const user = await (db as any).getAdminUserByUsername('admin');
+		if (!user) {
+			return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+				status: 401,
+				headers: { 'Content-Type': 'application/json' }
+			});
+		}
+		const userId = user.id;
 		const settings = await request.json();
 
 		// Add userId to settings

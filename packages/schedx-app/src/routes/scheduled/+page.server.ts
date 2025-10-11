@@ -3,7 +3,6 @@ import type { Actions, PageServerLoad } from './$types';
 import { getDbInstance } from '$lib/server/db';
 import { TweetStatus, type Tweet, getAvailableCommunities } from '@schedx/shared-lib';
 import { log } from '$lib/server/logger.js';
-import { ObjectId } from 'mongodb';
 import logger from '$lib/logger';
 
 const TWEETS_PER_PAGE = 10;
@@ -29,8 +28,11 @@ export const load: PageServerLoad = async ({
 			// Verify session exists and is valid
 			const session = await db.getSession(adminSession);
 			if (session && session.data.user.username === 'admin') {
-				userId = 'admin';
-				isAdmin = true;
+				const user = await (db as any).getAdminUserByUsername('admin');
+				if (user) {
+					userId = user.id;
+					isAdmin = true;
+				}
 			}
 		} catch (error) {
 			logger.error('Error validating admin session');
@@ -124,12 +126,6 @@ export const actions: Actions = {
 			return { success: true, deletedTweetId: tweetId };
 		} catch (error) {
 			log.error('Error deleting tweet:', { userId, tweetId, error });
-
-			// Check if it's an invalid ObjectId error
-			if (error instanceof Error && error.message.includes('ObjectId')) {
-				return fail(400, { error: 'Invalid Tweet ID format' });
-			}
-
 			return fail(500, { error: 'Failed to delete tweet' });
 		}
 	},
@@ -216,13 +212,10 @@ export const actions: Actions = {
 			const updatedDate = new Date(oldDate);
 			updatedDate.setFullYear(year, month - 1, day);
 			// Update in DB
-			const dbRaw = await db.connect();
-			await dbRaw
-				.collection('tweets')
-				.updateOne(
-					{ _id: new ObjectId(tweetId), userId },
-					{ $set: { scheduledDate: updatedDate, updatedAt: new Date() } }
-				);
+			await db.updateTweet(tweetId, {
+				scheduledDate: updatedDate,
+				updatedAt: new Date()
+			});
 			return { success: true };
 		} catch (error) {
 			log.error('Failed to reschedule tweet:', { userId, tweetId, newDate, error });

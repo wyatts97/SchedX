@@ -331,8 +331,8 @@
 			const formData = new FormData();
 			formData.append('file', file);
 
-			// Add account ID only if it's a valid UUID (not null, empty, or invalid)
-			if (selectedAccountId && selectedAccountId.trim() !== '' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(selectedAccountId)) {
+			// Add account ID if provided (supports both UUID and custom ID formats)
+			if (selectedAccountId && selectedAccountId.trim() !== '') {
 				formData.append('accountId', selectedAccountId);
 			}
 
@@ -600,16 +600,31 @@
 
 <!-- Gallery Selection Modal -->
 {#if showGalleryModal}
-	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" on:click={() => showGalleryModal = false}>
-		<div class="max-h-[80vh] w-full max-w-4xl overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-gray-800" on:click|stopPropagation>
+	<div 
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" 
+		on:click={() => showGalleryModal = false}
+		on:keydown={(e) => e.key === 'Enter' && (showGalleryModal = false)}
+		role="presentation"
+	>
+		<div 
+			class="max-h-[80vh] w-full max-w-4xl overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-gray-800" 
+			on:click|stopPropagation
+			on:keydown|stopPropagation
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="gallery-modal-title"
+			tabindex="-1"
+		>
 			<!-- Modal Header -->
 			<div class="flex items-center justify-between border-b border-gray-200 p-4 dark:border-gray-700">
-				<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Select from Gallery</h3>
+				<h3 id="gallery-modal-title" class="text-lg font-semibold text-gray-900 dark:text-white">Select from Gallery</h3>
 				<button
+					type="button"
 					on:click={() => showGalleryModal = false}
 					class="rounded-lg p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+					aria-label="Close gallery modal"
 				>
-					<X class="h-5 w-5" />
+					<X class="h-5 w-5" aria-hidden="true" />
 				</button>
 			</div>
 
@@ -667,12 +682,14 @@
 				</p>
 				<div class="flex gap-2">
 					<button
+						type="button"
 						on:click={() => showGalleryModal = false}
 						class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
 					>
 						Cancel
 					</button>
 					<button
+						type="button"
 						on:click={addSelectedFromGallery}
 						disabled={selectedGalleryIds.size === 0}
 						class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"

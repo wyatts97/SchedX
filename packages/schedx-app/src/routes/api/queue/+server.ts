@@ -15,7 +15,14 @@ export const GET: RequestHandler = async ({ cookies }) => {
 		}
 
 		const db = getDbInstance();
-		const userId = 'admin'; // For now, hardcoded
+		const user = await (db as any).getAdminUserByUsername('admin');
+		if (!user) {
+			return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+				status: 401,
+				headers: { 'Content-Type': 'application/json' }
+			});
+		}
+		const userId = user.id;
 
 		const tweets = await db.getTweetsByStatus(userId, TweetStatus.QUEUED);
 

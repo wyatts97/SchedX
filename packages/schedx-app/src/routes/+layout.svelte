@@ -101,7 +101,6 @@
 		<main
 			id="main-content"
 			class="min-w-0 flex-1 lg:pl-72 lg:pt-4"
-			role="main"
 			aria-label="Main content"
 		>
 			<div class="max-w-full px-4 py-6 sm:px-6 lg:px-8">
@@ -132,7 +131,6 @@
 	{:else}
 		<!-- Login page - no sidebar, navbar, or footer -->
 		<main
-			role="main"
 			aria-label="Authentication"
 			class="flex min-h-screen items-center justify-center"
 		>

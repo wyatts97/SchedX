@@ -92,10 +92,16 @@ export async function signIn(credentials: { username: string; password: string }
 			return { error: 'Invalid credentials' };
 		}
 
+		// Ensure user has a valid ID
+		if (!user.id) {
+			logger.error('User missing ID', { username: user.username });
+			return { error: 'Invalid user data' };
+		}
+
 		const sessionId = crypto.randomUUID();
 		const sessionData = {
 			user: {
-				id: user.id || user.username,
+				id: user.id,
 				username: user.username,
 				displayName: (user as any).displayName || user.username,
 				avatar: (user as any).avatar || '/avatar.png',

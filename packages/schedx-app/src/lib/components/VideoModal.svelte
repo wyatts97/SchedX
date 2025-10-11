@@ -25,10 +25,17 @@
 	<div
 		class="fixed inset-0 z-[99999] flex items-center justify-center bg-black bg-opacity-60 transition-opacity duration-200"
 		on:click={closeModal}
+		on:keydown={(e) => e.key === 'Enter' && closeModal()}
+		role="presentation"
 	>
 		<div
 			class="relative aspect-video w-full max-w-3xl overflow-hidden rounded-3xl bg-black shadow-2xl"
 			on:click|stopPropagation
+			on:keydown|stopPropagation
+			role="dialog"
+			aria-modal="true"
+			aria-label="Video player"
+			tabindex="-1"
 		>
 			<button
 				class="absolute right-3 top-3 z-10 rounded-full bg-white p-2 shadow transition hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700"
@@ -49,6 +56,8 @@
 					/></svg
 				>
 			</button>
+			<!-- svelte-ignore a11y-media-has-caption -->
+			<!-- svelte-ignore element_invalid_self_closing_tag -->
 			<video
 				bind:this={videoEl}
 				src={videoUrl}

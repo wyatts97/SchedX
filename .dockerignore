@@ -1,21 +1,58 @@
+# Dependencies
 node_modules
 npm-debug.log
+
+# Git
 .git
 .gitignore
+
+# Documentation
 README.md
+*.md
+
+# Testing and coverage
 .nyc_output
 coverage
-.nyc_output
+test
+tests
+__tests__
+
+# Build artifacts
 .cache
 .parcel-cache
 .next
 .nuxt
 dist
 build
-.DS_Store
+.svelte-kit
+
+# Environment files (keep only .env.docker)
+.env
+.env.*
+!.env.docker
+
+# Logs
 *.log
+logs
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
 .vscode
 .idea
 *.swp
 *.swo
-*~ 
+*~
+
+# Application data (should use volumes)
+uploads
+data
+*.db
+*.db-shm
+*.db-wal
+
+# Temporary files
+tmp
+temp

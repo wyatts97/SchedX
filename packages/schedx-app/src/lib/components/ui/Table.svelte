@@ -22,7 +22,7 @@
 		try {
 			await action.onClick(row);
 		} catch (error) {
-			logger.error('Table action error:', error);
+			logger.error('Table action error:', { error });
 		}
 	};
 

@@ -56,7 +56,9 @@ export function validateEnvironment(): EnvironmentConfig {
 
 		// Server
 		HOST: process.env.HOST || '0.0.0.0',
-		ORIGIN: process.env.ORIGIN || 'http://localhost:5173',
+		ORIGIN: process.env.ORIGIN || (process.env.NODE_ENV === 'production' 
+			? (() => { throw new Error('ORIGIN must be set in production'); })()
+			: 'http://localhost:5173'),
 		PORT: parseInt(process.env.PORT || '5173', 10),
 		NODE_ENV: (process.env.NODE_ENV as EnvironmentConfig['NODE_ENV']) || 'development',
 

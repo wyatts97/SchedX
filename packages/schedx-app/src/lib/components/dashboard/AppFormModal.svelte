@@ -167,14 +167,17 @@
 		<div
 			class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
 			on:click={() => dashboardStore.closeAppForm()}
-			role="button"
-			tabindex="-1"
+			on:keydown={(e) => e.key === 'Enter' && dashboardStore.closeAppForm()}
+			role="presentation"
 		></div>
 		<div
 			class="inline-block transform overflow-hidden rounded-lg bg-white text-left align-bottom shadow-xl transition-all dark:bg-gray-800 sm:my-8 sm:w-full sm:max-w-lg sm:align-middle"
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="app-form-modal-title"
 		>
 			<div class="bg-white px-4 pb-4 pt-5 dark:bg-gray-800 sm:p-6 sm:pb-4">
-				<h3 class="mb-4 text-lg font-medium leading-6 text-gray-900 dark:text-white">
+				<h3 id="app-form-modal-title" class="mb-4 text-lg font-medium leading-6 text-gray-900 dark:text-white">
 					{editingApp ? 'Edit Twitter App' : 'Add Twitter App'}
 				</h3>
 

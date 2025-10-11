@@ -14,7 +14,11 @@ export const GET: RequestHandler = async ({ params }) => {
 		}
 
 		// Construct the file path
-		const avatarsDir = path.join(process.cwd(), 'uploads/avatars');
+		// In Docker, uploads are at /app/packages/schedx-app/uploads
+		// In dev, they're at process.cwd()/uploads
+		const avatarsDir = process.env.DOCKER === 'true'
+			? '/app/packages/schedx-app/uploads/avatars'
+			: path.join(process.cwd(), 'uploads/avatars');
 		const filePath = path.join(avatarsDir, file);
 
 		// Security check: ensure the file is within the avatars directory

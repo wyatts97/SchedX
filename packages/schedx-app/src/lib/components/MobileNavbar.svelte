@@ -126,6 +126,7 @@
 			on:click={toggleDropup}
 			class="rounded-full border-4 border-white bg-blue-600 p-3 shadow-lg transition-transform hover:scale-110 dark:bg-blue-500"
 			class:rotate-45={showDropup}
+			aria-label={showDropup ? 'Close create menu' : 'Open create menu'}
 		>
 			<svg
 				class="mobile-navbar-icon h-8 w-8 text-white transition-all duration-200"
@@ -135,12 +136,12 @@
 				stroke-linecap="round"
 				stroke-linejoin="round"
 				viewBox="0 0 24 24"
+				aria-hidden="true"
 			>
 				<path d="M12 5v14" />
 				<path d="M5 12h14" />
 			</svg>
 		</button>
-		<span class="sr-only">Create</span>
 	</div>
 </nav>
 

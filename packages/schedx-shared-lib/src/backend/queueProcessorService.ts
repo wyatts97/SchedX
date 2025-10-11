@@ -17,7 +17,7 @@ export class QueueProcessorService {
 	 */
 	static async processQueue(
 		db: any,
-		userId: string = 'admin'
+		userId: string
 	): Promise<{ scheduled: number; errors: string[] }> {
 		const errors: string[] = [];
 		let scheduled = 0;

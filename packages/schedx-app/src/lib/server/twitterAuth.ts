@@ -265,11 +265,11 @@ export class TwitterAuthService {
 	/**
 	 * Save user account to database
 	 */
-	public async saveUserAccount(userInfo: any, tokens: any, twitterAppId: string): Promise<string> {
+	public async saveUserAccount(userInfo: any, tokens: any, twitterAppId: string, userId: string): Promise<string> {
 		const db = getDbInstance();
 		const now = new Date();
 		const userAccount: UserAccount = {
-			userId: 'admin',
+			userId,
 			username: userInfo.username,
 			displayName: userInfo.name,
 			profileImage: userInfo.profile_image_url,
@@ -421,5 +421,62 @@ export class TwitterAuthService {
 			log.error('Token revocation failed:', { error, appId: app.id });
 			return false;
 		}
+	}
+
+	/**
+	 * Get authenticated Twitter client with automatic token refresh
+	 * This is the recommended way to get a Twitter client for API calls
+	 * 
+	 * @param account - User account with access token
+	 * @param twitterApp - Twitter app configuration
+	 * @returns Authenticated TwitterApi client with fresh token
+	 */
+	public async getAuthenticatedClient(
+		account: any,
+		twitterApp: TwitterApp
+	): Promise<{ client: any; accessToken: string }> {
+		const now = Math.floor(Date.now() / 1000);
+		let accessToken = account.access_token;
+
+		// Check if token needs refresh (expires within 5 minutes)
+		if (account.expires_at && now >= account.expires_at - 300) {
+			try {
+				log.info('Refreshing access token', { 
+					accountId: account.id,
+					expiresAt: account.expires_at,
+					now 
+				});
+
+				const {
+					accessToken: newAccessToken,
+					refreshToken: newRefreshToken,
+					expiresIn
+				} = await this.refreshAccessToken(twitterApp, account.refresh_token);
+
+				// Update the account in the database
+				const db = getDbInstance();
+				const updatedAccount = {
+					...account,
+					access_token: newAccessToken,
+					refresh_token: newRefreshToken || account.refresh_token,
+					expires_at: Math.floor(Date.now() / 1000) + expiresIn,
+					updatedAt: new Date()
+				};
+
+				await db.saveUserAccount(updatedAccount);
+				accessToken = newAccessToken;
+				
+				log.info('Successfully refreshed access token', { accountId: account.id });
+			} catch (refreshError) {
+				log.error('Failed to refresh access token:', {
+					accountId: account.id,
+					error: refreshError instanceof Error ? refreshError.message : 'Unknown error'
+				});
+				// Continue with existing token - it might still work
+			}
+		}
+
+		const client = new TwitterApi(accessToken);
+		return { client, accessToken };
 	}
 }

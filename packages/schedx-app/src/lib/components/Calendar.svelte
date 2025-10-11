@@ -78,9 +78,8 @@
 		);
 	}
 
-	function openTweetModal(date: number, tweet: Tweet | null = null) {
+	function openTweetModal(date: number) {
 		modalDate = new Date(year, month, date);
-		editingTweet = tweet;
 		showTweetModal = true;
 	}
 
@@ -216,7 +215,9 @@
 							{#each getEventsForDate(date) as event}
 								<div
 									class="group/event relative cursor-pointer rounded-md border px-1 py-0.5 text-xs transition-all duration-200 hover:shadow-sm dark:border-gray-600 sm:px-2 sm:py-1"
-									on:click={() => openTweetModal(date, event)}
+									role="button"
+									tabindex="0"
+									aria-label="Scheduled tweet: {event.event_title}"
 								>
 									<div class="flex items-center justify-between">
 										<img
@@ -241,10 +242,11 @@
 	<div class="fixed inset-0 z-50 overflow-y-auto">
 		<div class="flex min-h-screen items-center justify-center px-4 py-6">
 			<!-- Backdrop -->
-			<div
+			<button
 				class="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
 				on:click={closeTweetModal}
-			></div>
+				aria-label="Close schedule modal"
+			></button>
 
 			<!-- Modal -->
 			<div
@@ -255,7 +257,7 @@
 					class="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700"
 				>
 					<h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-						{editingTweet ? 'Edit Scheduled Tweet' : 'Schedule a Tweet'}
+						Schedule a Tweet
 					</h3>
 					<button
 						type="button"
@@ -271,11 +273,10 @@
 				<div class="p-6">
 					<TweetCreate
 						{accounts}
-						selectedAccountId={editingTweet?.accountId}
-						initialContent={editingTweet?.event_title}
+						selectedAccountId={accounts?.length > 0 ? accounts[0]?.providerAccountId : ''}
+						initialContent=""
 						initialDate={modalDate?.toISOString()}
-						mode={editingTweet ? 'edit' : 'schedule'}
-						tweetId={editingTweet?.id}
+						mode="schedule"
 					/>
 				</div>
 			</div>
