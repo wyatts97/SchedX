@@ -9,7 +9,7 @@
 	import { browser } from '$app/environment';
 	// @ts-ignore
 	import { AlertTriangle } from 'lucide-svelte';
-	import { Search, X } from 'lucide-svelte';
+	import { Search, X, CheckCircle } from 'lucide-svelte';
 	import VideoModal from '$lib/components/VideoModal.svelte';
 	import { constructTweetUrl } from '$lib/utils/twitter';
 	import { ExternalLink } from 'lucide-svelte';
@@ -156,8 +156,28 @@
 			{#each data.tweets as tweet (tweet.id)}
 				<!-- Card with media on the right -->
 				<div
-					class="hover:shadow-2xs focus:outline-hidden group block rounded-lg border border-gray-200 bg-white dark:border-neutral-700 dark:bg-gray-800"
+					class="hover:shadow-2xs focus:outline-hidden group relative block rounded-lg border border-gray-200 bg-white dark:border-neutral-700 dark:bg-gray-800"
 				>
+					<!-- Action Badge - Top Right (for published tweets) -->
+					{#if tweet.status === 'posted' && (tweet as any).twitterTweetId && tweet.twitterAccountId && accountByProviderId[tweet.twitterAccountId]}
+						<div class="absolute right-3 top-3 z-10">
+							<a
+								href={constructTweetUrl(
+									accountByProviderId[tweet.twitterAccountId].username,
+									(tweet as any).twitterTweetId
+								)}
+								target="_blank"
+								rel="noopener noreferrer"
+								class="inline-flex items-center gap-2 rounded-full bg-green-50 px-4 py-1.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20 transition-colors hover:bg-green-100 dark:bg-green-500/10 dark:text-green-400 dark:ring-green-500/30 dark:hover:bg-green-500/20"
+								title="View published tweet"
+							>
+								<CheckCircle class="h-3.5 w-3.5" />
+								<div class="h-3.5 w-px bg-green-600/20 dark:bg-green-500/30"></div>
+								<ExternalLink class="h-3.5 w-3.5" />
+							</a>
+						</div>
+					{/if}
+
 					<div class="relative flex items-center overflow-hidden">
 						{#if tweet.media && tweet.media.length > 0}
 							{#if tweet.media[0].type === 'video'}
@@ -247,24 +267,6 @@
 								<p class="mt-1 text-sm text-gray-500 dark:text-neutral-500">
 									{tweet.content}
 								</p>
-
-								<!-- View Tweet Button for posted tweets -->
-								{#if tweet.status === 'posted' && (tweet as any).twitterTweetId && tweet.twitterAccountId && accountByProviderId[tweet.twitterAccountId]}
-									<div class="mt-3">
-										<a
-											href={constructTweetUrl(
-												accountByProviderId[tweet.twitterAccountId].username,
-												(tweet as any).twitterTweetId
-											)}
-											target="_blank"
-											rel="noopener noreferrer"
-											class="inline-flex items-center gap-1.5 rounded-md bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30"
-										>
-											<ExternalLink class="h-3 w-3" />
-											View Tweet
-										</a>
-									</div>
-								{/if}
 							</div>
 						</div>
 					</div>

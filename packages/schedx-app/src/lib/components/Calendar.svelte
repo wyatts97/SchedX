@@ -187,49 +187,43 @@
 	</div>
 
 	<!-- Calendar Container -->
-	<div 
-		class="overflow-hidden rounded-xl bg-white shadow-lg dark:bg-gray-800"
-		on:touchstart={handleTouchStart}
-		on:touchend={handleTouchEnd}
-	>
-		<!-- Calendar Navigation -->
-		<div
-			class="flex items-center justify-between border-b border-gray-200 px-4 py-3 sm:px-6 sm:py-4 dark:border-gray-700"
-		>
-			<h2 class="text-lg font-semibold text-gray-900 dark:text-white sm:text-xl">
+	<div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
+		<!-- Header -->
+		<div class="flex items-center justify-between border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50 px-3 py-3 dark:border-gray-700 dark:from-gray-800 dark:to-gray-800 sm:px-6 sm:py-4">
+			<h2 class="text-base font-bold text-gray-900 dark:text-white sm:text-lg md:text-xl">
 				{MONTH_NAMES[month]} {year}
 			</h2>
 
-			<div class="flex items-center space-x-2">
+			<div class="flex items-center space-x-1 sm:space-x-2">
 				<button
 					type="button"
-					class="inline-flex items-center justify-center rounded-lg border-2 border-gray-300 bg-white p-2 text-gray-700 shadow-sm transition-all duration-200 hover:border-blue-400 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:border-blue-500 dark:hover:bg-gray-600"
+					class="inline-flex items-center justify-center rounded-lg border-2 border-gray-300 bg-white p-1.5 text-gray-700 shadow-sm transition-all duration-200 hover:border-blue-400 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:border-blue-500 dark:hover:bg-gray-600 sm:p-2"
 					disabled={month === 0 && year <= 2020}
 					on:click={() => navigateMonth('prev')}
 					aria-label="Previous month"
 				>
-					<ChevronLeft class="h-5 w-5" />
+					<ChevronLeft class="h-4 w-4 sm:h-5 sm:w-5" />
 				</button>
 
 				<button
 					type="button"
-					class="inline-flex items-center justify-center rounded-lg border-2 border-gray-300 bg-white p-2 text-gray-700 shadow-sm transition-all duration-200 hover:border-blue-400 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:border-blue-500 dark:hover:bg-gray-600"
+					class="inline-flex items-center justify-center rounded-lg border-2 border-gray-300 bg-white p-1.5 text-gray-700 shadow-sm transition-all duration-200 hover:border-blue-400 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:border-blue-500 dark:hover:bg-gray-600 sm:p-2"
 					disabled={month === 11 && year >= 2030}
 					on:click={() => navigateMonth('next')}
 					aria-label="Next month"
 				>
-					<ChevronRight class="h-5 w-5" />
+					<ChevronRight class="h-4 w-4 sm:h-5 sm:w-5" />
 				</button>
 			</div>
 		</div>
 
 		<!-- Calendar Grid -->
-		<div class="p-2 sm:p-4 md:p-6">
+		<div class="p-1.5 sm:p-4 md:p-6">
 			<!-- Day Headers -->
-			<div class="mb-2 grid grid-cols-7 gap-1">
+			<div class="mb-1 grid grid-cols-7 gap-0.5 sm:gap-1 sm:mb-2">
 				{#each DAYS as day}
-					<div class="px-1 py-2 text-center sm:px-2">
-						<div class="text-xs font-semibold text-gray-600 dark:text-gray-400 sm:text-sm">
+					<div class="px-0.5 py-1 text-center sm:px-2 sm:py-2">
+						<div class="text-[10px] font-semibold text-gray-600 dark:text-gray-400 sm:text-xs md:text-sm">
 							{day}
 						</div>
 					</div>
@@ -237,11 +231,11 @@
 			</div>
 
 			<!-- Calendar Days -->
-			<div class="grid grid-cols-7 gap-1">
+			<div class="grid grid-cols-7 gap-0.5 sm:gap-1">
 				<!-- Blank Days -->
 				{#each blankDays as blankDay}
 					<div
-						class="aspect-square rounded-lg border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900"
+						class="aspect-square rounded border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900 sm:rounded-lg"
 					></div>
 				{/each}
 
@@ -250,13 +244,13 @@
 					{@const dayEvents = getEventsForDate(date)}
 					{@const isSelected = selectedDate && selectedDate.toDateString() === new Date(year, month, date).toDateString()}
 					<div
-						class="group relative aspect-square rounded-lg border-2 p-1 transition-all duration-200 cursor-pointer sm:p-2
+						class="group relative aspect-square rounded border-2 p-0.5 transition-all duration-200 cursor-pointer sm:rounded-lg sm:p-1 md:p-2
 							{isToday(date) 
 								? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
 								: isSelected
 									? 'border-purple-400 bg-purple-50 dark:border-purple-600 dark:bg-purple-900/20'
 									: 'border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800'}
-							hover:border-blue-400 hover:shadow-lg dark:hover:border-blue-500"
+							hover:border-blue-400 hover:shadow-md sm:hover:shadow-lg dark:hover:border-blue-500"
 						on:click={() => handleDateClick(date)}
 						on:mouseenter={() => hoveredDate = date}
 						on:mouseleave={() => hoveredDate = null}
@@ -266,17 +260,17 @@
 						<!-- Date Number -->
 						<div class="flex items-center justify-between">
 							<div
-								class="text-xs font-semibold sm:text-sm {isToday(date)
+								class="text-[10px] font-semibold sm:text-xs md:text-sm {isToday(date)
 									? 'text-blue-600 dark:text-blue-400'
 									: 'text-gray-900 dark:text-gray-100'}"
 							>
 								{date}
 							</div>
 
-							<!-- Add Event Button (visible on hover) -->
+							<!-- Add Event Button (visible on hover, hidden on mobile) -->
 							<button
 								type="button"
-								class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-white opacity-0 transition-all duration-200 hover:bg-blue-600 group-hover:opacity-100 sm:h-6 sm:w-6"
+								class="hidden sm:inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-white opacity-0 transition-all duration-200 hover:bg-blue-600 group-hover:opacity-100 sm:h-6 sm:w-6"
 								on:click|stopPropagation={() => openTweetModal(date)}
 								aria-label="Add tweet for {MONTH_NAMES[month]} {date}"
 							>
@@ -286,26 +280,26 @@
 
 						<!-- Event Indicators - Colored Dots & Count Badge -->
 						{#if dayEvents.length > 0}
-							<div class="mt-1 flex flex-wrap items-center gap-1">
-								<!-- Show up to 3 colored dots for different accounts -->
-								{#each dayEvents.slice(0, 3) as event}
+							<div class="mt-0.5 flex flex-wrap items-center gap-0.5 sm:mt-1 sm:gap-1">
+								<!-- Show up to 2 colored dots on mobile, 3 on desktop -->
+								{#each dayEvents.slice(0, window.innerWidth < 640 ? 2 : 3) as event}
 									{@const color = accountColorMap[event.accountId || ''] || ACCOUNT_COLORS[0]}
 									<div 
-										class="h-2 w-2 rounded-full {color.dot}"
+										class="h-1.5 w-1.5 rounded-full sm:h-2 sm:w-2 {color.dot}"
 										title="{event.accountUsername}: {event.event_title}"
 									></div>
 								{/each}
 								
-								<!-- Count badge if more than 3 -->
-								{#if dayEvents.length > 3}
-									<span class="text-[10px] font-medium text-gray-600 dark:text-gray-400">
-										+{dayEvents.length - 3}
+								<!-- Count badge -->
+								{#if dayEvents.length > (window.innerWidth < 640 ? 2 : 3)}
+									<span class="text-[8px] font-medium text-gray-600 dark:text-gray-400 sm:text-[10px]">
+										+{dayEvents.length - (window.innerWidth < 640 ? 2 : 3)}
 									</span>
 								{/if}
 							</div>
 							
-							<!-- Tweet count text -->
-							<div class="mt-1 text-[10px] font-medium text-gray-600 dark:text-gray-400 sm:text-xs">
+							<!-- Tweet count text (more compact on mobile) -->
+							<div class="mt-0.5 text-[8px] font-medium text-gray-600 dark:text-gray-400 sm:mt-1 sm:text-[10px] md:text-xs">
 								{dayEvents.length} {dayEvents.length === 1 ? 'tweet' : 'tweets'}
 							</div>
 						{/if}

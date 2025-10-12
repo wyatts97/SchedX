@@ -7,7 +7,7 @@
 	import { browser } from '$app/environment';
 	import TweetCreate from '$lib/components/TweetCreate.svelte';
 	import TweetPreview from '$lib/components/TweetPreview.svelte';
-	import { AlertTriangle, CheckCircle, XCircle, Edit, Trash2, X } from 'lucide-svelte'; // Icon for warning/alert messages
+	import { AlertTriangle, CheckCircle, XCircle, Edit, Trash2, X, Clock } from 'lucide-svelte'; // Icon for warning/alert messages
 	import Calendar from '$lib/components/Calendar.svelte';
 	import type { Tweet } from '@schedx/shared-lib/types/types';
 
@@ -153,6 +153,10 @@
 	}
 
 	function handleDelete(tweetId: string) {
+		if (!confirm('Are you sure you want to delete this scheduled tweet? This action cannot be undone.')) {
+			return;
+		}
+
 		const formData = new FormData();
 		formData.append('tweetId', tweetId);
 
@@ -284,20 +288,20 @@
 								<button
 									type="button"
 									on:click={() => handleEditTweet(tweet)}
-									class="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20 transition-colors hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/30 dark:hover:bg-blue-500/20"
+									class="inline-flex items-center gap-2 rounded-full bg-blue-50 px-4 py-1.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20 transition-colors hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/30 dark:hover:bg-blue-500/20"
 									title="Edit tweet"
 								>
+									<Clock class="h-3.5 w-3.5" />
+									<div class="h-3.5 w-px bg-blue-600/20 dark:bg-blue-500/30"></div>
 									<Edit class="h-3.5 w-3.5" />
-									Edit
 								</button>
 								<button
 									type="button"
 									on:click={() => handleDelete(tweet.id)}
-									class="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/20 transition-colors hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:ring-red-500/30 dark:hover:bg-red-500/20"
+									class="inline-flex items-center gap-2 rounded-full bg-red-50 px-4 py-1.5 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/20 transition-colors hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:ring-red-500/30 dark:hover:bg-red-500/20"
 									title="Delete tweet"
 								>
 									<Trash2 class="h-3.5 w-3.5" />
-									Delete
 								</button>
 							</div>
 

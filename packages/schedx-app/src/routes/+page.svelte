@@ -161,6 +161,33 @@
 		handleCloseEditModal();
 	}
 
+	async function handleDeleteTweet(event: CustomEvent) {
+		const tweet = event.detail;
+		const statusLabel = tweet.status === 'scheduled' ? 'scheduled tweet' : 
+							tweet.status === 'queued' ? 'queued tweet' : 
+							tweet.status === 'draft' ? 'draft' : 'tweet';
+		
+		if (!confirm(`Are you sure you want to delete this ${statusLabel}? This action cannot be undone.`)) {
+			return;
+		}
+
+		try {
+			const response = await fetch(`/api/tweets/${tweet.id}`, {
+				method: 'DELETE'
+			});
+
+			if (!response.ok) {
+				throw new Error('Failed to delete tweet');
+			}
+
+			// Refresh dashboard data
+			await refreshDashboardData();
+		} catch (error) {
+			logger.error('Failed to delete tweet:', { error });
+			alert('Failed to delete tweet. Please try again.');
+		}
+	}
+
 	onMount(async () => {
 		try {
 			if (browser) {
@@ -332,6 +359,7 @@
 									tweets={$dashboardStore.data.tweets} 
 									accounts={$dashboardStore.data.accounts}
 									on:editTweet={handleEditTweet}
+									on:deleteTweet={handleDeleteTweet}
 								/>
 							</ErrorBoundary>
 							<ErrorBoundary errorId="quick-actions">

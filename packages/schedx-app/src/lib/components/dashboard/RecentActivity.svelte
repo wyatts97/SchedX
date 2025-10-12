@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ExternalLink, Edit, CheckCircle, Clock, X, List, FileEdit, FileText } from 'lucide-svelte';
+	import { ExternalLink, Edit, CheckCircle, Clock, X, List, FileEdit, FileText, Trash2 } from 'lucide-svelte';
 	import type { Tweet } from '$lib/stores/dashboardStore';
 	import { createEventDispatcher } from 'svelte';
 	import TweetPreview from '$lib/components/TweetPreview.svelte';
@@ -17,6 +17,10 @@
 
 	function handleEditTweet(tweet: Tweet) {
 		dispatch('editTweet', tweet);
+	}
+
+	function handleDeleteTweet(tweet: Tweet) {
+		dispatch('deleteTweet', tweet);
 	}
 
 	// Get the display date based on tweet status
@@ -48,7 +52,7 @@
 					{@const displayDate = getDisplayDate(tweet)}
 					<div class="group relative rounded-lg border border-gray-200 bg-white transition-all hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-800/80">
 						<!-- Status Badge - Top right corner -->
-						<div class="absolute right-3 top-3 z-10">
+						<div class="absolute right-3 top-3 z-10 flex gap-2">
 							<!-- Combined Status Badge (icon-only for all screen sizes) -->
 							{#if tweet.status === 'posted' && account}
 								{@const tweetId = tweet.twitterTweetId || (tweet as any).twitterTweetId}
@@ -57,56 +61,84 @@
 										href="https://twitter.com/{account.username}/status/{tweetId}"
 										target="_blank"
 										rel="noopener noreferrer"
-										class="inline-flex items-center justify-center gap-1 rounded-full p-1.5 bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20 dark:bg-green-500/10 dark:text-green-400 dark:ring-green-500/30 hover:bg-green-100 dark:hover:bg-green-500/20 transition-colors cursor-pointer"
+										class="inline-flex items-center justify-center gap-2 rounded-full px-4 py-1.5 bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20 dark:bg-green-500/10 dark:text-green-400 dark:ring-green-500/30 hover:bg-green-100 dark:hover:bg-green-500/20 transition-colors cursor-pointer"
 										title="Posted - Click to view on Twitter"
 									>
-										<CheckCircle class="h-4 w-4" />
-										<ExternalLink class="h-3 w-3 opacity-60" />
+										<CheckCircle class="h-3.5 w-3.5" />
+										<div class="h-3.5 w-px bg-green-600/20 dark:bg-green-500/30"></div>
+										<ExternalLink class="h-3.5 w-3.5" />
 									</a>
 								{:else}
 									<span
-										class="inline-flex items-center justify-center rounded-full p-1.5 bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20 dark:bg-green-500/10 dark:text-green-400 dark:ring-green-500/30"
+										class="inline-flex items-center justify-center rounded-full px-4 py-1.5 bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20 dark:bg-green-500/10 dark:text-green-400 dark:ring-green-500/30"
 										title="Posted"
 									>
-										<CheckCircle class="h-4 w-4" />
+										<CheckCircle class="h-3.5 w-3.5" />
 									</span>
 								{/if}
 							{:else if tweet.status === 'scheduled'}
 								<button
 									type="button"
 									on:click={() => handleEditTweet(tweet)}
-									class="inline-flex items-center justify-center gap-1.5 rounded-full px-2.5 py-1.5 bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/30 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors cursor-pointer"
+									class="inline-flex items-center justify-center gap-2 rounded-full px-4 py-1.5 bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/30 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors cursor-pointer"
 									title="Scheduled - Click to edit"
 								>
-									<Clock class="h-4 w-4 flex-shrink-0" />
-									<Edit class="h-3.5 w-3.5 flex-shrink-0 opacity-70" />
+									<Clock class="h-3.5 w-3.5 flex-shrink-0" />
+									<div class="h-3.5 w-px bg-blue-600/20 dark:bg-blue-500/30"></div>
+									<Edit class="h-3.5 w-3.5 flex-shrink-0" />
+								</button>
+								<button
+									type="button"
+									on:click={() => handleDeleteTweet(tweet)}
+									class="inline-flex items-center justify-center gap-2 rounded-full px-4 py-1.5 bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20 dark:bg-red-500/10 dark:text-red-400 dark:ring-red-500/30 hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors cursor-pointer"
+									title="Delete scheduled tweet"
+								>
+									<Trash2 class="h-3.5 w-3.5 flex-shrink-0" />
 								</button>
 							{:else if tweet.status === 'queued'}
 								<button
 									type="button"
 									on:click={() => handleEditTweet(tweet)}
-									class="inline-flex items-center justify-center gap-1.5 rounded-full px-2.5 py-1.5 bg-purple-50 text-purple-700 ring-1 ring-inset ring-purple-600/20 dark:bg-purple-500/10 dark:text-purple-400 dark:ring-purple-500/30 hover:bg-purple-100 dark:hover:bg-purple-500/20 transition-colors cursor-pointer"
+									class="inline-flex items-center justify-center gap-2 rounded-full px-4 py-1.5 bg-purple-50 text-purple-700 ring-1 ring-inset ring-purple-600/20 dark:bg-purple-500/10 dark:text-purple-400 dark:ring-purple-500/30 hover:bg-purple-100 dark:hover:bg-purple-500/20 transition-colors cursor-pointer"
 									title="Queued - Click to edit"
 								>
-									<List class="h-4 w-4 flex-shrink-0" />
-									<Edit class="h-3.5 w-3.5 flex-shrink-0 opacity-70" />
+									<List class="h-3.5 w-3.5 flex-shrink-0" />
+									<div class="h-3.5 w-px bg-purple-600/20 dark:bg-purple-500/30"></div>
+									<Edit class="h-3.5 w-3.5 flex-shrink-0" />
+								</button>
+								<button
+									type="button"
+									on:click={() => handleDeleteTweet(tweet)}
+									class="inline-flex items-center justify-center gap-2 rounded-full px-4 py-1.5 bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20 dark:bg-red-500/10 dark:text-red-400 dark:ring-red-500/30 hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors cursor-pointer"
+									title="Delete queued tweet"
+								>
+									<Trash2 class="h-3.5 w-3.5 flex-shrink-0" />
 								</button>
 							{:else if tweet.status === 'draft'}
 								<button
 									type="button"
 									on:click={() => handleEditTweet(tweet)}
-									class="inline-flex items-center justify-center gap-1.5 rounded-full px-2.5 py-1.5 bg-gray-50 text-gray-700 ring-1 ring-inset ring-gray-600/20 dark:bg-gray-500/10 dark:text-gray-400 dark:ring-gray-500/30 hover:bg-gray-100 dark:hover:bg-gray-500/20 transition-colors cursor-pointer"
+									class="inline-flex items-center justify-center gap-2 rounded-full px-4 py-1.5 bg-gray-50 text-gray-700 ring-1 ring-inset ring-gray-600/20 dark:bg-gray-500/10 dark:text-gray-400 dark:ring-gray-500/30 hover:bg-gray-100 dark:hover:bg-gray-500/20 transition-colors cursor-pointer"
 									title="Draft - Click to edit"
 								>
-									<FileEdit class="h-4 w-4 flex-shrink-0" />
-									<Edit class="h-3.5 w-3.5 flex-shrink-0 opacity-70" />
+									<FileEdit class="h-3.5 w-3.5 flex-shrink-0" />
+									<div class="h-3.5 w-px bg-gray-600/20 dark:bg-gray-500/30"></div>
+									<Edit class="h-3.5 w-3.5 flex-shrink-0" />
+								</button>
+								<button
+									type="button"
+									on:click={() => handleDeleteTweet(tweet)}
+									class="inline-flex items-center justify-center gap-2 rounded-full px-4 py-1.5 bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20 dark:bg-red-500/10 dark:text-red-400 dark:ring-red-500/30 hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors cursor-pointer"
+									title="Delete draft"
+								>
+									<Trash2 class="h-3.5 w-3.5 flex-shrink-0" />
 								</button>
 							{:else if tweet.status === 'failed'}
 								<span
-									class="inline-flex items-center justify-center rounded-full p-1.5 bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20 dark:bg-red-500/10 dark:text-red-400 dark:ring-red-500/30"
+									class="inline-flex items-center justify-center rounded-full px-4 py-1.5 bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20 dark:bg-red-500/10 dark:text-red-400 dark:ring-red-500/30"
 									title="Failed"
 								>
-									<X class="h-4 w-4" />
+									<X class="h-3.5 w-3.5" />
 								</span>
 							{/if}
 						</div>
