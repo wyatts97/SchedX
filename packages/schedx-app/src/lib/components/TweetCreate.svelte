@@ -104,6 +104,9 @@
 					enableTime: true,
 					dateFormat: 'M j, Y h:i K',
 					defaultDate: initialDate,
+					disableMobile: false,
+					allowInput: false,
+					clickOpens: true,
 					onChange: (selectedDates) => {
 						scheduledDate = selectedDates[0]?.toISOString() ?? '';
 					}
@@ -405,27 +408,29 @@
 <!-- Calendar  -->
 <div class="mb-4 flex flex-col gap-4 sm:flex-row">
 	<!-- Schedule Date -->
-	<div class="flex-1 min-w-0 max-w-full overflow-hidden">
+	<div class="flex-1 min-w-0">
 		<label for="schedule-date" class="mb-2 block text-sm font-medium dark:text-white"
 			>Schedule Date</label
 		>
-		<input
-			id="schedule-date"
-			type="text"
-			class="block w-full min-w-0 max-w-full truncate rounded-lg border-2 border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-			bind:this={dateInputEl}
-			placeholder="Select date and time"
-			readonly
-			disabled={submitting}
-		/>
+		<div class="relative w-full">
+			<input
+				id="schedule-date"
+				type="text"
+				class="block w-full rounded-lg border-2 border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+				bind:this={dateInputEl}
+				placeholder="Select date and time"
+				readonly
+				disabled={submitting}
+			/>
+		</div>
 	</div>
 	<!-- Recurrence -->
-	<div class="flex-1 min-w-0 max-w-full overflow-hidden">
+	<div class="flex-1 min-w-0">
 		<label for="recurrence" class="mb-2 block text-sm font-medium dark:text-white">Recurrence</label
 		>
 		<select
 			id="recurrence"
-			class="block w-full min-w-0 max-w-full rounded-lg border-2 border-gray-300 bg-white px-3 py-2 shadow-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
+			class="block w-full rounded-lg border-2 border-gray-300 bg-white px-3 py-2 shadow-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
 			bind:value={recurrence}
 			disabled={submitting}
 		>
@@ -524,3 +529,25 @@
 		</button>
 	{/if}
 </div>
+
+<style>
+	/* Ensure flatpickr input doesn't overflow on mobile */
+	:global(.flatpickr-input) {
+		max-width: 100% !important;
+		overflow: hidden !important;
+		text-overflow: ellipsis !important;
+	}
+
+	/* Ensure flatpickr calendar is properly positioned on mobile */
+	:global(.flatpickr-calendar) {
+		max-width: calc(100vw - 2rem) !important;
+	}
+
+	/* Mobile-specific flatpickr adjustments */
+	@media (max-width: 640px) {
+		:global(.flatpickr-calendar) {
+			left: 50% !important;
+			transform: translateX(-50%) !important;
+		}
+	}
+</style>

@@ -51,7 +51,7 @@
 </script>
 
 <nav
-	class="fixed bottom-4 left-1/2 z-50 flex w-11/12 -translate-x-1/2 transform justify-between transition-all duration-400 ease-in-out md:hidden"
+	class="mobile-navbar fixed bottom-4 left-1/2 z-50 flex w-11/12 -translate-x-1/2 transform justify-between transition-all duration-400 ease-in-out md:hidden"
 	class:navbar-hidden={hidden}
 >
 	<div

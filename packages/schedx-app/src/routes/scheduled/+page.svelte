@@ -265,8 +265,11 @@
 	<Calendar 
 		events={mapTweetsToCalendarEvents(data.tweets || [])} 
 		accounts={data.accounts}
+		tweets={data.tweets || []}
 		selectedAccountFilter={selectedAccountId}
 		on:dateSelected={handleDateSelected}
+		on:editTweet={(e) => handleEditTweet(e.detail)}
+		on:deleteTweet={(e) => handleDelete(e.detail.id)}
 	/>
 
 	<!-- Scheduled Tweets List -->
