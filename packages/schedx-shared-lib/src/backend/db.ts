@@ -605,9 +605,9 @@ export class DatabaseClient {
 
   /**
    * List all Twitter apps in the database.
-   * @returns {Promise<import('../types/types').TwitterApp[]>}
+   * @returns {Promise<import('../types/types.js').TwitterApp[]>}
    */
-  async listTwitterApps(): Promise<import('../types/types').TwitterApp[]> {
+  async listTwitterApps(): Promise<import('../types/types.js').TwitterApp[]> {
     const db = await this.connect();
     const apps = await db.collection('twitter_apps').find({}).toArray();
     return apps.map(app => ({

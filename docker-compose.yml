@@ -7,7 +7,7 @@ services:
     env_file:
       - .env.docker
     environment:
-      - BODY_SIZE_LIMIT=10485760
+      - BODY_SIZE_LIMIT=52428800
       - NODE_OPTIONS=--max-http-header-size=65536
       - DOCKER=true
       - NODE_ENV=production
