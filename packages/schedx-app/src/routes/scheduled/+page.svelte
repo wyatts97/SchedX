@@ -6,7 +6,8 @@
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import TweetCreate from '$lib/components/TweetCreate.svelte';
-	import { AlertTriangle, CheckCircle, XCircle } from 'lucide-svelte'; // Icon for warning/alert messages
+	import TweetPreview from '$lib/components/TweetPreview.svelte';
+	import { AlertTriangle, CheckCircle, XCircle, Edit, Trash2, X } from 'lucide-svelte'; // Icon for warning/alert messages
 	import Calendar from '$lib/components/Calendar.svelte';
 	import type { Tweet } from '@schedx/shared-lib/types/types';
 
@@ -23,15 +24,26 @@
 	let modalSubmitMessage = '';
 	let modalSubmitType: 'success' | 'error' = 'success';
 
-	// Calendar state variables
-	let calendarYear = new Date().getFullYear();
-	let calendarMonth = new Date().getMonth();
-	let selectedDate: string | null = null;
-	let dragTweet: Tweet | null = null;
-	let rescheduleLoading = false;
-	let rescheduleError = '';
-	let tweetContent = '';
-	let tweetMedia: { url: string; type: string }[] = [];
+	// Calendar state - filtering
+	let selectedCalendarDate: Date | null = null;
+
+	// Filtered tweets based on selected date and account
+	$: filteredTweets = data.tweets?.filter((tweet) => {
+		let matches = true;
+		
+		// Filter by selected date if set
+		if (selectedCalendarDate) {
+			const tweetDate = new Date(tweet.scheduledDate);
+			matches = matches && tweetDate.toDateString() === selectedCalendarDate.toDateString();
+		}
+		
+		// Filter by selected account if set
+		if (selectedAccountId) {
+			matches = matches && tweet.twitterAccountId === selectedAccountId;
+		}
+		
+		return matches;
+	}) || [];
 
 	function mapTweetsToCalendarEvents(tweets: Tweet[]) {
 		return tweets.map((tweet) => ({
@@ -69,19 +81,17 @@
 		}
 	});
 
-	function handleContentInput(event: CustomEvent<string>) {
-		tweetContent = event.detail;
-	}
-
-	function handleMediaChange(event: CustomEvent<{ url: string; type: string }[]>) {
-		tweetMedia = event.detail;
-	}
-
 	function handleAccountChange(event: Event) {
-		const accountId = (event.target as HTMLSelectElement).value;
-		const url = new URL(window.location.href);
-		url.searchParams.set('twitterAccountId', accountId);
-		window.location.href = url.toString();
+		selectedAccountId = (event.target as HTMLSelectElement).value;
+		// Don't reload page, just update filter
+	}
+
+	function handleDateSelected(event: CustomEvent<{ date: Date }>) {
+		selectedCalendarDate = event.detail.date;
+	}
+
+	function clearDateFilter() {
+		selectedCalendarDate = null;
 	}
 
 	function handleModalSubmit(e: any) {
@@ -143,52 +153,8 @@
 			});
 	}
 
-	function daysInMonth(year: number, month: number): number {
-		return new Date(year, month + 1, 0).getDate();
-	}
-
-	function firstDayOfWeek(year: number, month: number): number {
-		return new Date(year, month, 1).getDay();
-	}
-
-	function prevMonth(): void {
-		if (calendarMonth === 0) {
-			calendarMonth = 11;
-			calendarYear--;
-		} else {
-			calendarMonth--;
-		}
-		selectedDate = null;
-	}
-
-	function nextMonth(): void {
-		if (calendarMonth === 11) {
-			calendarMonth = 0;
-			calendarYear++;
-		} else {
-			calendarMonth++;
-		}
-		selectedDate = null;
-	}
-
-	function selectDate(date: string): void {
-		selectedDate = date;
-	}
-
-	function openModal(date: string) {
-		modalDate = date;
-		showModal = true;
-		if (!modalSelectedAccountId && data.accounts && data.accounts.length > 0) {
-			modalSelectedAccountId = data.accounts[0]?.providerAccountId || '';
-		}
-
-		// Ensure Preline is initialized before showing modal
-		if (browser && typeof window !== 'undefined' && window.HSStaticMethods) {
-			setTimeout(() => {
-				window.HSStaticMethods.autoInit();
-			}, 100);
-		}
-	}
+	// Note: Calendar navigation and date selection is now handled by the Calendar component itself
+	// The old calendar helper functions have been removed
 	function closeModal() {
 		showModal = false;
 		modalDate = null;
@@ -200,44 +166,7 @@
 		}
 	}
 
-	function handleDragStart(tweet: Tweet) {
-		dragTweet = tweet;
-	}
-	async function handleDrop(date: string) {
-		if (dragTweet && dragTweet.scheduledDate) {
-			const oldDateStr = new Date(dragTweet.scheduledDate).toISOString().slice(0, 10);
-			if (oldDateStr === date) {
-				dragTweet = null;
-				return;
-			}
-			rescheduleLoading = true;
-			rescheduleError = '';
-			try {
-				const formData = new FormData();
-				formData.append('tweetId', dragTweet.id ?? '');
-				formData.append('newDate', date);
-				const res = await fetch('?/rescheduleTweet', { method: 'POST', body: formData });
-				const result = await res.json();
-				if (result.success) {
-					await invalidateAll();
-				} else {
-					rescheduleError = result.error || 'Failed to reschedule tweet.';
-				}
-			} catch (e) {
-				rescheduleError = 'Failed to reschedule tweet.';
-			} finally {
-				rescheduleLoading = false;
-				dragTweet = null;
-			}
-		}
-	}
-	function handleDragOver(event: DragEvent) {
-		event.preventDefault();
-	}
-
-	function handleDragLeave(event: DragEvent) {
-		event.preventDefault();
-	}
+	// Note: Drag-and-drop rescheduling has been removed in favor of the edit button workflow
 </script>
 
 <svelte:head>
@@ -263,76 +192,127 @@
 		</div>
 	{/if}
 
-	<!-- Twitter Account Selector -->
+	<!-- Filters -->
 	{#if data.accounts && data.accounts.length > 0}
-		<div class="mb-6">
-			<label
-				class="theme-dark:text-[#8899a6] mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
-				for="twitterAccountId"
-			>
-				Twitter Account
-			</label>
-			<select
-				id="twitterAccountId"
-				name="twitterAccountId"
-				bind:value={selectedAccountId}
-				class="theme-dark:bg-[#253341] theme-dark:border-[#38444d] theme-dark:text-white theme-dark:placeholder-[#8899a6] block w-full rounded-lg border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
-				on:change={handleAccountChange}
-			>
-				{#each data.accounts as account}
-					<option value={account.providerAccountId}
-						>{account.username} ({account.providerAccountId})</option
+		<div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end">
+			<!-- Account Filter -->
+			<div class="flex-1">
+				<label
+					class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+					for="twitterAccountId"
+				>
+					Filter by Account
+				</label>
+				<select
+					id="twitterAccountId"
+					name="twitterAccountId"
+					bind:value={selectedAccountId}
+					class="block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+					on:change={handleAccountChange}
+				>
+					<option value="">All Accounts</option>
+					{#each data.accounts as account}
+						<option value={account.providerAccountId}>{account.username}</option>
+					{/each}
+				</select>
+			</div>
+
+			<!-- Date Filter Status -->
+			{#if selectedCalendarDate}
+				<div class="flex items-center gap-2 rounded-lg bg-purple-50 px-4 py-2 dark:bg-purple-900/20">
+					<span class="text-sm font-medium text-purple-700 dark:text-purple-300">
+						Filtered: {selectedCalendarDate.toLocaleDateString()}
+					</span>
+					<button
+						type="button"
+						on:click={clearDateFilter}
+						class="rounded-full p-1 text-purple-700 hover:bg-purple-100 dark:text-purple-300 dark:hover:bg-purple-900/40"
+						title="Clear date filter"
 					>
-				{/each}
-			</select>
+						<X class="h-4 w-4" />
+					</button>
+				</div>
+			{/if}
 		</div>
 	{/if}
 
 	<!-- Calendar Component -->
-	<Calendar events={mapTweetsToCalendarEvents(data.tweets || [])} accounts={data.accounts} />
+	<Calendar 
+		events={mapTweetsToCalendarEvents(data.tweets || [])} 
+		accounts={data.accounts}
+		selectedAccountFilter={selectedAccountId}
+		on:dateSelected={handleDateSelected}
+	/>
 
 	<!-- Scheduled Tweets List -->
-	{#if data.tweets && data.tweets.length > 0}
-		<div class="mt-8 grid grid-cols-1 gap-4">
-			{#each data.tweets as tweet (tweet.id)}
-				<div
-					class="mb-4 rounded-lg border border-gray-200 bg-white p-6 shadow dark:border-gray-700 dark:bg-gray-800"
-				>
-					<div class="p-6">
-						<h2 class="mb-4 text-xl font-semibold text-gray-900 dark:text-white">
-							Scheduled Tweet
-						</h2>
-						<p class="mb-2 text-lg">{tweet.content}</p>
-						<div class="flex flex-wrap gap-2">
-							{#each (tweet as any).media || [] as media (media.url)}
-								<img src={media.url} alt="Media" class="h-16 w-16 rounded-md object-cover" />
-							{/each}
-						</div>
-						<p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
-							Scheduled for: {new Date(tweet.scheduledDate).toLocaleString()}
-						</p>
-						<div class="mt-4 flex gap-2">
+	<div class="mt-8">
+		{#if selectedCalendarDate || selectedAccountId}
+			<h2 class="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
+				Filtered Tweets ({filteredTweets.length})
+			</h2>
+		{/if}
+		
+		{#if filteredTweets.length > 0}
+			<div class="space-y-4">
+				{#each filteredTweets as tweet (tweet.id)}
+				{@const account = data.accounts.find((a: any) => a.providerAccountId === tweet.twitterAccountId)}
+				{#if account}
+					<div class="relative rounded-lg border border-gray-200 bg-white shadow transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-800">
+						<!-- Action Buttons - Top Right -->
+						<div class="absolute right-3 top-3 z-10 flex gap-2">
 							<button
-								class="inline-flex items-center justify-center rounded-lg bg-blue-500 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-all duration-200 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-								>Edit</button
+								type="button"
+								class="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20 transition-colors hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/30 dark:hover:bg-blue-500/20"
+								title="Edit tweet"
 							>
+								<Edit class="h-3.5 w-3.5" />
+								Edit
+							</button>
 							<button
-								class="inline-flex items-center justify-center rounded-lg bg-red-500 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-all duration-200 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-								>Delete</button
+								type="button"
+								on:click={() => handleDelete(tweet.id)}
+								class="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/20 transition-colors hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:ring-red-500/30 dark:hover:bg-red-500/20"
+								title="Delete tweet"
 							>
+								<Trash2 class="h-3.5 w-3.5" />
+								Delete
+							</button>
 						</div>
+
+						<!-- Tweet Preview -->
+						<TweetPreview
+							avatarUrl={account.profileImage || '/avatar.png'}
+							displayName={account.displayName || account.username}
+							username={account.username}
+							content={tweet.content}
+							media={tweet.media || []}
+							createdAt={new Date(tweet.scheduledDate)}
+							hideActions={true}
+						/>
 					</div>
-				</div>
-			{/each}
-		</div>
-	{:else if data.accounts && data.accounts.length > 0}
-		<EmptyState
-			title="No Scheduled Tweets"
-			message="You haven't scheduled any tweets yet. Create and schedule a tweet to see it here."
-			actionLink="/post"
-			actionText="Create a Tweet"
-		/>
-	{/if}
+				{/if}
+				{/each}
+			</div>
+		{:else if selectedCalendarDate || selectedAccountId}
+			<div class="rounded-lg border border-gray-200 bg-white p-8 text-center dark:border-gray-700 dark:bg-gray-800">
+				<p class="text-gray-600 dark:text-gray-400">No tweets match the selected filters.</p>
+				<button
+					type="button"
+					on:click={clearDateFilter}
+					class="mt-4 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+				>
+					Clear filters
+				</button>
+			</div>
+		{:else if data.accounts && data.accounts.length > 0}
+			<EmptyState
+				title="No Scheduled Tweets"
+				message="You haven't scheduled any tweets yet. Create and schedule a tweet to see it here."
+				actionLink="/post"
+				actionText="Create a Tweet"
+			/>
+		{/if}
+	</div>
 
 	<Pagination
 		currentPage={data.currentPage || 1}
@@ -424,8 +404,6 @@
 						<TweetCreate
 							accounts={data.accounts}
 							selectedAccountId={modalSelectedAccountId}
-							on:contentInput={handleContentInput}
-							on:changeMedia={handleMediaChange}
 							on:submit={handleModalSubmit}
 						/>
 					</div>
@@ -434,29 +412,4 @@
 		</div>
 	{/if}
 
-	{#if rescheduleLoading}
-		<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-			<div
-				class="theme-dark:bg-[#192734] flex flex-col items-center rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800"
-			>
-				<div
-					class="mb-2 h-8 w-8 animate-spin rounded-full border-4 border-blue-200 border-t-blue-500"
-				></div>
-				<span class="theme-dark:text-white text-gray-900 dark:text-white"
-					>Rescheduling tweet...</span
-				>
-			</div>
-		</div>
-	{/if}
-	{#if rescheduleError}
-		<div
-			class="theme-dark:bg-[#253341] theme-dark:border-[#38444d] theme-dark:text-[#8899a6] fixed left-1/2 top-4 z-50 w-fit -translate-x-1/2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-800 shadow-lg dark:border-red-800 dark:bg-red-900/20 dark:text-red-200"
-		>
-			<span>{rescheduleError}</span>
-			<button
-				class="theme-dark:bg-[#38444d] theme-dark:hover:bg-[#253341] theme-dark:text-[#8899a6] ml-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-100 text-xs text-red-600 hover:bg-red-200 dark:bg-red-800 dark:text-red-200 dark:hover:bg-red-700"
-				on:click={() => (rescheduleError = '')}>&times;</button
-			>
-		</div>
-	{/if}
 </div>
