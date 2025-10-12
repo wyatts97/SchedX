@@ -13,7 +13,7 @@ import { getAdminUserId } from '$lib/server/adminCache';
 
 // Tweet API validation schema
 const tweetApiSchema = z.object({
-	action: z.enum(['schedule', 'publish', 'draft', 'template', 'queue']),
+	action: z.enum(['schedule', 'publish', 'draft', 'queue']),
 	content: z
 		.string()
 		.min(1, 'Tweet content is required')
@@ -35,9 +35,7 @@ const tweetApiSchema = z.object({
 			})
 		)
 		.optional()
-		.default([]),
-	templateName: z.string().optional(),
-	templateCategory: z.string().optional()
+		.default([])
 });
 
 export const POST = userRateLimit(RATE_LIMITS.tweets)(
@@ -67,9 +65,7 @@ export const POST = userRateLimit(RATE_LIMITS.tweets)(
 			accountId,
 			scheduledDate,
 			recurrence,
-			media,
-			templateName,
-			templateCategory
+			media
 		} = data;
 
 		// Validate account ownership
@@ -107,30 +103,6 @@ export const POST = userRateLimit(RATE_LIMITS.tweets)(
 							id: draftId,
 							success: true,
 							message: 'Draft saved successfully'
-						}),
-						{
-							status: 201,
-							headers: { 'Content-Type': 'application/json' }
-						}
-					);
-
-				case 'template':
-					tweet.status = TweetStatus.DRAFT;
-					tweet.scheduledDate = new Date();
-					// Use provided template name or fallback to truncated content
-					tweet.templateName = templateName || content.substring(0, 50) + (content.length > 50 ? '...' : '');
-					// Optional category
-					if (templateCategory) {
-						// Extend type at runtime; DB layer can ignore unknown fields if unused
-						(tweet as any).templateCategory = templateCategory;
-					}
-					const templateId = await db.saveTweet(tweet as Tweet);
-					log.info('Template saved successfully', { templateId, accountId, templateName: tweet.templateName });
-					return new Response(
-						JSON.stringify({
-							id: templateId,
-							success: true,
-							message: 'Template saved successfully'
 						}),
 						{
 							status: 201,
@@ -417,8 +389,6 @@ export const POST = userRateLimit(RATE_LIMITS.tweets)(
 							recurrenceType: null,
 							recurrenceInterval: null,
 							recurrenceEndDate: null,
-							templateName: undefined,
-							templateCategory: undefined,
 							media: media || [],
 							twitterAccountId: account.providerAccountId, // Use providerAccountId for consistency
 							twitterTweetId: postedTweet.data.id,
@@ -500,3 +470,4 @@ export const POST = userRateLimit(RATE_LIMITS.tweets)(
 		}
 	})
 );
+

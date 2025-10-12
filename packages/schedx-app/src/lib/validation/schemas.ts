@@ -37,9 +37,7 @@ export const tweetSchema = z.object({
 		.default([]),
 	recurrenceType: z.enum(['daily', 'weekly', 'monthly']).optional(),
 	recurrenceInterval: positiveIntSchema.optional(),
-	recurrenceEndDate: dateSchema.optional(),
-	templateName: z.string().max(100).optional(),
-	templateCategory: z.string().max(50).optional()
+	recurrenceEndDate: dateSchema.optional()
 });
 
 export const draftSchema = z.object({
@@ -47,28 +45,6 @@ export const draftSchema = z.object({
 	scheduledDate: dateSchema.optional(),
 	community: z.string().min(1, 'Community is required').max(100, 'Community name too long'),
 	twitterAccountId: uuidSchema,
-	media: z
-		.array(
-			z.object({
-				url: urlSchema,
-				type: z.enum(['photo', 'gif', 'video'])
-			})
-		)
-		.optional()
-		.default([]),
-	templateName: z.string().max(100).optional(),
-	templateCategory: z.string().max(50).optional()
-});
-
-export const templateSchema = z.object({
-	content: tweetContentSchema,
-	community: z.string().min(1, 'Community is required').max(100, 'Community name too long'),
-	twitterAccountId: uuidSchema,
-	templateName: z.string().min(1, 'Template name is required').max(100, 'Template name too long'),
-	templateCategory: z
-		.string()
-		.min(1, 'Template category is required')
-		.max(50, 'Template category too long'),
 	media: z
 		.array(
 			z.object({

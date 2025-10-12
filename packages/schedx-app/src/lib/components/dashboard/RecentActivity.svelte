@@ -111,12 +111,12 @@
 									<List class="h-4 w-4" />
 									<Edit class="h-3 w-3 opacity-60" />
 								</button>
-							{:else if tweet.status === 'draft' || tweet.templateName}
+							{:else if tweet.status === 'draft'}
 								<button
 									type="button"
 									on:click={() => handleEditTweet(tweet)}
 									class="inline-flex items-center justify-center gap-1 rounded-full p-1.5 bg-gray-50 text-gray-700 ring-1 ring-inset ring-gray-600/20 dark:bg-gray-500/10 dark:text-gray-400 dark:ring-gray-500/30 hover:bg-gray-100 dark:hover:bg-gray-500/20 transition-colors cursor-pointer"
-									title="{tweet.templateName ? 'Template' : 'Draft'} - Click to edit"
+									title="Draft - Click to edit"
 								>
 									<FileEdit class="h-4 w-4" />
 									<Edit class="h-3 w-3 opacity-60" />

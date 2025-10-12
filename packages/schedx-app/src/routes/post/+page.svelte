@@ -31,8 +31,8 @@
 	function handleSubmit(e: any) {
 		const { action, success } = e.detail;
 
-		// Clear form content for drafts and templates on success
-		if (success && (action === 'draft' || action === 'template')) {
+		// Clear form content for drafts on success
+		if (success && action === 'draft') {
 			tweetContent = '';
 			tweetMedia = [];
 		}

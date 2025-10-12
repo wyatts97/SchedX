@@ -38,8 +38,8 @@
 				message || `${action.charAt(0).toUpperCase() + action.slice(1)} saved successfully!`;
 			submitType = 'success';
 
-			// Clear form content for drafts and templates
-			if (action === 'draft' || action === 'template') {
+			// Clear form content for drafts
+			if (action === 'draft') {
 				tweetContent = '';
 				tweetMedia = [];
 			}

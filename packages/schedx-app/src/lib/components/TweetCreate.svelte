@@ -36,10 +36,6 @@
 	let submitting = false;
 	let currentAction = '';
 
-	// Template fields
-	let templateName = '';
-	let templateCategory = '';
-
 	// Emoji picker state
 	let showEmojiPicker = false;
 	let emojiPickerElement: HTMLElement;
@@ -164,7 +160,6 @@
 		draft: 'Tweet saved as draft successfully!',
 		schedule: 'Tweet scheduled successfully!',
 		queue: 'Tweet added to queue successfully!',
-		template: 'Template saved successfully!',
 		update: 'Scheduled tweet updated successfully!'
 	};
 
@@ -174,7 +169,6 @@
 		draft: 'Failed to save draft',
 		schedule: 'Failed to schedule tweet',
 		queue: 'Failed to add tweet to queue',
-		template: 'Failed to save template',
 		update: 'Failed to update scheduled tweet'
 	};
 
@@ -195,11 +189,6 @@
 
 		if (action === 'schedule' && !scheduledDate) {
 			toastStore.error('Date Required', 'Please select a scheduled date');
-			return;
-		}
-
-		if (action === 'template' && !templateName.trim()) {
-			toastStore.error('Template Name Required', 'Please enter a template name');
 			return;
 		}
 
@@ -228,12 +217,6 @@
 				payload.recurrence = {
 					type: recurrence
 				};
-			}
-
-			// Only include template fields if action is template
-			if (action === 'template') {
-				payload.templateName = templateName;
-				payload.templateCategory = templateCategory;
 			}
 
 			const url = mode === 'edit' ? `/api/tweets/${tweetId}` : '/api/tweets';
@@ -276,8 +259,6 @@
 			tweetMedia = [];
 			scheduledDate = '';
 			recurrence = '';
-			templateName = '';
-			templateCategory = '';
 			
 			// Clear file upload component
 			if (fileUploadComponent && typeof fileUploadComponent.clearFiles === 'function') {
@@ -449,134 +430,81 @@
 	initialMedia={tweetMedia}
 />
 
-<!-- Template Fields (only show when saving as template) -->
-{#if mode === 'create' && tweetContent.trim()}
-	<div class="mb-4 space-y-4">
-		<!-- Template Name -->
-		<div>
-			<label
-				for="template-name"
-				class="theme-lightsout:text-gray-200 mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
-			>
-				Template Name
-			</label>
-			<input
-				id="template-name"
-				type="text"
-				class="theme-lightsout:border-gray-700 theme-lightsout:bg-gray-800 theme-lightsout:text-white theme-lightsout:placeholder-gray-500 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder-gray-400 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
-				placeholder="Enter template name..."
-				bind:value={templateName}
-				disabled={submitting}
-			/>
-		</div>
-
-		<!-- Template Category -->
-		<div>
-			<label
-				for="template-category"
-				class="theme-lightsout:text-gray-200 mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
-			>
-				Template Category
-			</label>
-			<select
-				id="template-category"
-				class="theme-lightsout:border-gray-700 theme-lightsout:bg-gray-800 theme-lightsout:text-white block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-				bind:value={templateCategory}
-				disabled={submitting}
-			>
-				<option value="">Select category...</option>
-				<option value="promotional">Promotional</option>
-				<option value="educational">Educational</option>
-				<option value="news">News</option>
-				<option value="engagement">Engagement</option>
-				<option value="product">Product</option>
-				<option value="general">General</option>
-			</select>
-		</div>
-	</div>
-{/if}
-
-<!-- Button Group -->
-<div class="mt-4 flex flex-wrap gap-3">
+<!-- Button Group (responsive grid: vertical stack on mobile, 2x2 grid on desktop) -->
+<div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
 	{#if mode === 'schedule' || mode === 'edit'}
 		<button
 			type="button"
-			class="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+			class="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-blue-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
 			on:click={() => handleSubmit(mode === 'edit' ? 'update' : 'schedule')}
 			disabled={submitting}
 		>
 			{#if submitting && (currentAction === 'schedule' || currentAction === 'update')}
-				<Loader2 class="h-4 w-4 animate-spin" />
+				<Loader2 class="h-5 w-5 animate-spin" />
 			{:else}
-				<Calendar class="h-4 w-4" />
+				<Calendar class="h-5 w-5" />
 			{/if}
 			{mode === 'edit' ? 'Update Schedule' : 'Schedule'}
 		</button>
 	{:else}
+		<!-- Publish Now (Green) -->
 		<button
 			type="button"
-			class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all duration-200 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-			on:click={() => handleSubmit('template')}
-			disabled={submitting}
-		>
-			{#if submitting && currentAction === 'template'}
-				<Loader2 class="h-4 w-4 animate-spin" />
-			{:else}
-				<FileText class="h-4 w-4" />
-			{/if}
-			Save Template
-		</button>
-		<button
-			type="button"
-			class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all duration-200 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-			on:click={() => handleSubmit('draft')}
-			disabled={submitting}
-		>
-			{#if submitting && currentAction === 'draft'}
-				<Loader2 class="h-4 w-4 animate-spin" />
-			{:else}
-				<Save class="h-4 w-4" />
-			{/if}
-			Save Draft
-		</button>
-		<button
-			type="button"
-			class="inline-flex items-center gap-2 rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-50"
-			on:click={() => handleSubmit('queue')}
-			disabled={submitting}
-		>
-			{#if submitting && currentAction === 'queue'}
-				<Loader2 class="h-4 w-4 animate-spin" />
-			{:else}
-				<ListPlus class="h-4 w-4" />
-			{/if}
-			Add to Queue
-		</button>
-		<button
-			type="button"
-			class="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
-			on:click={() => handleSubmit('schedule')}
-			disabled={submitting}
-		>
-			{#if submitting && currentAction === 'schedule'}
-				<Loader2 class="h-4 w-4 animate-spin" />
-			{:else}
-				<Calendar class="h-4 w-4" />
-			{/if}
-			Schedule
-		</button>
-		<button
-			type="button"
-			class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+			class="inline-flex items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-green-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
 			on:click={() => handleSubmit('publish')}
 			disabled={submitting}
 		>
 			{#if submitting && currentAction === 'publish'}
-				<Loader2 class="h-4 w-4 animate-spin" />
+				<Loader2 class="h-5 w-5 animate-spin" />
 			{:else}
-				<Send class="h-4 w-4" />
+				<Send class="h-5 w-5" />
 			{/if}
 			Publish Now
+		</button>
+		
+		<!-- Draft (Purple) -->
+		<button
+			type="button"
+			class="inline-flex items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-purple-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
+			on:click={() => handleSubmit('draft')}
+			disabled={submitting}
+		>
+			{#if submitting && currentAction === 'draft'}
+				<Loader2 class="h-5 w-5 animate-spin" />
+			{:else}
+				<Save class="h-5 w-5" />
+			{/if}
+			Save Draft
+		</button>
+		
+		<!-- Schedule (Blue) -->
+		<button
+			type="button"
+			class="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-blue-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
+			on:click={() => handleSubmit('schedule')}
+			disabled={submitting}
+		>
+			{#if submitting && currentAction === 'schedule'}
+				<Loader2 class="h-5 w-5 animate-spin" />
+			{:else}
+				<Calendar class="h-5 w-5" />
+			{/if}
+			Schedule
+		</button>
+		
+		<!-- Queue (Orange) -->
+		<button
+			type="button"
+			class="inline-flex items-center justify-center gap-2 rounded-lg bg-orange-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-orange-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
+			on:click={() => handleSubmit('queue')}
+			disabled={submitting}
+		>
+			{#if submitting && currentAction === 'queue'}
+				<Loader2 class="h-5 w-5 animate-spin" />
+			{:else}
+				<ListPlus class="h-5 w-5" />
+			{/if}
+			Add to Queue
 		</button>
 	{/if}
 </div>

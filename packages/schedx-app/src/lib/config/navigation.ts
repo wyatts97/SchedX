@@ -49,12 +49,6 @@ export const navigationConfig: NavigationConfig = {
 			description: 'Auto-schedule queued tweets'
 		},
 		{
-			href: '/templates',
-			label: 'Templates',
-			icon: `<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14,2 14,8 20,8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10,9 9,9 8,9" />`,
-			description: 'Tweet templates'
-		},
-		{
 			href: '/gallery',
 			label: 'Gallery',
 			icon: `<rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />`,

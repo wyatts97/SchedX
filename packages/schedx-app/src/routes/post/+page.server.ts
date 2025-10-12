@@ -76,8 +76,6 @@ export const actions: Actions = {
 		const recurrenceInterval = formData.get('recurrenceInterval') as string;
 		const recurrenceEndDate = formData.get('recurrenceEndDate') as string;
 		const saveAsDraft = formData.get('saveAsDraft') === 'true';
-		const saveAsTemplate = formData.get('saveAsTemplate') === 'true';
-		const templateName = formData.get('templateName') as string;
 		const mediaJson = formData.get('media') as string;
 		const twitterAccountId = formData.get('twitterAccountId') as string;
 		let media = [];
@@ -129,18 +127,10 @@ export const actions: Actions = {
 				recurrenceType: recurrenceTypeValue,
 				recurrenceInterval: recurrenceInterval ? Number(recurrenceInterval) : null,
 				recurrenceEndDate: recurrenceEndDate ? new Date(recurrenceEndDate) : null,
-				templateName: saveAsTemplate && templateName ? templateName : undefined,
-				templateCategory:
-					saveAsTemplate && formData.get('templateCategory')
-						? (formData.get('templateCategory') as string)
-						: undefined,
 				media,
 				twitterAccountId
 			};
-			if (saveAsTemplate && templateName) {
-				await getDbInstance().saveDraft({ ...tweet, templateName });
-				return { success: true, message: 'Template saved!' };
-			} else if (saveAsDraft) {
+			if (saveAsDraft) {
 				await getDbInstance().saveDraft(tweet);
 				return { success: true, message: 'Draft saved!' };
 			} else {
