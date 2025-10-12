@@ -103,6 +103,28 @@ export class DatabaseClient {
     }));
   }
   
+  // Get a single tweet by ID
+  async getTweetById(tweetId: string) {
+    const db = await this.connect();
+    const tweet = await db.collection('tweets').findOne({ _id: new ObjectId(tweetId) });
+    if (!tweet) {
+      return null;
+    }
+    return {
+      id: tweet._id.toString(),
+      userId: tweet.userId,
+      content: tweet.content,
+      scheduledDate: new Date(tweet.scheduledDate),
+      community: tweet.community,
+      status: tweet.status,
+      createdAt: new Date(tweet.createdAt),
+      updatedAt: tweet.updatedAt ? new Date(tweet.updatedAt) : undefined,
+      twitterAccountId: tweet.twitterAccountId,
+      twitterTweetId: tweet.twitterTweetId,
+      media: tweet.media || []
+    };
+  }
+  
   // Legacy method for backward compatibility
   async getScheduledTweets(userId: string, page: number, limit: number, twitterAccountId?: string) {
     return this.getTweets(userId, page, limit, TweetStatus.SCHEDULED, 1, twitterAccountId);

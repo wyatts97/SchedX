@@ -20,7 +20,7 @@
 	export let accounts: TweetAccount[] = [];
 	export let selectedAccountId: string | null = null;
 	export let initialContent = '';
-	export let initialMedia: File[] = [];
+	export let initialMedia: File[] | { url: string; type: string }[] = [];
 	export let initialDate = '';
 	export let mode: 'create' | 'edit' | 'schedule' = 'create';
 	export let tweetId: string | null = null;

@@ -27,6 +27,10 @@
 	// Calendar state - filtering
 	let selectedCalendarDate: Date | null = null;
 
+	// Edit modal state
+	let showEditTweetModal = false;
+	let editingTweet: Tweet | null = null;
+
 	// Filtered tweets based on selected date and account
 	$: filteredTweets = data.tweets?.filter((tweet) => {
 		let matches = true;
@@ -92,6 +96,23 @@
 
 	function clearDateFilter() {
 		selectedCalendarDate = null;
+	}
+
+	function handleEditTweet(tweet: Tweet) {
+		editingTweet = tweet;
+		showEditTweetModal = true;
+	}
+
+	function handleCloseEditModal() {
+		showEditTweetModal = false;
+		editingTweet = null;
+	}
+
+	async function handleTweetUpdate() {
+		showEditTweetModal = false;
+		editingTweet = null;
+		// Refresh the data
+		await invalidateAll();
 	}
 
 	function handleModalSubmit(e: any) {
@@ -255,42 +276,43 @@
 		{#if filteredTweets.length > 0}
 			<div class="space-y-4">
 				{#each filteredTweets as tweet (tweet.id)}
-				{@const account = data.accounts.find((a: any) => a.providerAccountId === tweet.twitterAccountId)}
-				{#if account}
-					<div class="relative rounded-lg border border-gray-200 bg-white shadow transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-800">
-						<!-- Action Buttons - Top Right -->
-						<div class="absolute right-3 top-3 z-10 flex gap-2">
-							<button
-								type="button"
-								class="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20 transition-colors hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/30 dark:hover:bg-blue-500/20"
-								title="Edit tweet"
-							>
-								<Edit class="h-3.5 w-3.5" />
-								Edit
-							</button>
-							<button
-								type="button"
-								on:click={() => handleDelete(tweet.id)}
-								class="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/20 transition-colors hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:ring-red-500/30 dark:hover:bg-red-500/20"
-								title="Delete tweet"
-							>
-								<Trash2 class="h-3.5 w-3.5" />
-								Delete
-							</button>
-						</div>
+					{@const account = data.accounts.find((a: any) => a.providerAccountId === tweet.twitterAccountId)}
+					{#if account}
+						<div class="relative rounded-lg border border-gray-200 bg-white shadow transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-800">
+							<!-- Action Buttons - Top Right -->
+							<div class="absolute right-3 top-3 z-10 flex gap-2">
+								<button
+									type="button"
+									on:click={() => handleEditTweet(tweet)}
+									class="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20 transition-colors hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/30 dark:hover:bg-blue-500/20"
+									title="Edit tweet"
+								>
+									<Edit class="h-3.5 w-3.5" />
+									Edit
+								</button>
+								<button
+									type="button"
+									on:click={() => handleDelete(tweet.id)}
+									class="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/20 transition-colors hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:ring-red-500/30 dark:hover:bg-red-500/20"
+									title="Delete tweet"
+								>
+									<Trash2 class="h-3.5 w-3.5" />
+									Delete
+								</button>
+							</div>
 
-						<!-- Tweet Preview -->
-						<TweetPreview
-							avatarUrl={account.profileImage || '/avatar.png'}
-							displayName={account.displayName || account.username}
-							username={account.username}
-							content={tweet.content}
-							media={tweet.media || []}
-							createdAt={new Date(tweet.scheduledDate)}
-							hideActions={true}
-						/>
-					</div>
-				{/if}
+							<!-- Tweet Preview -->
+							<TweetPreview
+								avatarUrl={account.profileImage || '/avatar.png'}
+								displayName={account.displayName || account.username}
+								username={account.username}
+								content={tweet.content}
+								media={tweet.media || []}
+								createdAt={new Date(tweet.scheduledDate)}
+								hideActions={true}
+							/>
+						</div>
+					{/if}
 				{/each}
 			</div>
 		{:else if selectedCalendarDate || selectedAccountId}
@@ -407,6 +429,37 @@
 							on:submit={handleModalSubmit}
 						/>
 					</div>
+				</div>
+			</div>
+		</div>
+	{/if}
+
+	<!-- Edit Tweet Modal -->
+	{#if showEditTweetModal && editingTweet}
+		<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto overscroll-contain">
+			<div class="relative w-full max-w-2xl my-8 rounded-lg bg-white shadow-xl dark:bg-gray-800 max-h-[90vh] flex flex-col overflow-hidden">
+				<div class="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700 flex-shrink-0">
+					<h2 class="text-xl font-semibold text-gray-900 dark:text-white">Edit Tweet</h2>
+					<button
+						on:click={handleCloseEditModal}
+						aria-label="Close edit tweet modal"
+						class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+					>
+						<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+						</svg>
+					</button>
+				</div>
+				<div class="overflow-y-auto overflow-x-hidden overscroll-contain p-6 space-y-6">
+					<TweetCreate
+						mode="edit"
+						tweetId={editingTweet.id}
+						initialContent={editingTweet.content}
+						initialMedia={editingTweet.media || []}
+						accounts={data.accounts.filter((acc: any) => acc.id)}
+						selectedAccountId={editingTweet.twitterAccountId}
+						on:submit={handleTweetUpdate}
+					/>
 				</div>
 			</div>
 		</div>
