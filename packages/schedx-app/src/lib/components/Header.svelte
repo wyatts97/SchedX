@@ -125,10 +125,10 @@
 
 <!-- ========== HEADER ========== -->
 <header
-	class="theme-lightsout:before:bg-black sticky inset-x-0 top-6 z-50 flex w-full flex-wrap before:absolute before:inset-0 before:mx-2 before:max-w-5xl before:rounded-[26px] before:bg-gray-100/80 before:backdrop-blur-md dark:before:bg-gray-800/30 md:flex-nowrap md:justify-start lg:before:mx-auto"
+	class="theme-lightsout:before:bg-black sticky inset-x-0 top-6 z-50 flex w-full flex-wrap before:absolute before:inset-0 before:mx-2 before:max-w-5xl before:rounded-[26px] before:bg-white/80 before:backdrop-blur-md dark:before:bg-gray-800/30 md:flex-nowrap md:justify-start lg:before:mx-auto"
 >
 	<nav
-		class="relative mx-2 flex w-full max-w-5xl basis-full flex-wrap items-center justify-between py-2 pe-2 ps-5 md:flex-nowrap md:py-0 lg:mx-auto"
+		class="relative mx-2 flex w-full max-w-5xl basis-full flex-wrap items-center justify-between py-3 px-4 md:flex-nowrap lg:mx-auto"
 	>
 		<div class="flex items-center">
 			<!-- Logo -->
@@ -137,7 +137,7 @@
 				href="/"
 				aria-label="SchedX"
 			>
-				<div class="flex items-center space-x-2">
+				<div class="flex items-center gap-2">
 					<AppIcon className="w-8 h-8 text-gray-900 dark:text-white theme-lightsout:text-white" />
 					<span class="theme-lightsout:text-white text-xl font-bold text-gray-900 dark:text-white">SchedX</span>
 				</div>
@@ -146,9 +146,9 @@
 		</div>
 
 		<!-- Button Group -->
-		<div class="flex items-center gap-x-3 md:order-3">
+		<div class="flex items-center gap-3">
 			<!-- Theme Toggle -->
-			<div class="md:ps-3">
+			<div>
 				<ThemeToggle />
 			</div>
 
@@ -158,7 +158,7 @@
 					bind:this={dropdownButton}
 					id="admin-dropdown-button"
 					type="button"
-					class="theme-lightsout:border-gray-800 inline-flex size-10 items-center justify-center rounded-full border border-gray-200 p-0 transition-all hover:ring-2 hover:ring-blue-500 hover:ring-offset-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:border-gray-700"
+					class="theme-lightsout:border-gray-800 inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 p-0 transition-all hover:ring-2 hover:ring-blue-500 hover:ring-offset-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:border-gray-700"
 					aria-haspopup="menu"
 					aria-expanded={isDropdownOpen}
 					aria-label="Account menu"
@@ -166,7 +166,7 @@
 					on:keydown={handleDropdownKeyDown}
 				>
 					<img
-						class="size-full rounded-full object-cover"
+						class="h-full w-full rounded-full object-cover"
 						src="/avatar.png"
 						alt="Admin avatar"
 						loading="lazy"

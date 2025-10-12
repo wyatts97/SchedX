@@ -67,9 +67,9 @@
 					{@const account = tweet.twitterAccountId ? accountByProviderId[tweet.twitterAccountId] : undefined}
 					{@const displayTime = getDisplayTime(tweet)}
 					<div class="group relative rounded-lg border border-gray-200 bg-white p-4 transition-all hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-800/80">
-						<!-- Status Badge & Actions - Top Right (compact icon-only design) -->
-						<div class="absolute right-3 top-3 flex items-center gap-2">
-							<!-- Status Badge (icon-only for all screen sizes) -->
+						<!-- Status Badge with integrated actions - Top Right -->
+						<div class="absolute right-3 top-3">
+							<!-- Combined Status Badge (icon-only for all screen sizes) -->
 							{#if tweet.status === 'posted' && account}
 								{@const tweetId = tweet.twitterTweetId || (tweet as any).twitterTweetId}
 								{#if tweetId}
@@ -92,26 +92,35 @@
 									</span>
 								{/if}
 							{:else if tweet.status === 'scheduled'}
-								<span
-									class="inline-flex items-center justify-center rounded-full p-1.5 bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/30"
-									title="Scheduled"
+								<button
+									type="button"
+									on:click={() => handleEditTweet(tweet)}
+									class="inline-flex items-center justify-center gap-1 rounded-full p-1.5 bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/30 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors cursor-pointer"
+									title="Scheduled - Click to edit"
 								>
 									<Clock class="h-4 w-4" />
-								</span>
+									<Edit class="h-3 w-3 opacity-60" />
+								</button>
 							{:else if tweet.status === 'queued'}
-								<span
-									class="inline-flex items-center justify-center rounded-full p-1.5 bg-purple-50 text-purple-700 ring-1 ring-inset ring-purple-600/20 dark:bg-purple-500/10 dark:text-purple-400 dark:ring-purple-500/30"
-									title="Queued"
+								<button
+									type="button"
+									on:click={() => handleEditTweet(tweet)}
+									class="inline-flex items-center justify-center gap-1 rounded-full p-1.5 bg-purple-50 text-purple-700 ring-1 ring-inset ring-purple-600/20 dark:bg-purple-500/10 dark:text-purple-400 dark:ring-purple-500/30 hover:bg-purple-100 dark:hover:bg-purple-500/20 transition-colors cursor-pointer"
+									title="Queued - Click to edit"
 								>
 									<List class="h-4 w-4" />
-								</span>
+									<Edit class="h-3 w-3 opacity-60" />
+								</button>
 							{:else if tweet.status === 'draft' || tweet.templateName}
-								<span
-									class="inline-flex items-center justify-center rounded-full p-1.5 bg-gray-50 text-gray-700 ring-1 ring-inset ring-gray-600/20 dark:bg-gray-500/10 dark:text-gray-400 dark:ring-gray-500/30"
-									title={tweet.templateName ? 'Template' : 'Draft'}
+								<button
+									type="button"
+									on:click={() => handleEditTweet(tweet)}
+									class="inline-flex items-center justify-center gap-1 rounded-full p-1.5 bg-gray-50 text-gray-700 ring-1 ring-inset ring-gray-600/20 dark:bg-gray-500/10 dark:text-gray-400 dark:ring-gray-500/30 hover:bg-gray-100 dark:hover:bg-gray-500/20 transition-colors cursor-pointer"
+									title="{tweet.templateName ? 'Template' : 'Draft'} - Click to edit"
 								>
 									<FileEdit class="h-4 w-4" />
-								</span>
+									<Edit class="h-3 w-3 opacity-60" />
+								</button>
 							{:else if tweet.status === 'failed'}
 								<span
 									class="inline-flex items-center justify-center rounded-full p-1.5 bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20 dark:bg-red-500/10 dark:text-red-400 dark:ring-red-500/30"
@@ -119,18 +128,6 @@
 								>
 									<X class="h-4 w-4" />
 								</span>
-							{/if}
-
-							<!-- Edit Button (for scheduled/draft tweets) -->
-							{#if tweet.status === 'scheduled' || tweet.status === 'draft'}
-								<button
-									type="button"
-									on:click={() => handleEditTweet(tweet)}
-									class="inline-flex items-center justify-center rounded-full p-1.5 bg-gray-50 text-gray-700 ring-1 ring-inset ring-gray-600/20 transition-colors hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:ring-gray-700/30"
-									title="Edit tweet"
-								>
-									<Edit class="h-4 w-4" />
-								</button>
 							{/if}
 						</div>
 
