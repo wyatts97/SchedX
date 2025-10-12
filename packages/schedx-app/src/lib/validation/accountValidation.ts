@@ -12,8 +12,10 @@ export async function validateAccountOwnership(
 		const db = getDbInstance();
 		const allAccounts = await (db as any).getAllUserAccounts();
 		
-		// Find account by database ID
-		const account = allAccounts.find((acc: any) => acc.id === accountId);
+		// Find account by database ID or providerAccountId (for backwards compatibility)
+		const account = allAccounts.find((acc: any) => 
+			acc.id === accountId || acc.providerAccountId === accountId
+		);
 		
 		if (!account) {
 			log.warn('Account not found', { accountId, userId });

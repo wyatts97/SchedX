@@ -96,14 +96,27 @@
 		const checkDate = new Date(year, month, date);
 		let dateEvents = events.filter((event) => {
 			// Ensure we're working with a Date object
-			const eventDate = event.event_date instanceof Date 
-				? event.event_date 
-				: new Date(event.event_date);
+			let eventDate: Date;
+			if (event.event_date instanceof Date) {
+				eventDate = event.event_date;
+			} else if (typeof event.event_date === 'string') {
+				// Parse ISO string and create date in local timezone
+				eventDate = new Date(event.event_date);
+			} else {
+				eventDate = new Date(event.event_date);
+			}
 			
-			// Compare year, month, and date separately to avoid timezone issues
-			return eventDate.getFullYear() === year &&
-				   eventDate.getMonth() === month &&
-				   eventDate.getDate() === date;
+			// Normalize to local date (remove time component)
+			const normalizedEventDate = new Date(
+				eventDate.getFullYear(),
+				eventDate.getMonth(),
+				eventDate.getDate()
+			);
+			
+			const normalizedCheckDate = new Date(year, month, date);
+			
+			// Compare using timestamps of normalized dates
+			return normalizedEventDate.getTime() === normalizedCheckDate.getTime();
 		});
 		
 		// Apply account filter if set
@@ -338,10 +351,12 @@ onMount(() => {
 									: 'border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800'}
 							hover:border-blue-400 hover:shadow-md sm:hover:shadow-lg dark:hover:border-blue-500"
 						on:click={() => handleDateClick(date)}
+						on:keydown={(e) => e.key === 'Enter' && handleDateClick(date)}
 						on:mouseenter={() => hoveredDate = date}
 						on:mouseleave={() => hoveredDate = null}
 						role="button"
 						tabindex="0"
+						aria-label="View tweets for {MONTH_NAMES[month]} {date}, {year}"
 					>
 						<!-- Date Number -->
 						<div class="flex items-center justify-between">
