@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ExternalLink, Edit, CheckCircle, Clock, X, List, FileEdit, FileText, Trash2 } from 'lucide-svelte';
+	import { ExternalLink, Edit, CheckCircle, Calendar as CalendarIcon, X, List, FileEdit, FileText, Trash2 } from 'lucide-svelte';
 	import type { Tweet } from '$lib/stores/dashboardStore';
 	import { createEventDispatcher } from 'svelte';
 	import TweetPreview from '$lib/components/TweetPreview.svelte';
@@ -83,7 +83,7 @@
 									class="inline-flex items-center justify-center gap-2 rounded-full px-4 py-1.5 bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/30 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors cursor-pointer"
 									title="Scheduled - Click to edit"
 								>
-									<Clock class="h-3.5 w-3.5 flex-shrink-0" />
+									<CalendarIcon class="h-3.5 w-3.5 flex-shrink-0" />
 									<div class="h-3.5 w-px bg-blue-600/20 dark:bg-blue-500/30"></div>
 									<Edit class="h-3.5 w-3.5 flex-shrink-0" />
 								</button>

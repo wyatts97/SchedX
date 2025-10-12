@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Clock, Settings, Trash2, GripVertical, Calendar } from 'lucide-svelte';
+	import { Settings, Calendar as CalendarIcon, Edit, Trash2, GripVertical } from 'lucide-svelte';
 	import { toastStore } from '$lib/stores/toastStore';
 	import logger from '$lib/logger';
 
@@ -100,7 +100,7 @@
 				disabled={processingQueue || queuedTweets.length === 0}
 				class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
 			>
-				<Calendar class="h-4 w-4" />
+				<CalendarIcon class="h-4 w-4" />
 				{processingQueue ? 'Processing...' : 'Process Queue Now'}
 			</button>
 		</div>
@@ -116,7 +116,7 @@
 						{queuedTweets.length}
 					</p>
 				</div>
-				<Clock class="h-8 w-8 text-blue-500" />
+				<CalendarIcon class="h-8 w-8 text-blue-500" />
 			</div>
 		</div>
 	</div>
@@ -138,7 +138,7 @@
 				</div>
 			{:else if queuedTweets.length === 0}
 				<div class="py-12 text-center">
-					<Clock class="mx-auto h-12 w-12 text-gray-400" />
+					<CalendarIcon class="mx-auto h-12 w-12 text-gray-400" />
 					<h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No queued tweets</h3>
 					<p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
 						Add tweets to the queue to have them auto-scheduled

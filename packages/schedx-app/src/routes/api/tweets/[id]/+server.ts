@@ -60,7 +60,8 @@ export const PUT: RequestHandler = userRateLimit(RATE_LIMITS.tweets)(
 			}
 
 			// Get existing tweet to verify ownership
-			const existingTweet = await db.getTweetById(tweetId);
+			const tweets = await db.getTweets(adminUserId, 1, 1000);
+			const existingTweet = tweets.find((t: any) => t.id === tweetId);
 			if (!existingTweet) {
 				return new Response(JSON.stringify({ error: 'Tweet not found' }), {
 					status: 404,
@@ -166,8 +167,9 @@ export const DELETE: RequestHandler = async (event) => {
 			});
 		}
 
-			// Get existing tweet to verify ownership
-		const existingTweet = await db.getTweetById(tweetId);
+		// Get existing tweet to verify ownership
+		const tweets = await db.getTweets(adminUserId, 1, 1000);
+		const existingTweet = tweets.find((t: any) => t.id === tweetId);
 		if (!existingTweet) {
 			return new Response(JSON.stringify({ error: 'Tweet not found' }), {
 				status: 404,

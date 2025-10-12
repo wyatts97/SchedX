@@ -7,7 +7,7 @@
 	import { browser } from '$app/environment';
 	import TweetCreate from '$lib/components/TweetCreate.svelte';
 	import TweetPreview from '$lib/components/TweetPreview.svelte';
-	import { AlertTriangle, CheckCircle, XCircle, Edit, Trash2, X, Clock } from 'lucide-svelte'; // Icon for warning/alert messages
+	import { AlertTriangle, CheckCircle, XCircle, Edit, Trash2, X, Calendar as CalendarIcon } from 'lucide-svelte'; // Icon for warning/alert messages
 	import Calendar from '$lib/components/Calendar.svelte';
 	import type { Tweet } from '@schedx/shared-lib/types/types';
 
@@ -282,16 +282,25 @@
 				{#each filteredTweets as tweet (tweet.id)}
 					{@const account = data.accounts.find((a: any) => a.providerAccountId === tweet.twitterAccountId)}
 					{#if account}
-						<div class="relative rounded-lg border border-gray-200 bg-white shadow transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-800">
-							<!-- Action Buttons - Top Right -->
-							<div class="absolute right-3 top-3 z-10 flex gap-2">
+						<!-- Tweet Preview with Action Badges Inside -->
+						<TweetPreview
+							avatarUrl={account.profileImage || '/avatar.png'}
+							displayName={account.displayName || account.username}
+							username={account.username}
+							content={tweet.content}
+							media={tweet.media || []}
+							createdAt={new Date(tweet.scheduledDate)}
+							hideActions={true}
+							showXLogo={false}
+						>
+							<svelte:fragment slot="actions">
 								<button
 									type="button"
 									on:click={() => handleEditTweet(tweet)}
 									class="inline-flex items-center gap-2 rounded-full bg-blue-50 px-4 py-1.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20 transition-colors hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/30 dark:hover:bg-blue-500/20"
 									title="Edit tweet"
 								>
-									<Clock class="h-3.5 w-3.5" />
+									<CalendarIcon class="h-3.5 w-3.5" />
 									<div class="h-3.5 w-px bg-blue-600/20 dark:bg-blue-500/30"></div>
 									<Edit class="h-3.5 w-3.5" />
 								</button>
@@ -303,19 +312,8 @@
 								>
 									<Trash2 class="h-3.5 w-3.5" />
 								</button>
-							</div>
-
-							<!-- Tweet Preview -->
-							<TweetPreview
-								avatarUrl={account.profileImage || '/avatar.png'}
-								displayName={account.displayName || account.username}
-								username={account.username}
-								content={tweet.content}
-								media={tweet.media || []}
-								createdAt={new Date(tweet.scheduledDate)}
-								hideActions={true}
-							/>
-						</div>
+							</svelte:fragment>
+						</TweetPreview>
 					{/if}
 				{/each}
 			</div>

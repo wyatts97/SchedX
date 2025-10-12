@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { CheckCircle, Clock, XCircle, Users } from 'lucide-svelte';
+	import { TrendingUp, MessageCircle, Calendar as CalendarIcon, CheckCircle, XCircle, Users } from 'lucide-svelte';
 	import type { Analytics, TwitterApp } from '$lib/stores/dashboardStore';
 
 	export let analytics: Analytics | undefined = undefined;
@@ -61,7 +61,7 @@
 		>
 			<div class="flex items-center">
 				<div class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-900/20">
-					<Clock class="h-6 w-6 text-blue-600 dark:text-blue-400" />
+					<CalendarIcon class="h-6 w-6 text-blue-600 dark:text-blue-400" />
 				</div>
 				<div class="ml-4 flex-1">
 					<dt class="text-sm font-medium text-gray-500 dark:text-gray-400">
@@ -74,7 +74,7 @@
 			</div>
 		</div>
 
-		<!-- Failed Tweets (was Posted, now shows failed) -->
+		<!-- Failed Tweets -->
 		<div
 			class="group cursor-default rounded-lg border border-gray-200 bg-white p-6 shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-xl dark:border-gray-700 dark:bg-gray-800"
 		>
