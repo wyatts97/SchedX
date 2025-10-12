@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { FileText, ExternalLink, Edit } from 'lucide-svelte';
+	import { FileText, ExternalLink, Edit, CheckCircle, Clock, X, List, FileEdit } from 'lucide-svelte';
 	import type { Tweet } from '$lib/stores/dashboardStore';
 	import { createEventDispatcher } from 'svelte';
 
@@ -69,7 +69,7 @@
 					<div class="group relative rounded-lg border border-gray-200 bg-white p-4 transition-all hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-800/80">
 						<!-- Status Badge & Actions - Top Right (responsive positioning) -->
 						<div class="absolute right-3 top-3 flex flex-col items-end gap-2 sm:flex-row sm:items-center">
-							<!-- Status Badge (clickable for posted tweets) -->
+							<!-- Status Badge (icon-only on mobile, text on desktop) -->
 							{#if tweet.status === 'posted' && account}
 								{@const tweetId = tweet.twitterTweetId || (tweet as any).twitterTweetId}
 								{#if tweetId}
@@ -78,31 +78,52 @@
 										target="_blank"
 										rel="noopener noreferrer"
 										class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20 dark:bg-green-500/10 dark:text-green-400 dark:ring-green-500/30 hover:bg-green-100 dark:hover:bg-green-500/20 transition-colors cursor-pointer"
-										title="View on Twitter"
+										title="Posted - View on Twitter"
 									>
-										Posted
-										<ExternalLink class="h-3 w-3" />
+										<CheckCircle class="h-3.5 w-3.5" />
+										<span class="hidden sm:inline">Posted</span>
+										<ExternalLink class="h-3 w-3 opacity-60" />
 									</a>
 								{:else}
 									<span
-										class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20 dark:bg-green-500/10 dark:text-green-400 dark:ring-green-500/30"
+										class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20 dark:bg-green-500/10 dark:text-green-400 dark:ring-green-500/30"
+										title="Posted"
 									>
-										Posted
+										<CheckCircle class="h-3.5 w-3.5" />
+										<span class="hidden sm:inline">Posted</span>
 									</span>
 								{/if}
-							{:else}
+							{:else if tweet.status === 'scheduled'}
 								<span
-									class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold {tweet.status === 'scheduled'
-										? 'bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/30'
-										: tweet.status === 'draft'
-											? 'bg-gray-50 text-gray-700 ring-1 ring-inset ring-gray-600/20 dark:bg-gray-500/10 dark:text-gray-400 dark:ring-gray-500/30'
-											: 'bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20 dark:bg-red-500/10 dark:text-red-400 dark:ring-red-500/30'}"
+									class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/30"
+									title="Scheduled"
 								>
-									{tweet.status === 'scheduled'
-										? 'Scheduled'
-										: tweet.status === 'draft'
-											? 'Draft'
-											: 'Failed'}
+									<Clock class="h-3.5 w-3.5" />
+									<span class="hidden sm:inline">Scheduled</span>
+								</span>
+							{:else if tweet.status === 'queued'}
+								<span
+									class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold bg-purple-50 text-purple-700 ring-1 ring-inset ring-purple-600/20 dark:bg-purple-500/10 dark:text-purple-400 dark:ring-purple-500/30"
+									title="Queued"
+								>
+									<List class="h-3.5 w-3.5" />
+									<span class="hidden sm:inline">Queued</span>
+								</span>
+							{:else if tweet.status === 'draft' || tweet.templateName}
+								<span
+									class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold bg-gray-50 text-gray-700 ring-1 ring-inset ring-gray-600/20 dark:bg-gray-500/10 dark:text-gray-400 dark:ring-gray-500/30"
+									title={tweet.templateName ? 'Template' : 'Draft'}
+								>
+									<FileEdit class="h-3.5 w-3.5" />
+									<span class="hidden sm:inline">{tweet.templateName ? 'Template' : 'Draft'}</span>
+								</span>
+							{:else if tweet.status === 'failed'}
+								<span
+									class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20 dark:bg-red-500/10 dark:text-red-400 dark:ring-red-500/30"
+									title="Failed"
+								>
+									<X class="h-3.5 w-3.5" />
+									<span class="hidden sm:inline">Failed</span>
 								</span>
 							{/if}
 
