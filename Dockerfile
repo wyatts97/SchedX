@@ -17,6 +17,9 @@ COPY . .
 
 # Build in correct order: shared-lib MUST be built first
 RUN npm run build -w @schedx/shared-lib
+RUN echo "=== Verifying migrations were copied ===" && \
+    ls -la /app/packages/schedx-shared-lib/dist/backend/migrations/ && \
+    echo "=== Migration files found ===" || echo "=== ERROR: No migration files! ==="
 RUN npm run build -w @schedx/app
 RUN npm run build -w @schedx/scheduler
 
