@@ -8,9 +8,13 @@ const __dirname = dirname(__filename);
 const srcDir = join(__dirname, '..', 'src', 'backend', 'migrations');
 const destDir = join(__dirname, '..', 'dist', 'backend', 'migrations');
 
-console.log('Copying migrations from', srcDir, 'to', destDir);
-rmSync(destDir, { recursive: true, force: true });
+console.log('Copying SQL migrations from', srcDir, 'to', destDir);
 mkdirSync(destDir, { recursive: true });
-cpSync(srcDir, destDir, { recursive: true });
-const copiedEntries = readdirSync(destDir);
-console.log(`Migrations copied successfully (${copiedEntries.length} files)`);
+
+// Only copy .sql files, not .ts files (those are compiled by tsc)
+const sqlFiles = readdirSync(srcDir).filter(f => f.endsWith('.sql'));
+sqlFiles.forEach(file => {
+  cpSync(join(srcDir, file), join(destDir, file));
+});
+
+console.log(`Migrations copied successfully (${sqlFiles.length} SQL files)`);
