@@ -59,9 +59,21 @@ export class DatabaseClient {
       // Find migrations directory
       let migrationsDir: string;
       try {
-        migrationsDir = join(__dirname, 'migrations');
-        if (!existsSync(migrationsDir)) {
-          migrationsDir = join(__dirname, '..', 'src', 'backend', 'migrations');
+        // Try multiple possible locations
+        const possiblePaths = [
+          join(__dirname, 'migrations'),
+          join(__dirname, '..', 'src', 'backend', 'migrations'),
+          // In production Docker, when bundled by SvelteKit
+          join(process.cwd(), 'packages', 'schedx-shared-lib', 'dist', 'backend', 'migrations'),
+          // Alternative production path
+          '/app/packages/schedx-shared-lib/dist/backend/migrations'
+        ];
+        
+        migrationsDir = possiblePaths.find(p => existsSync(p)) || '';
+        
+        if (!migrationsDir) {
+          logger.warn({ attemptedPaths: possiblePaths }, 'Could not find migrations directory in any expected location');
+          return;
         }
       } catch {
         logger.warn('Could not find migrations directory, assuming schema exists');
