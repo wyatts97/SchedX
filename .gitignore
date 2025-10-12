@@ -109,6 +109,8 @@ mongodb/
 # Database dumps
 *.dump
 *.sql
+# But allow migration files
+!packages/schedx-shared-lib/src/backend/migrations/*.sql
 
 # =============================================================================
 # DOCKER & CONTAINERS
