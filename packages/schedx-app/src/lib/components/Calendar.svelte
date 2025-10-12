@@ -60,6 +60,7 @@
 	let isDragging = false;
 	let dragStartY = 0;
 	let dragStartHeight = 80;
+	let actualViewportHeight = 0; // Track actual viewport height
 
 	// Create account color map
 	$: accountColorMap = accounts.reduce((map, account, index) => {
@@ -169,17 +170,33 @@
 		if (navbar) {
 			navbar.classList.add('navbar-hidden');
 		}
+		// Update viewport height when sheet opens to account for browser chrome
+		updateViewportHeight();
 	}
 
 	// Drag handlers for sheet
 	function handleDragStart(e: TouchEvent | MouseEvent) {
+		// Prevent text selection and default touch behaviors
+		e.preventDefault();
+		e.stopPropagation();
+		
 		isDragging = true;
 		dragStartY = 'touches' in e ? e.touches[0].clientY : e.clientY;
 		dragStartHeight = sheetHeight;
+		
+		// Disable text selection during drag
+		if (typeof document !== 'undefined') {
+			document.body.style.userSelect = 'none';
+			document.body.style.webkitUserSelect = 'none';
+		}
 	}
 
 	function handleDragMove(e: TouchEvent | MouseEvent) {
 		if (!isDragging) return;
+		
+		// Prevent scrolling and text selection
+		e.preventDefault();
+		e.stopPropagation();
 		
 		const currentY = 'touches' in e ? e.touches[0].clientY : e.clientY;
 		const deltaY = dragStartY - currentY; // Positive when dragging up
@@ -195,6 +212,12 @@
 
 	function handleDragEnd() {
 		isDragging = false;
+		
+		// Re-enable text selection
+		if (typeof document !== 'undefined') {
+			document.body.style.userSelect = '';
+			document.body.style.webkitUserSelect = '';
+		}
 		
 		// Snap to nearest breakpoint
 		if (sheetHeight < 55) {
@@ -248,26 +271,38 @@
 		}
 	}
 
-// Initialize on mount
-onMount(() => {
-	initDate();
-	
-	// Add global listeners for drag
-	const handleGlobalMove = (e: TouchEvent | MouseEvent) => handleDragMove(e);
-	const handleGlobalEnd = () => handleDragEnd();
-	
-	window.addEventListener('mousemove', handleGlobalMove);
-	window.addEventListener('mouseup', handleGlobalEnd);
-	window.addEventListener('touchmove', handleGlobalMove);
-	window.addEventListener('touchend', handleGlobalEnd);
-	
-	return () => {
-		window.removeEventListener('mousemove', handleGlobalMove);
-		window.removeEventListener('mouseup', handleGlobalEnd);
-		window.removeEventListener('touchmove', handleGlobalMove);
-		window.removeEventListener('touchend', handleGlobalEnd);
-	};
-});
+	// Update viewport height on resize
+	function updateViewportHeight() {
+		if (typeof window !== 'undefined') {
+			actualViewportHeight = window.innerHeight;
+		}
+	}
+
+	// Initialize on mount
+	onMount(() => {
+		initDate();
+		updateViewportHeight();
+		
+		// Add global listeners for drag
+		const handleGlobalMove = (e: TouchEvent | MouseEvent) => handleDragMove(e);
+		const handleGlobalEnd = () => handleDragEnd();
+		
+		window.addEventListener('mousemove', handleGlobalMove);
+		window.addEventListener('mouseup', handleGlobalEnd);
+		window.addEventListener('touchmove', handleGlobalMove);
+		window.addEventListener('touchend', handleGlobalEnd);
+		window.addEventListener('resize', updateViewportHeight);
+		window.addEventListener('orientationchange', updateViewportHeight);
+		
+		return () => {
+			window.removeEventListener('mousemove', handleGlobalMove);
+			window.removeEventListener('mouseup', handleGlobalEnd);
+			window.removeEventListener('touchmove', handleGlobalMove);
+			window.removeEventListener('touchend', handleGlobalEnd);
+			window.removeEventListener('resize', updateViewportHeight);
+			window.removeEventListener('orientationchange', updateViewportHeight);
+		};
+	});
 
 </script>
 
@@ -503,18 +538,18 @@ onMount(() => {
 		<!-- Bottom Sheet -->
 		<div 
 			class="fixed bottom-0 left-0 right-0 transform overflow-hidden rounded-t-3xl bg-white shadow-xl dark:bg-gray-800"
-			style="max-height: {sheetHeight}vh; transition: {isDragging ? 'none' : 'max-height 300ms cubic-bezier(0.4, 0, 0.2, 1)'};"
+			style="height: {actualViewportHeight > 0 ? (actualViewportHeight * sheetHeight / 100) : sheetHeight + 'vh'}px; max-height: 100vh; transition: {isDragging ? 'none' : 'height 300ms cubic-bezier(0.4, 0, 0.2, 1)'};"
 		>
 			<!-- Handle Bar (Draggable) -->
 			<div 
-				class="flex justify-center py-3 cursor-grab active:cursor-grabbing"
+				class="flex justify-center py-4 cursor-grab active:cursor-grabbing touch-none select-none"
 				on:mousedown={handleDragStart}
-				on:touchstart={handleDragStart}
+				on:touchstart|passive={handleDragStart}
 				role="button"
 				tabindex="0"
 				aria-label="Drag to resize"
 			>
-				<div class="h-1.5 w-12 rounded-full bg-gray-300 dark:bg-gray-600"></div>
+				<div class="h-1.5 w-16 rounded-full bg-gray-400 dark:bg-gray-500"></div>
 			</div>
 
 			<!-- Header -->
@@ -538,7 +573,7 @@ onMount(() => {
 			</div>
 
 			<!-- Content -->
-			<div class="overflow-y-auto p-4" style="max-height: calc({sheetHeight}vh - 140px);">
+			<div class="overflow-y-auto p-4" style="height: {actualViewportHeight > 0 ? (actualViewportHeight * sheetHeight / 100 - 140) : 'calc(' + sheetHeight + 'vh - 140px)'}px; max-height: calc(100vh - 140px);">
 				{#if dayEvents.length > 0}
 					<div class="space-y-4">
 						{#each dayEvents as event}
