@@ -1,7 +1,8 @@
 <script lang="ts">
-	import { FileText, ExternalLink, Edit, CheckCircle, Clock, X, List, FileEdit } from 'lucide-svelte';
+	import { ExternalLink, Edit, CheckCircle, Clock, X, List, FileEdit, FileText } from 'lucide-svelte';
 	import type { Tweet } from '$lib/stores/dashboardStore';
 	import { createEventDispatcher } from 'svelte';
+	import TweetPreview from '$lib/components/TweetPreview.svelte';
 
 	export let tweets: Tweet[] | undefined = undefined;
 	export let accounts: any[] = [];
@@ -18,38 +19,17 @@
 		dispatch('editTweet', tweet);
 	}
 
-	// Format timestamp like Twitter (e.g., "2h", "Oct 9", etc.)
-	function formatTwitterTime(date: Date): string {
-		const now = new Date();
-		const diffMs = now.getTime() - date.getTime();
-		const diffMins = Math.floor(diffMs / 60000);
-		const diffHours = Math.floor(diffMs / 3600000);
-		const diffDays = Math.floor(diffMs / 86400000);
-
-		if (diffMins < 1) return 'now';
-		if (diffMins < 60) return `${diffMins}m`;
-		if (diffHours < 24) return `${diffHours}h`;
-		if (diffDays < 7) return `${diffDays}d`;
-		
-		// For older tweets, show date like "Oct 9"
-		return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-	}
-
-	// Get the display time based on tweet status
-	function getDisplayTime(tweet: Tweet): string | null {
-		if (tweet.status === 'draft') return null;
-		
-		try {
-			if (tweet.status === 'posted') {
-				// For posted tweets, show time since posted (using createdAt or updatedAt)
-				const date = tweet.updatedAt || tweet.createdAt;
-				return date ? formatTwitterTime(new Date(date)) : null;
-			}
-			// For scheduled/queued, show the scheduled time as if it's posted
-			return tweet.scheduledDate ? formatTwitterTime(new Date(tweet.scheduledDate)) : null;
-		} catch (e) {
-			console.error('Error formatting time:', e);
-			return null;
+	// Get the display date based on tweet status
+	function getDisplayDate(tweet: Tweet): Date {
+		if (tweet.status === 'posted') {
+			// For posted tweets, show when it was posted
+			return new Date(tweet.updatedAt || tweet.createdAt);
+		} else if (tweet.status === 'scheduled' || tweet.status === 'queued') {
+			// For scheduled/queued, show when it will be published
+			return tweet.scheduledDate ? new Date(tweet.scheduledDate) : new Date(tweet.createdAt);
+		} else {
+			// For drafts, show when it was created
+			return new Date(tweet.createdAt);
 		}
 	}
 </script>
@@ -65,10 +45,10 @@
 				{@const sortedTweets = [...tweets].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())}
 				{#each sortedTweets.slice(0, 5) as tweet}
 					{@const account = tweet.twitterAccountId ? accountByProviderId[tweet.twitterAccountId] : undefined}
-					{@const displayTime = getDisplayTime(tweet)}
-					<div class="group relative rounded-lg border border-gray-200 bg-white p-4 transition-all hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-800/80">
-						<!-- Status Badge - Above content on mobile, top-right on desktop -->
-						<div class="mb-3 flex justify-end sm:absolute sm:right-3 sm:top-3 sm:mb-0">
+					{@const displayDate = getDisplayDate(tweet)}
+					<div class="group relative rounded-lg border border-gray-200 bg-white transition-all hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-800/80">
+						<!-- Status Badge - Top right corner -->
+						<div class="absolute right-3 top-3 z-10">
 							<!-- Combined Status Badge (icon-only for all screen sizes) -->
 							{#if tweet.status === 'posted' && account}
 								{@const tweetId = tweet.twitterTweetId || (tweet as any).twitterTweetId}
@@ -131,55 +111,25 @@
 							{/if}
 						</div>
 
-						<!-- Twitter-style tweet preview -->
-						<div class="flex gap-3 sm:pr-16">
-							<!-- Avatar -->
-							<div class="flex-shrink-0">
-								<img
-									src={account?.profileImage || '/avatar.png'}
-									alt={account?.displayName || account?.username || 'Account'}
-									class="h-10 w-10 rounded-full"
+						<!-- Tweet Preview (without interaction buttons) -->
+						{#if account}
+							<div class="tweet-preview-wrapper">
+								<TweetPreview
+									avatarUrl={account.profileImage || '/avatar.png'}
+									displayName={account.displayName || account.username}
+									username={account.username}
+									content={tweet.content}
+									media={tweet.media || []}
+									createdAt={displayDate}
+									replies={0}
+									retweets={0}
+									likes={0}
+									bookmarks={0}
+									views={0}
+									hideActions={true}
 								/>
 							</div>
-
-							<!-- Tweet content -->
-							<div class="min-w-0 flex-1">
-								<!-- Header: Name, username, time -->
-								<div class="mb-1 flex items-center gap-1.5 text-sm">
-									<span class="font-bold text-gray-900 dark:text-white">
-										{account?.displayName || account?.username || 'Unknown'}
-									</span>
-									<span class="text-gray-500 dark:text-gray-400">
-										@{account?.username || 'unknown'}
-									</span>
-									{#if displayTime}
-										<span class="text-gray-500 dark:text-gray-400">·</span>
-										<span class="text-gray-500 dark:text-gray-400">
-											{displayTime}
-										</span>
-									{/if}
-								</div>
-
-								<p class="whitespace-pre-wrap text-sm text-gray-900 dark:text-white">
-									{tweet.content}
-								</p>
-
-								<!-- Media preview if present -->
-								{#if tweet.media && tweet.media.length > 0}
-									<div class="mt-3 grid gap-2 {tweet.media.length === 1 ? 'grid-cols-1' : tweet.media.length === 2 ? 'grid-cols-2' : 'grid-cols-2'}">
-										{#each tweet.media.slice(0, 4) as media}
-											<div class="overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700">
-												<img
-													src={media.url}
-													alt="Tweet media"
-													class="{tweet.media.length === 1 ? 'max-h-64' : 'h-32'} w-full object-cover"
-												/>
-											</div>
-										{/each}
-									</div>
-								{/if}
-							</div>
-						</div>
+						{/if}
 					</div>
 				{/each}
 			{:else}

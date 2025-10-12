@@ -42,7 +42,7 @@
 			const data = await res.json();
 			if (data.profile) {
 				profileForm = {
-					username: data.profile.username || 'admin',
+					username: 'admin', // Always set to 'admin' since it can't be changed
 					displayName: data.profile.displayName || '',
 					email: data.profile.email || '',
 					avatar: data.profile.avatar || ''

@@ -360,9 +360,9 @@
 
 	<!-- Edit Tweet Modal (Outside main container to cover entire viewport) -->
 	{#if showEditTweetModal && editingTweet}
-		<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto">
-			<div class="relative w-full max-w-2xl my-8 rounded-lg bg-white shadow-xl dark:bg-gray-800 max-h-[90vh] flex flex-col">
-				<div class="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">
+		<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto overscroll-contain">
+			<div class="relative w-full max-w-2xl my-8 rounded-lg bg-white shadow-xl dark:bg-gray-800 max-h-[90vh] flex flex-col overflow-hidden">
+				<div class="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700 flex-shrink-0">
 					<h2 class="text-xl font-semibold text-gray-900 dark:text-white">Edit Tweet</h2>
 					<button
 						on:click={handleCloseEditModal}
@@ -374,7 +374,7 @@
 						</svg>
 					</button>
 				</div>
-				<div class="overflow-y-auto p-6 space-y-6">
+				<div class="overflow-y-auto overflow-x-hidden overscroll-contain p-6 space-y-6">
 					<TweetCreate
 						mode="edit"
 						tweetId={editingTweet.id}

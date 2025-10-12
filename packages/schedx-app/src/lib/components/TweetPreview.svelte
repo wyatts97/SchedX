@@ -16,6 +16,7 @@
 	export let likes: number = 0;
 	export let bookmarks: number = 0;
 	export let views: number = 0;
+	export let hideActions: boolean = false; // Hide interaction buttons
 
 	let showVideoModal = false;
 	let modalVideoUrl = '';
@@ -185,29 +186,31 @@
 	<div
 		class="theme-dark:border-gray-700 my-1 border border-b-0 border-gray-200 dark:border-gray-600"
 	></div>
-	<div class="theme-dark:text-gray-400 mt-3 flex justify-between text-gray-500 dark:text-gray-400">
-		<div class="group flex cursor-pointer items-center gap-1">
-			<Reply class="h-5 w-5 transition group-hover:text-blue-500" />
-			<span class="ml-1 text-sm">{replies}</span>
+	{#if !hideActions}
+		<div class="theme-dark:text-gray-400 mt-3 flex justify-between text-gray-500 dark:text-gray-400">
+			<div class="group flex cursor-pointer items-center gap-1">
+				<Reply class="h-5 w-5 transition group-hover:text-blue-500" />
+				<span class="ml-1 text-sm">{replies}</span>
+			</div>
+			<div class="group flex cursor-pointer items-center gap-1">
+				<Repeat2 class="h-5 w-5 transition group-hover:text-green-500" />
+				<span class="ml-1 text-sm">{retweets}</span>
+			</div>
+			<div class="group flex cursor-pointer items-center gap-1">
+				<Heart class="h-5 w-5 transition group-hover:text-pink-500" />
+				<span class="ml-1 text-sm">{likes}</span>
+			</div>
+			<div class="group flex cursor-pointer items-center gap-1">
+				<BarChart2 class="h-5 w-5 transition group-hover:text-blue-400" />
+				<span class="ml-1 text-sm">{views}</span>
+			</div>
+			<div class="group flex cursor-pointer items-center gap-1">
+				<Bookmark class="h-5 w-5 transition group-hover:text-yellow-500" />
+				<span class="ml-1 text-sm">{bookmarks}</span>
+			</div>
+			<div class="group flex cursor-pointer items-center gap-1">
+				<Share2 class="h-5 w-5 transition group-hover:text-blue-400" />
+			</div>
 		</div>
-		<div class="group flex cursor-pointer items-center gap-1">
-			<Repeat2 class="h-5 w-5 transition group-hover:text-green-500" />
-			<span class="ml-1 text-sm">{retweets}</span>
-		</div>
-		<div class="group flex cursor-pointer items-center gap-1">
-			<Heart class="h-5 w-5 transition group-hover:text-pink-500" />
-			<span class="ml-1 text-sm">{likes}</span>
-		</div>
-		<div class="group flex cursor-pointer items-center gap-1">
-			<BarChart2 class="h-5 w-5 transition group-hover:text-blue-400" />
-			<span class="ml-1 text-sm">{views}</span>
-		</div>
-		<div class="group flex cursor-pointer items-center gap-1">
-			<Bookmark class="h-5 w-5 transition group-hover:text-yellow-500" />
-			<span class="ml-1 text-sm">{bookmarks}</span>
-		</div>
-		<div class="group flex cursor-pointer items-center gap-1">
-			<Share2 class="h-5 w-5 transition group-hover:text-blue-400" />
-		</div>
-	</div>
+	{/if}
 </div>
