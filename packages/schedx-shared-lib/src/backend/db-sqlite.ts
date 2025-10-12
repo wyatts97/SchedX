@@ -206,9 +206,11 @@ export class DatabaseClient {
   }
 
   async getAdminUserByUsername(username: string): Promise<import('../types/types.js').AdminUser | null> {
+    // For admin user, always get the first user with role='admin' or the first user if no role
+    // This prevents issues when displayName is changed
     const user = this.db.queryOne<any>(
-      'SELECT * FROM users WHERE email = ? OR displayName = ?',
-      [username, username]
+      'SELECT * FROM users WHERE role = ? OR id = (SELECT id FROM users LIMIT 1)',
+      ['admin']
     );
     
     if (!user) return null;
