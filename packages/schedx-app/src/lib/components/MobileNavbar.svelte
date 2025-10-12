@@ -6,6 +6,7 @@
 	let hidden = false;
 	let y = 0;
 	let showDropup = false;
+	let isAnimating = false;
 
 	onMount(() => {
 		const handleScroll = () => {
@@ -13,10 +14,18 @@
 			const clientHeight = document.documentElement.clientHeight;
 			y = window.scrollY;
 
-			if (y + clientHeight >= scrollHeight - 10) {
+			// Check if at bottom of page
+			const atBottom = y + clientHeight >= scrollHeight - 10;
+			
+			// Only trigger animation if state actually changes
+			if (atBottom && !hidden && !isAnimating) {
+				isAnimating = true;
 				hidden = true;
-			} else {
+				setTimeout(() => { isAnimating = false; }, 400); // Match animation duration
+			} else if (!atBottom && hidden && !isAnimating) {
+				isAnimating = true;
 				hidden = false;
+				setTimeout(() => { isAnimating = false; }, 400); // Match animation duration
 			}
 		};
 
@@ -42,8 +51,8 @@
 </script>
 
 <nav
-	class="fixed bottom-4 left-1/2 z-50 flex w-11/12 -translate-x-1/2 transform justify-between transition-transform duration-300 md:hidden"
-	class:hidden
+	class="fixed bottom-4 left-1/2 z-50 flex w-11/12 -translate-x-1/2 transform justify-between transition-all duration-400 ease-in-out md:hidden"
+	class:navbar-hidden={hidden}
 >
 	<div
 		class="relative flex w-full justify-between overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-lg dark:border-white dark:bg-gray-800"
@@ -146,7 +155,14 @@
 </nav>
 
 <style>
-	.hidden {
-		transform: translateX(-50%) translateY(150%);
+	.navbar-hidden {
+		transform: translateX(-50%) translateY(calc(100% + 2rem));
+		opacity: 0;
+	}
+	
+	/* Smooth slide and fade animation */
+	nav {
+		transition: transform 400ms cubic-bezier(0.4, 0, 0.2, 1), 
+		            opacity 400ms cubic-bezier(0.4, 0, 0.2, 1);
 	}
 </style>

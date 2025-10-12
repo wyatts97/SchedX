@@ -67,8 +67,8 @@
 					{@const account = tweet.twitterAccountId ? accountByProviderId[tweet.twitterAccountId] : undefined}
 					{@const displayTime = getDisplayTime(tweet)}
 					<div class="group relative rounded-lg border border-gray-200 bg-white p-4 transition-all hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-800/80">
-						<!-- Status Badge & Actions - Top Right -->
-						<div class="absolute right-3 top-3 flex items-center gap-2">
+						<!-- Status Badge & Actions - Top Right (responsive positioning) -->
+						<div class="absolute right-3 top-3 flex flex-col items-end gap-2 sm:flex-row sm:items-center">
 							<!-- Status Badge (clickable for posted tweets) -->
 							{#if tweet.status === 'posted' && account}
 								{@const tweetId = tweet.twitterTweetId || (tweet as any).twitterTweetId}
@@ -119,8 +119,8 @@
 							{/if}
 						</div>
 
-						<!-- Twitter-style tweet preview -->
-						<div class="flex gap-3 pr-24">
+						<!-- Twitter-style tweet preview (responsive padding) -->
+						<div class="flex gap-3 pr-2 sm:pr-24">
 							<!-- Avatar -->
 							<div class="flex-shrink-0">
 								<img
