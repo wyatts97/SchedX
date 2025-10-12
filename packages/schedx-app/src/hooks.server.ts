@@ -82,11 +82,27 @@ const corsHandle: Handle = async ({ event, resolve }) => {
 		}
 	}
 	
+	// Handle preflight OPTIONS requests
+	if (event.request.method === 'OPTIONS' && isAllowedOrigin && origin) {
+		return new Response(null, {
+			status: 204,
+			headers: {
+				'Access-Control-Allow-Origin': origin,
+				'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+				'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+				'Access-Control-Allow-Credentials': 'true',
+				'Access-Control-Max-Age': '86400'
+			}
+		});
+	}
+	
 	const response = await resolve(event);
 	
 	// Add CORS headers if origin is allowed
 	if (isAllowedOrigin && origin) {
 		response.headers.set('Access-Control-Allow-Origin', origin);
+		response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+		response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 		response.headers.set('Access-Control-Allow-Credentials', 'true');
 	}
 	
