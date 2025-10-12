@@ -70,28 +70,28 @@
 								</div>
 							</div>
 
-							<!-- Action Buttons -->
-							<div class="flex gap-2">
+							<!-- Action Buttons (responsive layout) -->
+							<div class="flex flex-col gap-2 sm:flex-row">
 								<a
 									href="/post?account={account.id}"
-									class="flex-1 rounded-lg bg-blue-600 px-3 py-2.5 text-center text-sm font-semibold text-white shadow-sm transition-all hover:bg-blue-700 hover:shadow-md"
+									class="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-blue-700 hover:shadow-md"
 								>
-									<Edit3 class="inline h-4 w-4 mr-1.5 -mt-0.5" />
-									Post
+									<Edit3 class="h-4 w-4" />
+									<span>Post</span>
 								</a>
 								<a
 									href="/post?account={account.id}&action=schedule"
-									class="flex-1 rounded-lg bg-orange-600 px-3 py-2.5 text-center text-sm font-semibold text-white shadow-sm transition-all hover:bg-orange-700 hover:shadow-md dark:bg-orange-600 dark:hover:bg-orange-700"
+									class="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-orange-600 px-3 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-orange-700 hover:shadow-md dark:bg-orange-600 dark:hover:bg-orange-700"
 								>
-									<Calendar class="inline h-4 w-4 mr-1.5 -mt-0.5" />
-									Schedule
+									<Calendar class="h-4 w-4" />
+									<span>Schedule</span>
 								</a>
 								<a
 									href="/post?account={account.id}&action=draft"
-									class="flex-1 rounded-lg bg-purple-600 px-3 py-2.5 text-center text-sm font-semibold text-white shadow-sm transition-all hover:bg-purple-700 hover:shadow-md dark:bg-purple-600 dark:hover:bg-purple-700"
+									class="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-purple-600 px-3 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-purple-700 hover:shadow-md dark:bg-purple-600 dark:hover:bg-purple-700"
 								>
-									<FileText class="inline h-4 w-4 mr-1.5 -mt-0.5" />
-									Draft
+									<FileText class="h-4 w-4" />
+									<span>Draft</span>
 								</a>
 							</div>
 						</div>

@@ -67,9 +67,9 @@
 					{@const account = tweet.twitterAccountId ? accountByProviderId[tweet.twitterAccountId] : undefined}
 					{@const displayTime = getDisplayTime(tweet)}
 					<div class="group relative rounded-lg border border-gray-200 bg-white p-4 transition-all hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-800/80">
-						<!-- Status Badge & Actions - Top Right (responsive positioning) -->
-						<div class="absolute right-3 top-3 flex flex-col items-end gap-2 sm:flex-row sm:items-center">
-							<!-- Status Badge (icon-only on mobile, text on desktop) -->
+						<!-- Status Badge & Actions - Top Right (compact icon-only design) -->
+						<div class="absolute right-3 top-3 flex items-center gap-2">
+							<!-- Status Badge (icon-only for all screen sizes) -->
 							{#if tweet.status === 'posted' && account}
 								{@const tweetId = tweet.twitterTweetId || (tweet as any).twitterTweetId}
 								{#if tweetId}
@@ -77,53 +77,47 @@
 										href="https://twitter.com/{account.username}/status/{tweetId}"
 										target="_blank"
 										rel="noopener noreferrer"
-										class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20 dark:bg-green-500/10 dark:text-green-400 dark:ring-green-500/30 hover:bg-green-100 dark:hover:bg-green-500/20 transition-colors cursor-pointer"
-										title="Posted - View on Twitter"
+										class="inline-flex items-center justify-center gap-1 rounded-full p-1.5 bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20 dark:bg-green-500/10 dark:text-green-400 dark:ring-green-500/30 hover:bg-green-100 dark:hover:bg-green-500/20 transition-colors cursor-pointer"
+										title="Posted - Click to view on Twitter"
 									>
-										<CheckCircle class="h-3.5 w-3.5" />
-										<span class="hidden sm:inline">Posted</span>
+										<CheckCircle class="h-4 w-4" />
 										<ExternalLink class="h-3 w-3 opacity-60" />
 									</a>
 								{:else}
 									<span
-										class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20 dark:bg-green-500/10 dark:text-green-400 dark:ring-green-500/30"
+										class="inline-flex items-center justify-center rounded-full p-1.5 bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20 dark:bg-green-500/10 dark:text-green-400 dark:ring-green-500/30"
 										title="Posted"
 									>
-										<CheckCircle class="h-3.5 w-3.5" />
-										<span class="hidden sm:inline">Posted</span>
+										<CheckCircle class="h-4 w-4" />
 									</span>
 								{/if}
 							{:else if tweet.status === 'scheduled'}
 								<span
-									class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/30"
+									class="inline-flex items-center justify-center rounded-full p-1.5 bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/30"
 									title="Scheduled"
 								>
-									<Clock class="h-3.5 w-3.5" />
-									<span class="hidden sm:inline">Scheduled</span>
+									<Clock class="h-4 w-4" />
 								</span>
 							{:else if tweet.status === 'queued'}
 								<span
-									class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold bg-purple-50 text-purple-700 ring-1 ring-inset ring-purple-600/20 dark:bg-purple-500/10 dark:text-purple-400 dark:ring-purple-500/30"
+									class="inline-flex items-center justify-center rounded-full p-1.5 bg-purple-50 text-purple-700 ring-1 ring-inset ring-purple-600/20 dark:bg-purple-500/10 dark:text-purple-400 dark:ring-purple-500/30"
 									title="Queued"
 								>
-									<List class="h-3.5 w-3.5" />
-									<span class="hidden sm:inline">Queued</span>
+									<List class="h-4 w-4" />
 								</span>
 							{:else if tweet.status === 'draft' || tweet.templateName}
 								<span
-									class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold bg-gray-50 text-gray-700 ring-1 ring-inset ring-gray-600/20 dark:bg-gray-500/10 dark:text-gray-400 dark:ring-gray-500/30"
+									class="inline-flex items-center justify-center rounded-full p-1.5 bg-gray-50 text-gray-700 ring-1 ring-inset ring-gray-600/20 dark:bg-gray-500/10 dark:text-gray-400 dark:ring-gray-500/30"
 									title={tweet.templateName ? 'Template' : 'Draft'}
 								>
-									<FileEdit class="h-3.5 w-3.5" />
-									<span class="hidden sm:inline">{tweet.templateName ? 'Template' : 'Draft'}</span>
+									<FileEdit class="h-4 w-4" />
 								</span>
 							{:else if tweet.status === 'failed'}
 								<span
-									class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20 dark:bg-red-500/10 dark:text-red-400 dark:ring-red-500/30"
+									class="inline-flex items-center justify-center rounded-full p-1.5 bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20 dark:bg-red-500/10 dark:text-red-400 dark:ring-red-500/30"
 									title="Failed"
 								>
-									<X class="h-3.5 w-3.5" />
-									<span class="hidden sm:inline">Failed</span>
+									<X class="h-4 w-4" />
 								</span>
 							{/if}
 
@@ -132,16 +126,16 @@
 								<button
 									type="button"
 									on:click={() => handleEditTweet(tweet)}
-									class="inline-flex items-center gap-1 rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+									class="inline-flex items-center justify-center rounded-full p-1.5 bg-gray-50 text-gray-700 ring-1 ring-inset ring-gray-600/20 transition-colors hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:ring-gray-700/30"
 									title="Edit tweet"
 								>
-									<Edit class="h-3 w-3" />
+									<Edit class="h-4 w-4" />
 								</button>
 							{/if}
 						</div>
 
-						<!-- Twitter-style tweet preview (responsive padding) -->
-						<div class="flex gap-3 pr-2 sm:pr-24">
+						<!-- Twitter-style tweet preview (reduced padding) -->
+						<div class="flex gap-3 pr-16">
 							<!-- Avatar -->
 							<div class="flex-shrink-0">
 								<img
