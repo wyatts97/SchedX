@@ -204,7 +204,7 @@ async function handleOAuthCallback(state: string, code: string, cookies: any) {
 	log.info('Handling OAuth callback', {
 		hasState: !!state,
 		hasCode: !!code,
-		hasExpectedState: !!cookies.get('twitter_oauth_state'),
+		hasExpectedState: !!cookies.get('twitter_auth_state'),
 		stateLength: state?.length || 0,
 		codeLength: code?.length || 0
 	});
@@ -268,7 +268,7 @@ async function handleOAuthCallback(state: string, code: string, cookies: any) {
 		});
 
 		// Now handle the OAuth state validation
-		const expectedState = cookies.get('twitter_oauth_state');
+		const expectedState = cookies.get('twitter_auth_state');
 		log.info('OAuth callback - State check', {
 			hasExpectedState: !!expectedState,
 			stateLength: expectedState?.length || 0,
@@ -281,7 +281,7 @@ async function handleOAuthCallback(state: string, code: string, cookies: any) {
 		}
 
 		// Clear the state cookie immediately to prevent replay attacks
-		cookies.delete('twitter_oauth_state', { path: '/' });
+		cookies.delete('twitter_auth_state', { path: '/' });
 
 		// Validate state with better error handling
 		let validatedState: TwitterAuthState;
