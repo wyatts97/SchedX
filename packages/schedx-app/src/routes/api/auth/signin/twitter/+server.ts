@@ -153,12 +153,22 @@ async function handleOAuthStart(twitterAppId: string, cookies: any) {
 	const authUrl = twitterAuth.buildAuthUrl(app, state);
 
 	// Store updated state in secure cookie (after codeVerifier is added)
-	const stateStr = JSON.stringify(state);
-	cookies.set('twitter_oauth_state', stateStr, {
+	// Disable 'secure' flag for local network (HTTP) deployments
+	const allowLocalNetwork = process.env.ALLOW_LOCAL_NETWORK === 'true';
+	cookies.set('twitter_auth_state', JSON.stringify(state), {
 		path: '/',
 		httpOnly: true,
 		sameSite: 'lax',
-		secure: process.env.NODE_ENV === 'production',
+		secure: !allowLocalNetwork && process.env.NODE_ENV === 'production',
+		maxAge: 600 // 10 minutes
+	});
+
+	// Also set CSRF token as a separate cookie for additional security
+	cookies.set('twitter_auth_csrf', state.csrf, {
+		path: '/',
+		httpOnly: true,
+		sameSite: 'lax',
+		secure: !allowLocalNetwork && process.env.NODE_ENV === 'production',
 		maxAge: 600 // 10 minutes
 	});
 
@@ -173,7 +183,7 @@ async function handleOAuthStart(twitterAppId: string, cookies: any) {
 		path: '/',
 		httpOnly: true,
 		sameSite: 'lax',
-		secure: process.env.NODE_ENV === 'production',
+		secure: !allowLocalNetwork && process.env.NODE_ENV === 'production',
 		maxAge: 600 // 10 minutes
 	});
 

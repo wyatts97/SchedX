@@ -20,11 +20,12 @@ export const POST = ipRateLimit(RATE_LIMITS.login)(
 			logger.info('Login successful', { username: data.username });
 			// Set session cookie
 			// Use 'lax' sameSite for local network deployments, 'strict' for production
+			// Disable 'secure' flag for local network (HTTP) deployments
 			const allowLocalNetwork = process.env.ALLOW_LOCAL_NETWORK === 'true';
 			cookies.set('admin_session', result.sessionId!, {
 				path: '/',
 				httpOnly: true,
-				secure: process.env.NODE_ENV === 'production',
+				secure: !allowLocalNetwork && process.env.NODE_ENV === 'production',
 				sameSite: allowLocalNetwork ? 'lax' : 'strict',
 				maxAge: 8 * 60 * 60 // 8 hours instead of 30 days
 			});
