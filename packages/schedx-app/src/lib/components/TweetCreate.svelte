@@ -406,16 +406,16 @@
 </div>
 
 <!-- Calendar  -->
-<div class="mb-4 flex gap-4">
+<div class="mb-4 flex flex-col gap-4 sm:flex-row">
 	<!-- Schedule Date -->
-	<div class="flex-1">
+	<div class="flex-1 min-w-0">
 		<label for="schedule-date" class="mb-2 block text-sm font-medium dark:text-white"
 			>Schedule Date</label
 		>
 		<input
 			id="schedule-date"
 			type="text"
-			class="block w-full rounded-lg border-2 border-gray-300 bg-white px-3 py-2 shadow-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
+			class="block w-full min-w-0 rounded-lg border-2 border-gray-300 bg-white px-3 py-2 shadow-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
 			bind:this={dateInputEl}
 			placeholder="Select date and time"
 			readonly
@@ -423,12 +423,12 @@
 		/>
 	</div>
 	<!-- Recurrence -->
-	<div class="flex-1">
+	<div class="flex-1 min-w-0">
 		<label for="recurrence" class="mb-2 block text-sm font-medium dark:text-white">Recurrence</label
 		>
 		<select
 			id="recurrence"
-			class="block w-full rounded-lg border-2 border-gray-300 bg-white px-3 py-2 shadow-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
+			class="block w-full min-w-0 rounded-lg border-2 border-gray-300 bg-white px-3 py-2 shadow-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
 			bind:value={recurrence}
 			disabled={submitting}
 		>
