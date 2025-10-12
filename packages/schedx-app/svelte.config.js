@@ -14,7 +14,12 @@ const config = {
 		adapter: adapter({
 			// Increase body size limit for file uploads
 			bodySizeLimit: parseInt(process.env.BODY_SIZE_LIMIT) || 20485760
-		})
+		}),
+		csrf: {
+			// Disable origin check for local network deployments
+			// This allows access from any IP on the local network when ALLOW_LOCAL_NETWORK=true
+			checkOrigin: process.env.ALLOW_LOCAL_NETWORK !== 'true'
+		}
 	}
 };
 
