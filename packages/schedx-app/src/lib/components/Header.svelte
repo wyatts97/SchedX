@@ -125,28 +125,26 @@
 
 <!-- ========== HEADER ========== -->
 <header
-	class="theme-lightsout:before:bg-black sticky inset-x-0 top-6 z-50 flex w-full flex-wrap before:absolute before:inset-0 before:mx-2 before:max-w-5xl before:rounded-[26px] before:bg-white/80 before:backdrop-blur-md dark:before:bg-gray-800/30 md:flex-nowrap md:justify-start lg:before:mx-auto"
+	class="theme-lightsout:bg-black sticky inset-x-0 top-0 z-50 w-full bg-gray-50 dark:bg-gray-900 lg:top-6 lg:before:absolute lg:before:inset-0 lg:before:mx-2 lg:before:max-w-5xl lg:before:rounded-[26px] lg:before:bg-white/80 lg:before:backdrop-blur-md lg:dark:before:bg-gray-800/30 lg:theme-lightsout:before:bg-black"
 >
 	<nav
-		class="relative mx-2 flex w-full max-w-5xl basis-full flex-wrap items-center justify-between py-3 px-4 md:flex-nowrap lg:mx-auto"
+		class="relative mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-3 lg:mx-2 lg:px-4"
 	>
-		<div class="flex items-center">
+		<div class="flex items-center gap-2.5">
 			<!-- Logo -->
 			<a
-				class="focus:outline-hidden inline-block flex-none rounded-md text-xl font-semibold focus:opacity-80"
+				class="focus:outline-hidden inline-flex flex-none items-center gap-2.5 rounded-md focus:opacity-80"
 				href="/"
 				aria-label="SchedX"
 			>
-				<div class="flex items-center gap-2">
-					<AppIcon className="w-8 h-8 text-gray-900 dark:text-white theme-lightsout:text-white" />
-					<span class="theme-lightsout:text-white text-xl font-bold text-gray-900 dark:text-white">SchedX</span>
-				</div>
+				<AppIcon className="h-9 w-9 flex-shrink-0 text-gray-900 dark:text-white theme-lightsout:text-white" />
+				<span class="theme-lightsout:text-white text-2xl font-bold text-gray-900 dark:text-white">SchedX</span>
 			</a>
 			<!-- End Logo -->
 		</div>
 
 		<!-- Button Group -->
-		<div class="flex items-center gap-3">
+		<div class="flex items-center gap-2.5">
 			<!-- Theme Toggle -->
 			<div>
 				<ThemeToggle />

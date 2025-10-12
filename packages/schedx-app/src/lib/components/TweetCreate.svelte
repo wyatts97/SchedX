@@ -42,7 +42,14 @@
 	let textareaEl: HTMLTextAreaElement;
 	let dateInputEl: HTMLInputElement;
 	let fileUploadComponent: any;
+	let flatpickrInstance: any = null;
 	let tweetMedia: { url: string; type: string }[] = [];
+	
+	// Initialize media from initialMedia prop for edit mode
+	$: if (mode === 'edit' && initialMedia && initialMedia.length > 0 && tweetMedia.length === 0) {
+		tweetMedia = initialMedia as any;
+		logger.debug('Initialized tweetMedia from initialMedia:', tweetMedia);
+	}
 
 	function handleEmojiSelect(event: CustomEvent) {
 		const emoji = event.detail.unicode;
@@ -93,9 +100,9 @@
 			waitForPrelineInit(() => window.HSStaticMethods.autoInit());
 
 			if (dateInputEl) {
-				flatpickr(dateInputEl, {
+				flatpickrInstance = flatpickr(dateInputEl, {
 					enableTime: true,
-					dateFormat: 'Y-m-d H:i',
+					dateFormat: 'M j, Y h:i K',
 					defaultDate: initialDate,
 					onChange: (selectedDates) => {
 						scheduledDate = selectedDates[0]?.toISOString() ?? '';
@@ -260,10 +267,19 @@
 			scheduledDate = '';
 			recurrence = '';
 			
+			// Clear flatpickr date picker
+			if (flatpickrInstance) {
+				flatpickrInstance.clear();
+			}
+			
 			// Clear file upload component
 			if (fileUploadComponent && typeof fileUploadComponent.clearFiles === 'function') {
 				fileUploadComponent.clearFiles();
 			}
+			
+			// Dispatch empty content to clear preview
+			dispatch('contentInput', '');
+			dispatch('changeMedia', []);
 
 			// Dispatch success event
 			dispatch('submit', {
@@ -396,7 +412,7 @@
 		<input
 			id="schedule-date"
 			type="text"
-			class="block w-full min-w-0 rounded-lg border-2 border-gray-300 bg-white px-3 py-2 shadow-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
+			class="block w-full min-w-0 truncate rounded-lg border-2 border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
 			bind:this={dateInputEl}
 			placeholder="Select date and time"
 			readonly

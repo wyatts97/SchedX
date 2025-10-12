@@ -67,8 +67,8 @@
 					{@const account = tweet.twitterAccountId ? accountByProviderId[tweet.twitterAccountId] : undefined}
 					{@const displayTime = getDisplayTime(tweet)}
 					<div class="group relative rounded-lg border border-gray-200 bg-white p-4 transition-all hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-800/80">
-						<!-- Status Badge with integrated actions - Top Right -->
-						<div class="absolute right-3 top-3">
+						<!-- Status Badge - Above content on mobile, top-right on desktop -->
+						<div class="mb-3 flex justify-end sm:absolute sm:right-3 sm:top-3 sm:mb-0">
 							<!-- Combined Status Badge (icon-only for all screen sizes) -->
 							{#if tweet.status === 'posted' && account}
 								{@const tweetId = tweet.twitterTweetId || (tweet as any).twitterTweetId}
@@ -95,31 +95,31 @@
 								<button
 									type="button"
 									on:click={() => handleEditTweet(tweet)}
-									class="inline-flex items-center justify-center gap-1 rounded-full p-1.5 bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/30 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors cursor-pointer"
+									class="inline-flex items-center justify-center gap-1.5 rounded-full px-2.5 py-1.5 bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/30 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors cursor-pointer"
 									title="Scheduled - Click to edit"
 								>
-									<Clock class="h-4 w-4" />
-									<Edit class="h-3 w-3 opacity-60" />
+									<Clock class="h-4 w-4 flex-shrink-0" />
+									<Edit class="h-3.5 w-3.5 flex-shrink-0 opacity-70" />
 								</button>
 							{:else if tweet.status === 'queued'}
 								<button
 									type="button"
 									on:click={() => handleEditTweet(tweet)}
-									class="inline-flex items-center justify-center gap-1 rounded-full p-1.5 bg-purple-50 text-purple-700 ring-1 ring-inset ring-purple-600/20 dark:bg-purple-500/10 dark:text-purple-400 dark:ring-purple-500/30 hover:bg-purple-100 dark:hover:bg-purple-500/20 transition-colors cursor-pointer"
+									class="inline-flex items-center justify-center gap-1.5 rounded-full px-2.5 py-1.5 bg-purple-50 text-purple-700 ring-1 ring-inset ring-purple-600/20 dark:bg-purple-500/10 dark:text-purple-400 dark:ring-purple-500/30 hover:bg-purple-100 dark:hover:bg-purple-500/20 transition-colors cursor-pointer"
 									title="Queued - Click to edit"
 								>
-									<List class="h-4 w-4" />
-									<Edit class="h-3 w-3 opacity-60" />
+									<List class="h-4 w-4 flex-shrink-0" />
+									<Edit class="h-3.5 w-3.5 flex-shrink-0 opacity-70" />
 								</button>
 							{:else if tweet.status === 'draft'}
 								<button
 									type="button"
 									on:click={() => handleEditTweet(tweet)}
-									class="inline-flex items-center justify-center gap-1 rounded-full p-1.5 bg-gray-50 text-gray-700 ring-1 ring-inset ring-gray-600/20 dark:bg-gray-500/10 dark:text-gray-400 dark:ring-gray-500/30 hover:bg-gray-100 dark:hover:bg-gray-500/20 transition-colors cursor-pointer"
+									class="inline-flex items-center justify-center gap-1.5 rounded-full px-2.5 py-1.5 bg-gray-50 text-gray-700 ring-1 ring-inset ring-gray-600/20 dark:bg-gray-500/10 dark:text-gray-400 dark:ring-gray-500/30 hover:bg-gray-100 dark:hover:bg-gray-500/20 transition-colors cursor-pointer"
 									title="Draft - Click to edit"
 								>
-									<FileEdit class="h-4 w-4" />
-									<Edit class="h-3 w-3 opacity-60" />
+									<FileEdit class="h-4 w-4 flex-shrink-0" />
+									<Edit class="h-3.5 w-3.5 flex-shrink-0 opacity-70" />
 								</button>
 							{:else if tweet.status === 'failed'}
 								<span
@@ -131,8 +131,8 @@
 							{/if}
 						</div>
 
-						<!-- Twitter-style tweet preview (reduced padding) -->
-						<div class="flex gap-3 pr-16">
+						<!-- Twitter-style tweet preview -->
+						<div class="flex gap-3 sm:pr-16">
 							<!-- Avatar -->
 							<div class="flex-shrink-0">
 								<img

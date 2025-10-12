@@ -12,6 +12,7 @@
 	import TwitterAppsTable from '$lib/components/dashboard/TwitterAppsTable.svelte';
 	import AppFormModal from '$lib/components/dashboard/AppFormModal.svelte';
 	import TweetCreate from '$lib/components/TweetCreate.svelte';
+	import TweetPreview from '$lib/components/TweetPreview.svelte';
 	import ErrorBoundary from '$lib/components/ErrorBoundary.svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import logger from '$lib/logger';
@@ -21,6 +22,8 @@
 	let isInitializing = true;
 	let showEditTweetModal = false;
 	let editingTweet: any = null;
+	let previewContent = '';
+	let previewMedia: { url: string; type: string }[] = [];
 
 	$: isAdmin = $page.data.isAdmin;
 	$: isAuthenticated = $page.data.isAuthenticated;
@@ -141,6 +144,9 @@
 	function handleEditTweet(event: CustomEvent) {
 		editingTweet = event.detail;
 		showEditTweetModal = true;
+		// Initialize preview with existing content
+		previewContent = editingTweet.content || '';
+		previewMedia = editingTweet.media || [];
 		logger.debug('Opening edit tweet modal', { tweetId: editingTweet.id });
 	}
 
@@ -368,7 +374,7 @@
 						</svg>
 					</button>
 				</div>
-				<div class="overflow-y-auto p-6">
+				<div class="overflow-y-auto p-6 space-y-6">
 					<TweetCreate
 						mode="edit"
 						tweetId={editingTweet.id}
@@ -377,7 +383,26 @@
 						accounts={$dashboardStore.data.accounts.filter((acc: any) => acc.id) as any}
 						selectedAccountId={editingTweet.twitterAccountId}
 						on:submit={handleTweetSubmit}
+						on:contentInput={(e) => previewContent = e.detail}
+						on:changeMedia={(e) => previewMedia = e.detail}
 					/>
+					
+					<!-- Tweet Preview -->
+					{#each $dashboardStore.data.accounts.filter((acc) => acc.providerAccountId === editingTweet.twitterAccountId) as account}
+						{#if previewContent || editingTweet.content}
+							<div class="border-t border-gray-200 pt-6 dark:border-gray-700">
+								<h3 class="mb-4 text-sm font-semibold text-gray-900 dark:text-white">Preview</h3>
+								<TweetPreview
+									avatarUrl={account.profileImage || '/avatar.png'}
+									displayName={account.displayName || account.username}
+									username={account.username}
+									content={previewContent || editingTweet.content}
+									media={previewMedia.length > 0 ? previewMedia : (editingTweet.media || [])}
+									createdAt={new Date()}
+								/>
+							</div>
+						{/if}
+					{/each}
 				</div>
 			</div>
 		</div>

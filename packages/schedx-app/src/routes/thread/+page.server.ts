@@ -16,8 +16,8 @@ export const load: PageServerLoad = async ({ cookies }) => {
 		throw redirect(303, '/login');
 	}
 
-	// Fetch connected Twitter accounts
-	const accounts = await db.getUserAccounts('admin');
+	// Fetch all Twitter accounts
+	const accounts = await (db as any).getAllUserAccounts();
 
 	return {
 		accounts: accounts || [],

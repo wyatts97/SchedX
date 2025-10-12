@@ -56,23 +56,21 @@
 	let loadingGallery = false;
 	let selectedGalleryIds = new Set<string>();
 
-	// Load initial media on mount (for edit mode)
-	onMount(() => {
-		if (initialMedia && initialMedia.length > 0) {
-			// Convert initial media to MediaFile format
-			mediaFiles = initialMedia.map((media) => ({
-				url: media.url,
-				type: media.type as 'image' | 'video' | 'photo' | 'gif',
-				file: null as any, // No file object for pre-existing media
-				name: media.url.split('/').pop() || 'media',
-				size: 0,
-				uploaded: true // Already uploaded
-			}));
+	// Load initial media reactively (for edit mode)
+	$: if (initialMedia && initialMedia.length > 0 && mediaFiles.length === 0) {
+		// Convert initial media to MediaFile format
+		mediaFiles = initialMedia.map((media) => ({
+			url: media.url,
+			type: media.type as 'image' | 'video' | 'photo' | 'gif',
+			file: null as any, // No file object for pre-existing media
+			name: media.url.split('/').pop() || 'media',
+			size: 0,
+			uploaded: true // Already uploaded
+		}));
 
-			// Dispatch initial media for preview
-			dispatch('changeMedia', initialMedia as any);
-		}
-	});
+		// Dispatch initial media for preview
+		dispatch('changeMedia', initialMedia as any);
+	}
 
 	// File validation
 	const allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
