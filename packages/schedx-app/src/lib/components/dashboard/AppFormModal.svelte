@@ -263,6 +263,14 @@
 								>
 									Callback URL</label
 								>
+								<div class="mb-2 rounded-lg bg-amber-50 p-3 text-xs text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
+									<strong>⚠️ Important:</strong> Each Twitter app MUST have a unique callback URL to connect different accounts. 
+									Add a unique query parameter like <code class="rounded bg-amber-100 px-1 dark:bg-amber-800">?app=yourappname</code>
+									<br/>
+									<strong>Examples:</strong>
+									<br/>• <code class="rounded bg-amber-100 px-1 dark:bg-amber-800">http://localhost:5173/api/auth/signin/twitter?app=wedgiegifs</code>
+									<br/>• <code class="rounded bg-amber-100 px-1 dark:bg-amber-800">http://localhost:5173/api/auth/signin/twitter?app=gothbully97</code>
+								</div>
 								<input
 									id="callbackUrl"
 									type="text"
@@ -270,10 +278,10 @@
 									class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
 									bind:value={appForm.callbackUrl}
 									required
-									placeholder="http://localhost:5173/api/auth/signin/twitter"
+									placeholder="http://localhost:5173/api/auth/signin/twitter?app=myapp"
 								/>
 								<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-									Must match your Twitter app's callback URL
+									Must match your Twitter app's callback URL exactly (including the query parameter)
 								</p>
 							</div>
 						</div>
