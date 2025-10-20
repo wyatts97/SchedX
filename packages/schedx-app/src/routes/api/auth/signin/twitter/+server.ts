@@ -232,8 +232,10 @@ async function handleOAuthCallback(state: string, code: string, cookies: any) {
 		if (adminSession && adminSession.trim() !== '') {
 			// Try to validate the main session first
 			session = await db.getSession(adminSession);
-			if (session && session.data.user.username === 'admin') {
-				user = await (db as any).getAdminUserByUsername('admin');
+			if (session && session.data.user) {
+				// Get the user from the session data
+				const username = session.data.user.username;
+				user = await (db as any).getAdminUserByUsername(username);
 			}
 		}
 
@@ -245,9 +247,10 @@ async function handleOAuthCallback(state: string, code: string, cookies: any) {
 				try {
 					const backupData = JSON.parse(backupState);
 					const backupSession = await db.getSession(backupData.adminSession);
-					if (backupSession && backupSession.data.user.username === 'admin') {
+					if (backupSession && backupSession.data.user) {
 						session = backupSession;
-						user = await (db as any).getAdminUserByUsername('admin');
+						const username = backupSession.data.user.username;
+						user = await (db as any).getAdminUserByUsername(username);
 						log.info('OAuth callback - Backup session successful');
 					}
 				} catch (error) {
