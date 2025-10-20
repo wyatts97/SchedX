@@ -12,6 +12,8 @@
 	import flatpickr from 'flatpickr';
 	import 'flatpickr/dist/flatpickr.css';
 	import FileUpload from '$lib/components/FileUpload.svelte';
+	import AIGenerator from '$lib/components/AIGenerator.svelte';
+	import GrokIcon from '$lib/components/icons/GrokIcon.svelte';
 	import { CheckCircle, XCircle, Loader2, Save, FileText, ListPlus, Calendar, Send } from 'lucide-svelte';
 	import logger from '$lib/logger';
 	import { toastStore } from '$lib/stores/toastStore';
@@ -44,6 +46,9 @@
 	let fileUploadComponent: any;
 	let flatpickrInstance: any = null;
 	let tweetMedia: { url: string; type: string }[] = [];
+	
+	// AI Generator state
+	let showAIGenerator = false;
 	
 	// Initialize media from initialMedia prop for edit mode
 	$: if (mode === 'edit' && initialMedia && initialMedia.length > 0 && tweetMedia.length === 0) {
@@ -163,6 +168,17 @@
 		// Always dispatch media changes for preview, regardless of account status
 		dispatch('changeMedia', tweetMedia);
 		logger.debug('TweetCreate dispatched changeMedia:', tweetMedia);
+	}
+
+	function handleAIGenerated(event: CustomEvent<string>) {
+		tweetContent = event.detail;
+		charCount = tweetContent.length;
+		dispatch('contentInput', tweetContent);
+		
+		// Focus the textarea after inserting AI content
+		if (textareaEl) {
+			textareaEl.focus();
+		}
 	}
 
 	// Success messages for different actions
@@ -390,15 +406,27 @@
 		bind:this={textareaEl}
 		disabled={submitting}
 	></textarea>
-	<button
-		type="button"
-		class="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-xl transition-colors hover:bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500"
-		on:click={() => (showEmojiPicker = !showEmojiPicker)}
-		aria-label="Add emoji"
-		disabled={submitting}
-	>
-		😊
-	</button>
+	<div class="absolute bottom-2 right-2 flex gap-1">
+		<button
+			type="button"
+			class="flex h-8 w-8 items-center justify-center rounded-full bg-black text-white transition-all hover:bg-gray-800 hover:scale-105 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+			on:click={() => (showAIGenerator = true)}
+			aria-label="Generate with Grok AI"
+			title="Generate with Grok AI"
+			disabled={submitting}
+		>
+			<GrokIcon size={16} />
+		</button>
+		<button
+			type="button"
+			class="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-xl transition-colors hover:bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500"
+			on:click={() => (showEmojiPicker = !showEmojiPicker)}
+			aria-label="Add emoji"
+			disabled={submitting}
+		>
+			😊
+		</button>
+	</div>
 	{#if showEmojiPicker}
 		<div class="absolute right-0 top-full z-50 mt-2" bind:this={emojiPickerElement}>
 			<emoji-picker on:emoji-click={handleEmojiSelect}></emoji-picker>
@@ -563,3 +591,10 @@
 		}
 	}
 </style>
+
+<!-- AI Generator Modal -->
+<AIGenerator 
+	bind:show={showAIGenerator} 
+	currentContent={tweetContent}
+	on:use={handleAIGenerated}
+/>

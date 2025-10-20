@@ -123,9 +123,13 @@ export const PUT: RequestHandler = async ({ params, cookies, request }) => {
 
 		log.info('Twitter app updated successfully', { appId, appName: updates.name });
 
+		// Fetch the updated app to return it
+		const updatedApp = await db.getTwitterApp(appId);
+
 		return new Response(
 			JSON.stringify({
-				message: 'Twitter app updated successfully'
+				message: 'Twitter app updated successfully',
+				app: updatedApp
 			}),
 			{
 				status: 200,
