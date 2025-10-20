@@ -98,30 +98,24 @@ async function handleOAuthStart(twitterAppId: string, cookies: any) {
 		sessionUserId: session?.data?.user?.id
 	});
 
-	if (!session) {
-		log.error('Twitter OAuth error: Session not found or expired');
+	if (!session || !session.data || !session.data.user) {
+		log.error('Twitter OAuth error: Session not found or invalid', {
+			hasSession: !!session,
+			hasData: !!session?.data,
+			hasUser: !!session?.data?.user
+		});
 		throw redirect(303, '/login?error=session');
 	}
 
-	// Verify admin user exists and session belongs to admin
-	const user = await (db as any).getAdminUserByUsername('admin');
-	log.info('Twitter OAuth start - Admin user check', {
-		userFound: !!user,
+	// Get the user from the session
+	const user = session.data.user;
+	log.info('Twitter OAuth start - User from session', {
 		userId: user?.id,
 		username: user?.username
 	});
 
-	if (!user) {
-		log.error('Twitter OAuth error: Admin user not found');
-		throw redirect(303, '/login?error=session');
-	}
-
-	// Validate that the session belongs to the admin user
-	if (session.data.user.username !== 'admin') {
-		log.error('Twitter OAuth error: Session does not belong to admin user', {
-			sessionUsername: session.data.user.username,
-			expectedUsername: 'admin'
-		});
+	if (!user || !user.id) {
+		log.error('Twitter OAuth error: Invalid user in session');
 		throw redirect(303, '/login?error=session');
 	}
 
@@ -345,14 +339,15 @@ async function handleOAuthCallback(state: string, code: string, cookies: any) {
 			displayName: userInfo.name
 		});
 
-		// Check if account already exists
-		const existingAccount = await twitterAuth.checkExistingAccount(userInfo.id);
+		// Check if this specific account+app combination already exists
+		const existingAccount = await twitterAuth.checkExistingAccount(userInfo.id, validatedState.twitterAppId);
 		if (existingAccount) {
-			log.info('OAuth callback - Twitter account already connected', {
+			log.info('OAuth callback - Twitter account already connected with this app', {
 				username: userInfo.username,
-				accountId: existingAccount.id
+				accountId: existingAccount.id,
+				twitterAppId: validatedState.twitterAppId
 			});
-			throw redirect(303, '/accounts?error=account_already_connected');
+			throw redirect(303, '/accounts?error=account_already_connected_to_this_app');
 		}
 
 		// Save user account
@@ -372,19 +367,21 @@ async function handleOAuthCallback(state: string, code: string, cookies: any) {
 		await new Promise((resolve) => setTimeout(resolve, 2000));
 
 		// Verify the account was actually saved by checking the database
-		const savedAccount = await twitterAuth.checkExistingAccount(userInfo.id);
+		const savedAccount = await twitterAuth.checkExistingAccount(userInfo.id, validatedState.twitterAppId);
 		if (!savedAccount) {
 			log.error('OAuth callback - Account not found after save, retrying...', {
 				username: userInfo.username,
-				providerAccountId: userInfo.id
+				providerAccountId: userInfo.id,
+				twitterAppId: validatedState.twitterAppId
 			});
 			// Wait a bit more and try again
 			await new Promise((resolve) => setTimeout(resolve, 1000));
-			const retryAccount = await twitterAuth.checkExistingAccount(userInfo.id);
+			const retryAccount = await twitterAuth.checkExistingAccount(userInfo.id, validatedState.twitterAppId);
 			if (!retryAccount) {
 				log.error('OAuth callback - Account still not found after retry', {
 					username: userInfo.username,
-					providerAccountId: userInfo.id
+					providerAccountId: userInfo.id,
+					twitterAppId: validatedState.twitterAppId
 				});
 				throw redirect(303, '/accounts?error=account_save_failed');
 			}

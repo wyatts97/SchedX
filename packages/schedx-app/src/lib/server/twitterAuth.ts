@@ -365,10 +365,22 @@ export class TwitterAuthService {
 
 	/**
 	 * Check if user account exists and is valid
+	 * @param providerAccountId - Twitter user ID
+	 * @param twitterAppId - Optional Twitter app ID to check for specific app+account combination
 	 */
-	public async checkExistingAccount(providerAccountId: string): Promise<UserAccount | null> {
+	public async checkExistingAccount(providerAccountId: string, twitterAppId?: string): Promise<UserAccount | null> {
 		const db = getDbInstance();
 		const accounts = await db.getAllUserAccounts();
+		
+		if (twitterAppId) {
+			// Check for specific combination of account + app
+			return accounts.find((account) => 
+				account.providerAccountId === providerAccountId && 
+				account.twitterAppId === twitterAppId
+			) || null;
+		}
+		
+		// Check for any account with this provider ID
 		return accounts.find((account) => account.providerAccountId === providerAccountId) || null;
 	}
 
