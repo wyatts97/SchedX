@@ -80,10 +80,13 @@ export class TwitterAuthService {
 			scope: [...TWITTER_SCOPES].join(' '),
 			state: stateParam,
 			code_challenge: codeChallenge,
-			code_challenge_method: 's256'
+			code_challenge_method: 's256',
+			force_login: 'true' // Force Twitter to show account selection
 		});
 
-		const authUrl = `https://twitter.com/i/oauth2/authorize?${params.toString()}`;
+		// First, create a logout URL to clear Twitter session, then redirect to auth
+	// This ensures users can select which account to use
+	const authUrl = `https://twitter.com/i/oauth2/authorize?${params.toString()}`;
 
 		log.info('Twitter OAuth URL built', {
 			stateParam,
