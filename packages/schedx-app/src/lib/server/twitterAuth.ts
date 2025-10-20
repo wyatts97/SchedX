@@ -84,13 +84,16 @@ export class TwitterAuthService {
 			scope: [...TWITTER_SCOPES].join(' '),
 			state: stateParam,
 			code_challenge: codeChallenge,
-			code_challenge_method: 's256',
-			force_login: 'true' // Force Twitter to show account selection
+			code_challenge_method: 's256'
 		});
 
-		// First, create a logout URL to clear Twitter session, then redirect to auth
-	// This ensures users can select which account to use
-	const authUrl = `https://twitter.com/i/oauth2/authorize?${params.toString()}`;
+		// Note: Twitter OAuth 2.0 does not support standard OAuth 2.0 'prompt' parameter
+		// or 'force_login' parameter reliably. Twitter caches authorization by client_id.
+		// To connect different accounts, users must either:
+		// 1. Log out of Twitter and log in with the desired account before connecting
+		// 2. Use incognito/private browsing mode
+		// 3. Revoke app access in Twitter settings before reconnecting
+		const authUrl = `https://twitter.com/i/oauth2/authorize?${params.toString()}`;
 
 		log.info('Twitter OAuth URL built', {
 			stateParam,

@@ -1340,9 +1340,14 @@ export class DatabaseClient {
       updatedAt: new Date(app.updatedAt)
     }));
     
-    logger.debug({
-      apps: result.map(app => ({ id: app.id, name: app.name, clientIdPrefix: app.clientId?.substring(0, 15) + '...' }))
-    }, 'Twitter apps listed successfully');
+    logger.info({
+      apps: result.map(app => ({ 
+        id: app.id, 
+        name: app.name, 
+        clientId: app.clientId, // Log FULL client ID to verify they're different
+        callbackUrl: app.callbackUrl
+      }))
+    }, 'Twitter apps listed - FULL CLIENT IDS');
     
     return result;
   }

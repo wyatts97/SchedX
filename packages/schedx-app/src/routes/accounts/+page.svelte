@@ -444,6 +444,9 @@
 				<p class="mb-4 text-gray-600 dark:text-gray-400">
 					Choose a Twitter app to connect your account.
 				</p>
+				<div class="mb-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
+					<strong>Note:</strong> To connect a different Twitter account, make sure you're logged into that account on Twitter/X.com first, or use an incognito/private browser window.
+				</div>
 				<div class="space-y-2">
 					{#each twitterApps as app}
 						<a
