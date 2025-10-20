@@ -112,8 +112,8 @@
 				class="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700"
 			>
 				<div class="flex items-center gap-2">
-					<div class="flex h-8 w-8 items-center justify-center rounded-full bg-black dark:bg-white">
-						<GrokIcon size={18} className="text-white dark:text-black" />
+					<div class="flex h-8 w-8 items-center justify-center rounded-full bg-black shadow-sm dark:shadow-[0_0_8px_rgba(255,255,255,0.3)]">
+						<GrokIcon size={18} className="text-white" />
 					</div>
 					<h3 id="ai-generator-title" class="text-lg font-semibold text-gray-900 dark:text-white">
 						Grok AI Tweet Generator
@@ -260,13 +260,13 @@
 							type="button"
 							on:click={generate}
 							disabled={generating || !prompt.trim()}
-							class="flex items-center gap-2 rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+							class="flex items-center gap-2 rounded-lg bg-black px-4 py-2 text-sm font-medium text-white shadow-sm hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 dark:shadow-[0_0_8px_rgba(255,255,255,0.3)] dark:hover:shadow-[0_0_12px_rgba(255,255,255,0.4)]"
 						>
 							{#if generating}
 								<RefreshCw class="h-4 w-4 animate-spin" />
 								Generating...
 							{:else}
-								<GrokIcon size={16} />
+								<GrokIcon size={16} className="text-white" />
 								Generate
 							{/if}
 						</button>

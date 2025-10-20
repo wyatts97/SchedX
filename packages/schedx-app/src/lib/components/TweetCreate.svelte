@@ -409,13 +409,13 @@
 	<div class="absolute bottom-2 right-2 flex gap-1">
 		<button
 			type="button"
-			class="flex h-8 w-8 items-center justify-center rounded-full bg-black text-white transition-all hover:bg-gray-800 hover:scale-105 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+			class="flex h-8 w-8 items-center justify-center rounded-full bg-black text-white shadow-sm transition-all hover:scale-105 dark:shadow-[0_0_8px_rgba(255,255,255,0.3)] dark:hover:shadow-[0_0_12px_rgba(255,255,255,0.4)]"
 			on:click={() => (showAIGenerator = true)}
 			aria-label="Generate with Grok AI"
 			title="Generate with Grok AI"
 			disabled={submitting}
 		>
-			<GrokIcon size={16} />
+			<GrokIcon size={16} className="text-white" />
 		</button>
 		<button
 			type="button"
