@@ -4,14 +4,28 @@
 	import GrokIcon from '$lib/components/icons/GrokIcon.svelte';
 	import { toastStore } from '$lib/stores/toastStore';
 
+	// Puter.js type declarations
+	type TweetTone = 'casual' | 'professional' | 'funny' | 'inspirational' | 'informative';
+	type TweetLength = 'short' | 'medium' | 'long';
+
+	interface PuterAI {
+		chat(prompt: string, options?: { model?: string; temperature?: number; max_tokens?: number }): Promise<{
+			message: { content: string };
+		}>;
+	}
+
+	interface Puter {
+		ai: PuterAI;
+	}
+
 	export let show = false;
 	export let currentContent = '';
 
 	const dispatch = createEventDispatcher();
 
 	let prompt = '';
-	let tone: 'casual' | 'professional' | 'funny' | 'inspirational' | 'informative' = 'casual';
-	let length: 'short' | 'medium' | 'long' = 'medium';
+	let tone: TweetTone = 'casual';
+	let length: TweetLength = 'medium';
 	let generating = false;
 	let generatedTweet = '';
 	let showResult = false;
@@ -31,43 +45,109 @@
 	];
 
 	async function generate() {
-		if (!prompt.trim()) {
-			toastStore.error('Prompt Required', 'Please describe what you want to tweet about');
-			return;
-		}
+		if (!prompt.trim()) return;
 
 		generating = true;
-		generatedTweet = '';
-		showResult = false;
 
 		try {
-			const response = await fetch('/api/ai/generate', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					prompt: prompt.trim(),
-					tone,
-					length,
-					context: currentContent || undefined
-				})
-			});
-
-			const data = await response.json();
-
-			if (!response.ok) {
-				throw new Error(data.error || 'Failed to generate tweet');
+			// Load Puter.js if not already loaded
+			if (typeof (window as any).puter === 'undefined') {
+				await loadPuterScript();
 			}
 
-			generatedTweet = data.tweet;
+			// Build the system prompt
+			const systemPrompt = buildSystemPrompt(tone, length);
+			const fullPrompt = `${systemPrompt}\n\nUser request: ${prompt.trim()}${currentContent ? `\n\nAdditional context: ${currentContent}` : ''}\n\nTweet:`;
+
+			// Call Grok via Puter.js
+			const puter = (window as any).puter as Puter;
+			const response = await puter.ai.chat(fullPrompt, {
+				model: 'x-ai/grok-4-fast:free',
+				temperature: 0.7,
+				max_tokens: 150
+			});
+
+			if (!response?.message?.content) {
+				throw new Error('No response from AI');
+			}
+
+			// Clean and validate the tweet
+			generatedTweet = cleanTweet(response.message.content, length);
 			showResult = true;
 		} catch (error) {
-			const errorMessage = error instanceof Error ? error.message : 'Failed to generate tweet';
-			toastStore.error('Generation Failed', errorMessage);
+			toastStore.error(error instanceof Error ? error.message : 'Failed to generate tweet');
 		} finally {
 			generating = false;
 		}
+	}
+
+	function loadPuterScript(): Promise<void> {
+		return new Promise((resolve, reject) => {
+			if (typeof (window as any).puter !== 'undefined') {
+				resolve();
+				return;
+			}
+
+			const script = document.createElement('script');
+			script.src = 'https://js.puter.com/v2/';
+			script.onload = () => resolve();
+			script.onerror = () => reject(new Error('Failed to load Puter.js'));
+			document.head.appendChild(script);
+		});
+	}
+
+	function buildSystemPrompt(tone: TweetTone, length: TweetLength): string {
+		const toneInstructions: Record<TweetTone, string> = {
+			casual: 'Write in a friendly, conversational tone.',
+			professional: 'Write in a polished, professional tone.',
+			funny: 'Write with humor and wit.',
+			inspirational: 'Write in an uplifting, motivational tone.',
+			informative: 'Write in a clear, educational tone.'
+		};
+
+		const lengthInstructions: Record<TweetLength, string> = {
+			short: 'Keep it concise, around 100 characters.',
+			medium: 'Aim for around 180 characters.',
+			long: 'Use the full space, around 280 characters.'
+		};
+
+		return `You are a social media expert writing tweets for Twitter/X. ${toneInstructions[tone]} ${lengthInstructions[length]}\n\nRules:\n- Write ONLY the tweet text, nothing else\n- Do NOT include hashtags unless specifically requested\n- Do NOT include quotes around the tweet\n- Do NOT include "Tweet:" or similar prefixes\n- Keep it under 280 characters\n- Make it engaging and authentic\n- Use emojis sparingly and only when appropriate`;
+	}
+
+	function cleanTweet(text: string, length: TweetLength): string {
+		// Remove common prefixes
+		let cleaned = text
+			.replace(/^(Tweet:|Here's a tweet:|Here's the tweet:)/i, '')
+			.trim();
+
+		// Remove surrounding quotes if entire text is quoted
+		if ((cleaned.startsWith('"') && cleaned.endsWith('"')) || 
+		    (cleaned.startsWith("'") && cleaned.endsWith("'"))) {
+			cleaned = cleaned.slice(1, -1).trim();
+		}
+
+		// Truncate if over 280 characters
+		if (cleaned.length > 280) {
+			const maxLength = length === 'short' ? 100 : length === 'medium' ? 180 : 280;
+			cleaned = cleaned.substring(0, maxLength);
+			
+			// Try to cut at sentence boundary
+			const lastPeriod = cleaned.lastIndexOf('.');
+			const lastExclamation = cleaned.lastIndexOf('!');
+			const lastQuestion = cleaned.lastIndexOf('?');
+			const lastSentence = Math.max(lastPeriod, lastExclamation, lastQuestion);
+			
+			if (lastSentence > maxLength * 0.7) {
+				cleaned = cleaned.substring(0, lastSentence + 1);
+			}
+		}
+
+		// Validate minimum length
+		if (cleaned.length < 10) {
+			throw new Error('Generated tweet is too short. Please try again.');
+		}
+
+		return cleaned;
 	}
 
 	function useTweet() {

@@ -69,12 +69,14 @@ Seamless AI-powered tweet generation using **Grok AI via Puter.js** (no API keys
 ## Technical Details
 
 ### Puter.js / Grok Integration
-- **Endpoint**: `https://api.puter.com/drivers/call`
+- **Implementation**: Client-side using Puter.js SDK
+- **Library**: `https://js.puter.com/v2/`
 - **Model**: `x-ai/grok-4-fast:free`
 - **No API Key**: Puter's "User Pays" model - users cover their own usage
 - **No Cold Starts**: Always fast, no model loading delays
 - **Speed**: Consistently fast (~1-3s per request)
 - **Quality**: GPT-4 level (significantly better than Llama 3.2)
+- **Architecture**: Frontend calls Puter.js directly (no backend proxy needed)
 
 ### Text Processing
 - Removes common AI prefixes ("Tweet:", "Here's a tweet:", etc.)
