@@ -229,6 +229,8 @@
 								>
 								<input
 									id="clientId"
+									type="text"
+									autocomplete="off"
 									class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
 									bind:value={appForm.clientId}
 									required
@@ -245,7 +247,8 @@
 								>
 								<input
 									id="clientSecret"
-									type="password"
+									type="text"
+									autocomplete="off"
 									class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
 									bind:value={appForm.clientSecret}
 									required
@@ -262,6 +265,8 @@
 								>
 								<input
 									id="callbackUrl"
+									type="text"
+									autocomplete="off"
 									class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
 									bind:value={appForm.callbackUrl}
 									required
@@ -293,14 +298,13 @@
 								>
 								<input
 									id="consumerKey"
+									type="text"
+									autocomplete="off"
 									class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
 									bind:value={appForm.consumerKey}
 									required
 									placeholder="Your Twitter API Key"
 								/>
-								<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-									Usually the same as your Client ID
-								</p>
 							</div>
 
 							<div>
@@ -312,15 +316,13 @@
 								>
 								<input
 									id="consumerSecret"
-									type="password"
+									type="text"
+									autocomplete="off"
 									class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
 									bind:value={appForm.consumerSecret}
 									required
 									placeholder="Your Twitter API Secret"
 								/>
-								<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-									Usually the same as your Client Secret
-								</p>
 							</div>
 
 							<div>
@@ -332,7 +334,8 @@
 								>
 								<input
 									id="accessToken"
-									type="password"
+									type="text"
+									autocomplete="off"
 									class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
 									bind:value={appForm.accessToken}
 									required
@@ -352,7 +355,8 @@
 								>
 								<input
 									id="accessTokenSecret"
-									type="password"
+									type="text"
+									autocomplete="off"
 									class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
 									bind:value={appForm.accessTokenSecret}
 									required

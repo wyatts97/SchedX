@@ -1203,6 +1203,14 @@ export class DatabaseClient {
     const id = this.db.generateId();
     const now = this.db.now();
     
+    logger.debug({
+      id,
+      name: app.name,
+      hasConsumerKey: !!app.consumerKey,
+      hasClientId: !!app.clientId,
+      clientIdPrefix: app.clientId?.substring(0, 15) + '...'
+    }, 'Creating Twitter app');
+    
     this.db.execute(
       `INSERT INTO twitter_apps (id, userId, name, apiKey, apiSecret, bearerToken, bearerTokenSecret, clientId, clientSecret, callbackUrl, isActive, createdAt, updatedAt)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -1210,18 +1218,20 @@ export class DatabaseClient {
         id,
         userId,
         app.name,
-        app.consumerKey || app.clientId || '',
-        app.consumerSecret || app.clientSecret || '',
-        app.accessToken || '',
-        app.accessTokenSecret || '',
-        app.clientId || '',
-        app.clientSecret || '',
+        app.consumerKey || '',  // OAuth 1.0a API Key (for media uploads)
+        app.consumerSecret || '',  // OAuth 1.0a API Secret
+        app.accessToken || '',  // OAuth 1.0a Access Token
+        app.accessTokenSecret || '',  // OAuth 1.0a Access Token Secret
+        app.clientId || '',  // OAuth 2.0 Client ID (for user auth)
+        app.clientSecret || '',  // OAuth 2.0 Client Secret
         app.callbackUrl || '',
         1,
         now,
         now
       ]
     );
+    
+    logger.debug({ id, name: app.name }, 'Twitter app created successfully');
     
     return id;
   }
@@ -1247,6 +1257,10 @@ export class DatabaseClient {
       updateFields.push('bearerToken = ?');
       params.push(updates.accessToken);
     }
+    if (updates.accessTokenSecret !== undefined) {
+      updateFields.push('bearerTokenSecret = ?');
+      params.push(updates.accessTokenSecret);
+    }
     if (updates.clientId !== undefined) {
       updateFields.push('clientId = ?');
       params.push(updates.clientId);
@@ -1254,6 +1268,10 @@ export class DatabaseClient {
     if (updates.clientSecret !== undefined) {
       updateFields.push('clientSecret = ?');
       params.push(updates.clientSecret);
+    }
+    if (updates.callbackUrl !== undefined) {
+      updateFields.push('callbackUrl = ?');
+      params.push(updates.callbackUrl);
     }
     
     updateFields.push('updatedAt = ?');
@@ -1270,11 +1288,15 @@ export class DatabaseClient {
   }
 
   async getTwitterApp(id: string): Promise<import('../types/types.js').TwitterApp | null> {
+    logger.debug({ requestedId: id }, 'Getting Twitter app from database');
     const app = this.db.queryOne<any>('SELECT * FROM twitter_apps WHERE id = ?', [id]);
     
-    if (!app) return null;
+    if (!app) {
+      logger.debug({ requestedId: id }, 'Twitter app not found in database');
+      return null;
+    }
     
-    return {
+    const result = {
       id: app.id,
       name: app.name,
       clientId: app.clientId,
@@ -1287,12 +1309,24 @@ export class DatabaseClient {
       createdAt: new Date(app.createdAt),
       updatedAt: new Date(app.updatedAt)
     };
+    
+    logger.debug({
+      requestedId: id,
+      returnedId: result.id,
+      name: result.name,
+      clientIdPrefix: result.clientId?.substring(0, 15) + '...',
+      idsMatch: id === result.id
+    }, 'Twitter app retrieved from database');
+    
+    return result;
   }
 
   async listTwitterApps(): Promise<import('../types/types.js').TwitterApp[]> {
     const apps = this.db.query<any>('SELECT * FROM twitter_apps');
     
-    return apps.map((app: any) => ({
+    logger.debug({ count: apps.length }, 'Listing Twitter apps from database');
+    
+    const result = apps.map((app: any) => ({
       id: app.id,
       name: app.name,
       clientId: app.clientId,
@@ -1305,6 +1339,12 @@ export class DatabaseClient {
       createdAt: new Date(app.createdAt),
       updatedAt: new Date(app.updatedAt)
     }));
+    
+    logger.debug({
+      apps: result.map(app => ({ id: app.id, name: app.name, clientIdPrefix: app.clientId?.substring(0, 15) + '...' }))
+    }, 'Twitter apps listed successfully');
+    
+    return result;
   }
 
   async deleteTwitterApp(id: string): Promise<void> {

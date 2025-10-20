@@ -21,6 +21,7 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 
 	log.info('Twitter OAuth endpoint called', {
 		hasTwitterAppId: !!twitterAppId,
+		twitterAppId: twitterAppId,
 		hasState: !!state,
 		hasCode: !!code,
 		hasError: !!error,
@@ -124,11 +125,24 @@ async function handleOAuthStart(twitterAppId: string, cookies: any) {
 	log.info('Twitter OAuth start - App validation', {
 		appFound: !!app,
 		appId: app?.id,
-		appName: app?.name
+		appName: app?.name,
+		requestedTwitterAppId: twitterAppId,
+		clientIdPrefix: app?.clientId?.substring(0, 10) + '...',
+		idsMatch: app?.id === twitterAppId
 	});
 
 	if (!app) {
+		log.error('Twitter app not found', { twitterAppId });
 		throw new Error('Invalid Twitter app configuration');
+	}
+
+	// Verify the app ID matches what was requested
+	if (app.id !== twitterAppId) {
+		log.error('Twitter app ID mismatch', {
+			requested: twitterAppId,
+			received: app.id
+		});
+		throw new Error('Twitter app ID mismatch');
 	}
 
 	// Validate app configuration

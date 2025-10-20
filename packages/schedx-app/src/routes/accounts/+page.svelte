@@ -124,6 +124,10 @@
 
 	async function handleConnectNewAccount() {
 		await fetchTwitterApps();
+		logger.info('Twitter apps loaded for connection', {
+			count: twitterApps.length,
+			apps: twitterApps.map(app => ({ id: app.id, name: app.name, clientIdPrefix: app.clientId?.substring(0, 10) }))
+		});
 		showAppSelectionModal = true;
 	}
 

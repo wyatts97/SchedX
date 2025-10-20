@@ -69,8 +69,12 @@ export class TwitterAuthService {
 		log.info('Building Twitter OAuth URL', {
 			csrf: stateParam,
 			twitterAppId: state.twitterAppId,
+			appId: app.id,
+			appName: app.name,
+			clientIdPrefix: app.clientId?.substring(0, 15) + '...',
 			callbackUrl: app.callbackUrl,
-			hasCodeVerifier: !!state.codeVerifier
+			hasCodeVerifier: !!state.codeVerifier,
+			appIdMatchesState: app.id === state.twitterAppId
 		});
 
 		const params = new URLSearchParams({
