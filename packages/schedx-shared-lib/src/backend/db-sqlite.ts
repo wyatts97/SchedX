@@ -1654,4 +1654,89 @@ export class DatabaseClient {
     const now = Date.now();
     this.db.execute(`DELETE FROM sessions WHERE expiresAt <= ?`, [now]);
   }
+
+  // OpenRouter Settings Methods
+  async getOpenRouterSettings(userId: string): Promise<{
+    id: string;
+    userId: string;
+    apiKey: string;
+    defaultModel: string;
+    enabled: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+  } | null> {
+    const settings = this.db.queryOne<any>(
+      'SELECT * FROM openrouter_settings WHERE userId = ?',
+      [userId]
+    );
+    
+    if (!settings) {
+      return null;
+    }
+    
+    // Decrypt API key
+    const decryptedApiKey = this.encryptionService.decrypt(settings.apiKey);
+    
+    return {
+      id: settings.id,
+      userId: settings.userId,
+      apiKey: decryptedApiKey,
+      defaultModel: settings.defaultModel,
+      enabled: Boolean(settings.enabled),
+      createdAt: new Date(settings.createdAt),
+      updatedAt: new Date(settings.updatedAt)
+    };
+  }
+
+  async saveOpenRouterSettings(data: {
+    userId: string;
+    apiKey: string;
+    defaultModel?: string;
+    enabled?: boolean;
+  }): Promise<void> {
+    const existing = await this.getOpenRouterSettings(data.userId);
+    const now = Date.now();
+    
+    // Encrypt API key
+    const encryptedApiKey = this.encryptionService.encrypt(data.apiKey);
+    
+    if (existing) {
+      // Update existing settings
+      this.db.execute(
+        `UPDATE openrouter_settings 
+         SET apiKey = ?, defaultModel = ?, enabled = ?, updatedAt = ?
+         WHERE userId = ?`,
+        [
+          encryptedApiKey,
+          data.defaultModel || existing.defaultModel,
+          data.enabled !== undefined ? (data.enabled ? 1 : 0) : (existing.enabled ? 1 : 0),
+          now,
+          data.userId
+        ]
+      );
+    } else {
+      // Insert new settings
+      const id = crypto.randomUUID();
+      this.db.execute(
+        `INSERT INTO openrouter_settings (id, userId, apiKey, defaultModel, enabled, createdAt, updatedAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          data.userId,
+          encryptedApiKey,
+          data.defaultModel || 'meta-llama/llama-4-scout:free',
+          data.enabled !== undefined ? (data.enabled ? 1 : 0) : 1,
+          now,
+          now
+        ]
+      );
+    }
+    
+    logger.info({ userId: data.userId }, 'OpenRouter settings saved');
+  }
+
+  async deleteOpenRouterSettings(userId: string): Promise<void> {
+    this.db.execute('DELETE FROM openrouter_settings WHERE userId = ?', [userId]);
+    logger.info({ userId }, 'OpenRouter settings deleted');
+  }
 }

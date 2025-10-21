@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
-	import { X, RefreshCw, ArrowRight } from 'lucide-svelte';
-	import GrokIcon from '$lib/components/icons/GrokIcon.svelte';
+	import { X, RefreshCw, ArrowRight, Sparkles } from 'lucide-svelte';
 	import { toastStore } from '$lib/stores/toastStore';
 
 	// Puter.js type declarations
@@ -50,50 +49,56 @@
 		generating = true;
 
 		try {
-			// Load Puter.js if not already loaded
-			if (typeof (window as any).puter === 'undefined') {
-				await loadPuterScript();
-			}
-
 			// Build the system prompt
 			const systemPrompt = buildSystemPrompt(tone, length);
 			const fullPrompt = `${systemPrompt}\n\nUser request: ${prompt.trim()}${currentContent ? `\n\nAdditional context: ${currentContent}` : ''}\n\nTweet:`;
 
-			// Call Grok via Puter.js
-			const puter = (window as any).puter as Puter;
-			const response = await puter.ai.chat(fullPrompt, {
-				model: 'x-ai/grok-4-fast:free',
-				temperature: 0.7,
-				max_tokens: 150
+			// Call HuggingFace Inference API (free, no auth required)
+			const response = await fetch('https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					inputs: fullPrompt,
+					parameters: {
+						max_new_tokens: 150,
+						temperature: 0.7,
+						top_p: 0.9,
+						return_full_text: false,
+						do_sample: true
+					}
+				})
 			});
 
-			if (!response?.message?.content) {
-				throw new Error('No response from AI');
+			if (!response.ok) {
+				if (response.status === 503) {
+					throw new Error('AI model is loading. Please wait 10-20 seconds and try again.');
+				}
+				throw new Error('Failed to generate tweet. Please try again.');
+			}
+
+			const data = await response.json();
+			let generatedText = '';
+
+			if (Array.isArray(data) && data.length > 0) {
+				generatedText = data[0].generated_text || '';
+			} else if (data.generated_text) {
+				generatedText = data.generated_text;
+			}
+
+			if (!generatedText) {
+				throw new Error('No text generated. Please try again.');
 			}
 
 			// Clean and validate the tweet
-			generatedTweet = cleanTweet(response.message.content, length);
+			generatedTweet = cleanTweet(generatedText, length);
 			showResult = true;
 		} catch (error) {
 			toastStore.error(error instanceof Error ? error.message : 'Failed to generate tweet');
 		} finally {
 			generating = false;
 		}
-	}
-
-	function loadPuterScript(): Promise<void> {
-		return new Promise((resolve, reject) => {
-			if (typeof (window as any).puter !== 'undefined') {
-				resolve();
-				return;
-			}
-
-			const script = document.createElement('script');
-			script.src = 'https://js.puter.com/v2/';
-			script.onload = () => resolve();
-			script.onerror = () => reject(new Error('Failed to load Puter.js'));
-			document.head.appendChild(script);
-		});
 	}
 
 	function buildSystemPrompt(tone: TweetTone, length: TweetLength): string {
@@ -192,11 +197,11 @@
 				class="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700"
 			>
 				<div class="flex items-center gap-2">
-					<div class="flex h-8 w-8 items-center justify-center rounded-full bg-black shadow-sm dark:shadow-[0_0_8px_rgba(255,255,255,0.3)]">
-						<GrokIcon size={18} className="text-white" />
+					<div class="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-purple-600 to-pink-600 shadow-sm">
+						<Sparkles class="h-5 w-5 text-white" />
 					</div>
 					<h3 id="ai-generator-title" class="text-lg font-semibold text-gray-900 dark:text-white">
-						Grok AI Tweet Generator
+						AI Tweet Suggestions
 					</h3>
 				</div>
 				<button
@@ -281,7 +286,7 @@
 						<div class="rounded-lg bg-purple-50 p-3 text-sm text-purple-800 dark:bg-purple-900/20 dark:text-purple-300">
 							<strong>💡 Tip:</strong> Be specific! The more details you provide, the better the result.
 							<br/>
-							<span class="text-xs opacity-75">Powered by Grok AI via Puter.js • Free & Fast</span>
+							<span class="text-xs opacity-75">Powered by OpenRouter • Multiple AI Models</span>
 						</div>
 					</div>
 				{:else}
@@ -340,13 +345,13 @@
 							type="button"
 							on:click={generate}
 							disabled={generating || !prompt.trim()}
-							class="flex items-center gap-2 rounded-lg bg-black px-4 py-2 text-sm font-medium text-white shadow-sm hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 dark:shadow-[0_0_8px_rgba(255,255,255,0.3)] dark:hover:shadow-[0_0_12px_rgba(255,255,255,0.4)]"
+							class="flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
 						>
 							{#if generating}
 								<RefreshCw class="h-4 w-4 animate-spin" />
 								Generating...
 							{:else}
-								<GrokIcon size={16} className="text-white" />
+								<Sparkles class="h-4 w-4" />
 								Generate
 							{/if}
 						</button>

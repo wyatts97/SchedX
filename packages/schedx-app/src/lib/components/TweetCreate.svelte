@@ -13,8 +13,7 @@
 	import 'flatpickr/dist/flatpickr.css';
 	import FileUpload from '$lib/components/FileUpload.svelte';
 	import AIGenerator from '$lib/components/AIGenerator.svelte';
-	import GrokIcon from '$lib/components/icons/GrokIcon.svelte';
-	import { CheckCircle, XCircle, Loader2, Save, FileText, ListPlus, Calendar, Send } from 'lucide-svelte';
+	import { CheckCircle, XCircle, Loader2, Save, FileText, ListPlus, Calendar, Send, Sparkles } from 'lucide-svelte';
 	import logger from '$lib/logger';
 	import { toastStore } from '$lib/stores/toastStore';
 
@@ -409,13 +408,13 @@
 	<div class="absolute bottom-2 right-2 flex gap-1">
 		<button
 			type="button"
-			class="flex h-8 w-8 items-center justify-center rounded-full bg-black text-white shadow-sm transition-all hover:scale-105 dark:shadow-[0_0_8px_rgba(255,255,255,0.3)] dark:hover:shadow-[0_0_12px_rgba(255,255,255,0.4)]"
+			class="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-sm transition-all hover:scale-105 hover:shadow-md"
 			on:click={() => (showAIGenerator = true)}
-			aria-label="Generate with Grok AI"
-			title="Generate with Grok AI"
+			aria-label="AI Suggestions"
+			title="AI Tweet Suggestions"
 			disabled={submitting}
 		>
-			<GrokIcon size={16} className="text-white" />
+			<Sparkles class="h-4 w-4" />
 		</button>
 		<button
 			type="button"

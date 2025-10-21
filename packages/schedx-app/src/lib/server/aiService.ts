@@ -1,4 +1,5 @@
 import { log } from '$lib/server/logger';
+import { getDbInstance } from '$lib/server/db';
 
 export type TweetTone = 'casual' | 'professional' | 'funny' | 'inspirational' | 'informative';
 export type TweetLength = 'short' | 'medium' | 'long';
@@ -8,24 +9,28 @@ interface GenerateTweetOptions {
 	tone?: TweetTone;
 	length?: TweetLength;
 	context?: string;
+	userId?: string;
 }
 
-interface PuterAIResponse {
-	message?: {
-		content: string;
+interface OpenRouterResponse {
+	choices?: Array<{
+		message: {
+			content: string;
+		};
+	}>;
+	error?: {
+		message: string;
 	};
-	error?: string;
 }
 
 /**
- * AI Service for generating tweet content using Grok via Puter.js
- * Uses free, no-API-key-required Grok models through Puter's "User Pays" model
+ * AI Service for generating tweet content using OpenRouter
+ * Retrieves API key from database settings
  */
 export class AIService {
 	private static instance: AIService;
-	private readonly puterApiUrl = 'https://api.puter.com/drivers/call';
-	// Using Grok-4-fast for best speed/quality balance
-	private readonly model = 'x-ai/grok-4-fast:free';
+	private readonly openRouterUrl = 'https://openrouter.ai/api/v1/chat/completions';
+	private db = getDbInstance();
 
 	private constructor() {}
 
@@ -37,38 +42,53 @@ export class AIService {
 	}
 
 	/**
-	 * Generate tweet content based on user prompt
+	 * Generate a tweet based on user prompt and preferences
 	 */
 	async generateTweet(options: GenerateTweetOptions): Promise<string> {
-		const { prompt, tone = 'casual', length = 'medium', context } = options;
+		const { prompt, tone = 'casual', length = 'medium', context, userId = 'admin' } = options;
 
-		// Build the system prompt
-		const systemPrompt = this.buildSystemPrompt(tone, length);
+		// Get OpenRouter settings from database
+		const settings = await this.db.getOpenRouterSettings(userId);
 		
-		// Build the full prompt
-		const fullPrompt = this.buildFullPrompt(systemPrompt, prompt, context);
+		if (!settings || !settings.enabled) {
+			throw new Error('OpenRouter AI is not configured. Please add your API key in settings.');
+		}
 
-		log.info('Generating tweet with AI', {
+		if (!settings.apiKey) {
+			throw new Error('OpenRouter API key is missing. Please configure it in settings.');
+		}
+
+		const systemPrompt = this.buildSystemPrompt(tone, length);
+		const userPrompt = context ? `${prompt}\n\nContext: ${context}` : prompt;
+
+		log.info('Generating tweet with OpenRouter', {
 			tone,
 			length,
 			hasContext: !!context,
-			promptLength: prompt.length
+			promptLength: prompt.length,
+			model: settings.defaultModel
 		});
 
 		try {
-			const generatedText = await this.callGrokViaPuter(fullPrompt);
+			const generatedText = await this.callOpenRouter(
+				settings.apiKey,
+				settings.defaultModel,
+				systemPrompt,
+				userPrompt
+			);
 			const cleanedTweet = this.cleanAndValidateTweet(generatedText, length);
 			
-			log.info('Tweet generated successfully with Grok', {
-				outputLength: cleanedTweet.length
+			log.info('Tweet generated successfully with OpenRouter', {
+				outputLength: cleanedTweet.length,
+				model: settings.defaultModel
 			});
 
 			return cleanedTweet;
 		} catch (error) {
-			log.error('Failed to generate tweet with Grok', {
+			log.error('Failed to generate tweet with OpenRouter', {
 				error: error instanceof Error ? error.message : String(error)
 			});
-			throw new Error('Failed to generate tweet. Please try again.');
+			throw new Error(error instanceof Error ? error.message : 'Failed to generate tweet. Please try again.');
 		}
 	}
 
@@ -103,68 +123,68 @@ Rules:
 	}
 
 	/**
-	 * Build the full prompt for the model
+	 * Call OpenRouter API
 	 */
-	private buildFullPrompt(systemPrompt: string, userPrompt: string, context?: string): string {
-		let prompt = `${systemPrompt}\n\nUser request: ${userPrompt}`;
-		
-		if (context) {
-			prompt += `\n\nAdditional context: ${context}`;
-		}
-
-		prompt += '\n\nTweet:';
-		
-		return prompt;
-	}
-
-	/**
-	 * Call Puter.js AI API with Grok
-	 */
-	private async callGrokViaPuter(prompt: string): Promise<string> {
-		const response = await fetch(this.puterApiUrl, {
+	private async callOpenRouter(
+		apiKey: string,
+		model: string,
+		systemPrompt: string,
+		userPrompt: string
+	): Promise<string> {
+		const response = await fetch(this.openRouterUrl, {
 			method: 'POST',
 			headers: {
-				'Content-Type': 'application/json'
+				'Authorization': `Bearer ${apiKey}`,
+				'Content-Type': 'application/json',
+				'HTTP-Referer': 'https://schedx.app',
+				'X-Title': 'SchedX'
 			},
 			body: JSON.stringify({
-				interface: 'puter-chat-completion',
-				driver: 'openrouter',
-				method: 'complete',
-				args: {
-					messages: [
-						{
-							role: 'user',
-							content: prompt
-						}
-					],
-					model: this.model,
-					temperature: 0.7,
-					max_tokens: 150
-				}
+				model,
+				messages: [
+					{
+						role: 'system',
+						content: systemPrompt
+					},
+					{
+						role: 'user',
+						content: userPrompt
+					}
+				],
+				temperature: 0.7,
+				max_tokens: 150
 			})
 		});
 
 		if (!response.ok) {
 			const errorText = await response.text();
-			log.error('Puter/Grok API error', {
+			log.error('OpenRouter API error', {
 				status: response.status,
 				error: errorText
 			});
 			
+			if (response.status === 401) {
+				throw new Error('Invalid OpenRouter API key. Please check your settings.');
+			}
+			
+			if (response.status === 429) {
+				throw new Error('Rate limit exceeded. Please try again later.');
+			}
+			
 			throw new Error(`AI service error: ${response.status}`);
 		}
 
-		const data = await response.json() as PuterAIResponse;
+		const data = await response.json() as OpenRouterResponse;
 		
-		if (data.message?.content) {
-			return data.message.content;
+		if (data.choices && data.choices.length > 0 && data.choices[0].message?.content) {
+			return data.choices[0].message.content;
 		}
 		
 		if (data.error) {
-			throw new Error(data.error);
+			throw new Error(data.error.message || 'Unknown API error');
 		}
 		
-		throw new Error('Unexpected response format from Puter API');
+		throw new Error('Unexpected response format from OpenRouter API');
 	}
 
 	/**
@@ -211,25 +231,12 @@ Rules:
 	}
 
 	/**
-	 * Check if the AI service is available
+	 * Check if OpenRouter is configured for a user
 	 */
-	async healthCheck(): Promise<boolean> {
+	async isConfigured(userId: string = 'admin'): Promise<boolean> {
 		try {
-			const response = await fetch(this.puterApiUrl, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					interface: 'puter-chat-completion',
-					driver: 'openrouter',
-					method: 'complete',
-					args: {
-						messages: [{ role: 'user', content: 'test' }],
-						model: this.model,
-						max_tokens: 5
-					}
-				})
-			});
-			return response.ok;
+			const settings = await this.db.getOpenRouterSettings(userId);
+			return !!(settings && settings.enabled && settings.apiKey);
 		} catch {
 			return false;
 		}

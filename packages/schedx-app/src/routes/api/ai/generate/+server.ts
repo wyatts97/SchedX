@@ -58,7 +58,8 @@ export const POST: RequestHandler = userRateLimit({
 			prompt,
 			tone,
 			length,
-			context
+			context,
+			userId: 'admin' // For now, use fixed admin user ID
 		});
 
 		return new Response(
