@@ -2,8 +2,6 @@ import type { RequestHandler } from '@sveltejs/kit';
 import { getDbInstance } from '$lib/server/db';
 import { log } from '$lib/server/logger';
 
-const db = getDbInstance();
-
 export const GET: RequestHandler = async ({ cookies }) => {
 	const adminSession = cookies.get('admin_session');
 	
@@ -15,6 +13,8 @@ export const GET: RequestHandler = async ({ cookies }) => {
 	}
 
 	try {
+		const db = getDbInstance();
+		
 		// For now, we use a fixed admin user ID
 		// In a multi-user system, you'd get this from the session
 		const userId = 'admin';
@@ -55,6 +55,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 	}
 
 	try {
+		const db = getDbInstance();
 		const body = await request.json();
 		const { enabled, apiKey, defaultModel } = body;
 
