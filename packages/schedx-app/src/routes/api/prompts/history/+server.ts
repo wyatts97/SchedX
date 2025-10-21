@@ -63,41 +63,28 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			return json({ error: 'Prompt is required' }, { status: 400 });
 		}
 
-		// Check if this exact prompt already exists in history
-		const existing = db['db'].prepare(`
-			SELECT id FROM prompt_history 
-			WHERE userId = ? AND prompt = ? AND tone = ? AND length = ?
-		`).get(userId, prompt.trim(), tone || null, length || null);
+		// Add new history entry
+		const id = crypto.randomUUID();
+		const now = Date.now();
 
-		if (existing) {
-			// Update the timestamp to move it to the top
+		db['db'].prepare(`
+			INSERT INTO prompt_history (id, userId, prompt, tone, length, createdAt)
+			VALUES (?, ?, ?, ?, ?, ?)
+		`).run(id, userId, prompt.trim(), tone || null, length || null, now);
+
+		// Keep only the last 10 entries
+		const allHistory = db['db'].prepare(`
+			SELECT id FROM prompt_history
+			WHERE userId = ?
+			ORDER BY createdAt DESC
+		`).all(userId) as Array<{ id: string }>;
+
+		if (allHistory.length > MAX_HISTORY) {
+			const toDelete = allHistory.slice(MAX_HISTORY).map(h => h.id);
+			const placeholders = toDelete.map(() => '?').join(',');
 			db['db'].prepare(`
-				UPDATE prompt_history SET createdAt = ? WHERE id = ?
-			`).run(Date.now(), (existing as any).id);
-		} else {
-			// Add new history entry
-			const id = crypto.randomUUID();
-			const now = Date.now();
-
-			db['db'].prepare(`
-				INSERT INTO prompt_history (id, userId, prompt, tone, length, createdAt)
-				VALUES (?, ?, ?, ?, ?, ?)
-			`).run(id, userId, prompt.trim(), tone || null, length || null, now);
-
-			// Keep only the last 10 entries
-			const allHistory = db['db'].prepare(`
-				SELECT id FROM prompt_history
-				WHERE userId = ?
-				ORDER BY createdAt DESC
-			`).all(userId) as Array<{ id: string }>;
-
-			if (allHistory.length > MAX_HISTORY) {
-				const toDelete = allHistory.slice(MAX_HISTORY).map(h => h.id);
-				const placeholders = toDelete.map(() => '?').join(',');
-				db['db'].prepare(`
-					DELETE FROM prompt_history WHERE id IN (${placeholders})
-				`).run(...toDelete);
-			}
+				DELETE FROM prompt_history WHERE id IN (${placeholders})
+			`).run(...toDelete);
 		}
 
 		return json({ success: true });

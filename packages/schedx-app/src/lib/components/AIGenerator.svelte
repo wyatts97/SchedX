@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
-	import { X, RefreshCw, ArrowRight, Sparkles, Bookmark, BookmarkCheck } from 'lucide-svelte';
+	import { X, RefreshCw, ArrowRight, Sparkles, Bookmark, BookmarkCheck, Clock } from 'lucide-svelte';
 	import { toastStore } from '$lib/stores/toastStore';
 	import SavedPromptsPanel from './SavedPromptsPanel.svelte';
 
@@ -186,7 +186,6 @@
 			});
 		} catch (error) {
 			// Silently fail - history is not critical
-			console.error('Failed to add to history:', error);
 		}
 	}
 
@@ -363,15 +362,15 @@
 					</button>
 					
 					{#if !showResult}
-						<!-- Saved Prompts Toggle -->
+						<!-- Past Prompts Toggle -->
 						<button
 							type="button"
 							on:click={() => showSavedPrompts = !showSavedPrompts}
 							class="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
 							disabled={generating}
 						>
-							<Bookmark class="h-4 w-4" />
-							Saved Prompts
+							<Clock class="h-4 w-4" />
+							Past Prompts
 						</button>
 					{/if}
 				</div>

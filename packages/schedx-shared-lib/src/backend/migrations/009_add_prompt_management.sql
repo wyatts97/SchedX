@@ -30,4 +30,3 @@ CREATE TABLE IF NOT EXISTS prompt_history (
 
 CREATE INDEX IF NOT EXISTS idx_prompt_history_userId ON prompt_history(userId);
 CREATE INDEX IF NOT EXISTS idx_prompt_history_createdAt ON prompt_history(userId, createdAt DESC);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_prompt_history_unique ON prompt_history(userId, prompt, tone, length);

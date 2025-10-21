@@ -141,12 +141,12 @@
 		class="fixed z-50 bg-white dark:bg-gray-800 shadow-2xl
 			md:right-0 md:top-0 md:h-full md:w-96
 			bottom-0 left-0 right-0 max-h-[80vh] rounded-t-2xl md:rounded-none"
-		transition:slide={{ duration: 300, axis: 'y' }}
+		class:slide-in-right={isOpen}
 	>
 		<!-- Header -->
 		<div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 p-4">
 			<h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-				Prompts
+				Past Prompts
 			</h3>
 			<button
 				on:click={onClose}
@@ -270,3 +270,37 @@
 		</div>
 	</div>
 {/if}
+
+<style>
+	/* Desktop: slide from right */
+	@media (min-width: 768px) {
+		.slide-in-right {
+			animation: slideInRight 0.3s ease-out;
+		}
+
+		@keyframes slideInRight {
+			from {
+				transform: translateX(100%);
+			}
+			to {
+				transform: translateX(0);
+			}
+		}
+	}
+
+	/* Mobile: slide from bottom */
+	@media (max-width: 767px) {
+		.slide-in-right {
+			animation: slideInBottom 0.3s ease-out;
+		}
+
+		@keyframes slideInBottom {
+			from {
+				transform: translateY(100%);
+			}
+			to {
+				transform: translateY(0);
+			}
+		}
+	}
+</style>

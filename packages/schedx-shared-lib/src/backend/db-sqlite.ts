@@ -215,22 +215,21 @@ export class DatabaseClient {
   }
 
   async getAdminUserByUsername(username: string): Promise<import('../types/types.js').AdminUser | null> {
-    // For admin user, always get the first user with role='admin' or the first user if no role
-    // This prevents issues when displayName is changed
+    // Look up user by username (added in migration 008)
     const user = this.db.queryOne<any>(
-      'SELECT * FROM users WHERE role = ? OR id = (SELECT id FROM users LIMIT 1)',
-      ['admin']
+      'SELECT * FROM users WHERE username = ? AND role = ?',
+      [username, 'admin']
     );
     
     if (!user) return null;
     
     return {
       id: user.id,
-      username: user.displayName || user.email,
+      username: user.username || user.displayName || user.email,
       passwordHash: user.password,
       displayName: user.displayName,
       email: user.email,
-      avatar: '',
+      avatar: user.avatar || '/avatar.png',
       createdAt: new Date(user.createdAt),
       updatedAt: new Date(user.updatedAt)
     };
@@ -248,6 +247,8 @@ export class DatabaseClient {
     const now = this.db.now();
     const updateFields: string[] = [];
     const params: any[] = [];
+    
+    logger.debug('updateAdminUserProfile called', { id, updates });
     
     // Check username uniqueness if changing
     if (updates.username !== undefined) {
@@ -272,16 +273,21 @@ export class DatabaseClient {
     }
     
     if (updateFields.length === 0) {
+      logger.debug('No fields to update');
       return; // Nothing to update
     }
     
     updateFields.push('updatedAt = ?');
     params.push(now, id);
     
-    this.db.execute(
-      `UPDATE users SET ${updateFields.join(', ')} WHERE id = ?`,
-      params
-    );
+    const sql = `UPDATE users SET ${updateFields.join(', ')} WHERE id = ?`;
+    logger.debug('Executing SQL', { sql, params });
+    
+    this.db.execute(sql, params);
+    
+    // Verify the update
+    const updated = this.db.queryOne<any>('SELECT username, email, avatar FROM users WHERE id = ?', [id]);
+    logger.debug('User after update', { id, updated });
   }
 
   async getEmailNotificationPreferences(userId: string): Promise<{
