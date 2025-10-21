@@ -3,7 +3,7 @@
 	import { browser } from '$app/environment';
 	import { adminProfile, fetchAdminProfile } from '$lib/components/adminProfile';
 	import { get } from 'svelte/store';
-	import { Mail, ChevronRight, Sparkles } from 'lucide-svelte';
+	import { Mail, ChevronRight, Sparkles, Upload, User } from 'lucide-svelte';
 
 	let loading = true;
 	let error = '';
@@ -11,6 +11,9 @@
 	let profileForm = { username: 'admin', displayName: '', email: '', avatar: '' };
 	let profileError = '';
 	let profileSuccess = '';
+	let avatarFile: File | null = null;
+	let avatarPreview = '';
+	let uploadingAvatar = false;
 
 	let passwordForm = { currentPassword: '', newPassword: '', confirmPassword: '' };
 	let passwordError = '';
@@ -42,11 +45,12 @@
 			const data = await res.json();
 			if (data.profile) {
 				profileForm = {
-					username: 'admin', // Always set to 'admin' since it can't be changed
+					username: data.profile.username || 'admin',
 					displayName: data.profile.displayName || '',
 					email: data.profile.email || '',
 					avatar: data.profile.avatar || ''
 				};
+				avatarPreview = data.profile.avatar || '';
 			}
 		} catch (e) {
 			error = 'Failed to load profile';
@@ -54,6 +58,68 @@
 			loading = false;
 		}
 	});
+
+	function handleAvatarChange(event: Event) {
+		const input = event.target as HTMLInputElement;
+		const file = input.files?.[0];
+		
+		if (file) {
+			// Validate file type
+			const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+			if (!allowedTypes.includes(file.type)) {
+				profileError = 'Invalid file type. Only JPG, PNG, GIF, and WebP are allowed.';
+				return;
+			}
+			
+			// Validate file size (2MB)
+			if (file.size > 2 * 1024 * 1024) {
+				profileError = 'File too large. Maximum size is 2MB.';
+				return;
+			}
+			
+			avatarFile = file;
+			
+			// Create preview
+			const reader = new FileReader();
+			reader.onload = (e) => {
+				avatarPreview = e.target?.result as string;
+			};
+			reader.readAsDataURL(file);
+		}
+	}
+
+	async function uploadAvatar() {
+		if (!avatarFile) return;
+		
+		uploadingAvatar = true;
+		profileError = '';
+		
+		try {
+			const formData = new FormData();
+			formData.append('avatar', avatarFile);
+			
+			const res = await fetch('/api/admin/avatar/upload', {
+				method: 'POST',
+				body: formData
+			});
+			
+			const result = await res.json();
+			
+			if (result.error) {
+				profileError = result.error;
+			} else {
+				profileForm.avatar = result.avatarUrl;
+				avatarPreview = result.avatarUrl;
+				avatarFile = null;
+				profileSuccess = 'Avatar uploaded successfully';
+				await fetchAdminProfile();
+			}
+		} catch (e) {
+			profileError = 'Failed to upload avatar';
+		} finally {
+			uploadingAvatar = false;
+		}
+	}
 
 	async function updateProfile() {
 		profileError = '';
@@ -137,6 +203,60 @@
 						</div>
 					{/if}
 
+					<!-- Avatar Upload -->
+					<div class="mb-6">
+						<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+							Profile Avatar
+						</label>
+						<div class="flex items-center gap-4">
+							<!-- Avatar Preview -->
+							<div class="flex-shrink-0">
+								{#if avatarPreview}
+									<img
+										src={avatarPreview}
+										alt="Avatar"
+										class="h-20 w-20 rounded-full object-cover ring-2 ring-gray-200 dark:ring-gray-700"
+									/>
+								{:else}
+									<div class="flex h-20 w-20 items-center justify-center rounded-full bg-gray-200 dark:bg-gray-700">
+										<User class="h-10 w-10 text-gray-400" />
+									</div>
+								{/if}
+							</div>
+							
+							<!-- Upload Button -->
+							<div class="flex-1">
+								<input
+									type="file"
+									id="avatar-upload"
+									accept="image/jpeg,image/png,image/gif,image/webp"
+									on:change={handleAvatarChange}
+									class="hidden"
+								/>
+								<label
+									for="avatar-upload"
+									class="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+								>
+									<Upload class="h-4 w-4" />
+									Choose Image
+								</label>
+								{#if avatarFile}
+									<button
+										type="button"
+										on:click={uploadAvatar}
+										disabled={uploadingAvatar}
+										class="ml-2 inline-flex items-center gap-2 rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-50"
+									>
+										{uploadingAvatar ? 'Uploading...' : 'Upload'}
+									</button>
+								{/if}
+								<p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+									JPG, PNG, GIF or WebP. Max 2MB.
+								</p>
+							</div>
+						</div>
+					</div>
+
 					<form on:submit|preventDefault={updateProfile} class="space-y-6">
 						<div>
 							<label
@@ -145,12 +265,16 @@
 							>
 							<input
 								id="username"
+								type="text"
 								class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
 								bind:value={profileForm.username}
-								disabled
+								minlength="3"
+								maxlength="20"
+								required
+								placeholder="Enter username"
 							/>
-							<p class="mt-1 text-sm text-yellow-600 dark:text-yellow-400">
-								Username cannot be changed
+							<p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+								3-20 characters (letters, numbers, underscores only)
 							</p>
 						</div>
 						<div>

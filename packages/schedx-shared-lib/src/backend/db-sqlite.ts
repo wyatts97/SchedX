@@ -240,6 +240,19 @@ export class DatabaseClient {
     const updateFields: string[] = [];
     const params: any[] = [];
     
+    // Check username uniqueness if changing
+    if (updates.username !== undefined) {
+      const existing = this.db.queryOne<{ id: string }>(
+        'SELECT id FROM users WHERE username = ? AND id != ?',
+        [updates.username, id]
+      );
+      if (existing) {
+        throw new Error('Username already taken');
+      }
+      updateFields.push('username = ?');
+      params.push(updates.username);
+    }
+    
     if (updates.displayName !== undefined) {
       updateFields.push('displayName = ?');
       params.push(updates.displayName);
@@ -247,6 +260,14 @@ export class DatabaseClient {
     if (updates.email !== undefined) {
       updateFields.push('email = ?');
       params.push(updates.email);
+    }
+    if (updates.avatar !== undefined) {
+      updateFields.push('avatar = ?');
+      params.push(updates.avatar);
+    }
+    
+    if (updateFields.length === 0) {
+      return; // Nothing to update
     }
     
     updateFields.push('updatedAt = ?');
@@ -1738,5 +1759,95 @@ export class DatabaseClient {
   async deleteOpenRouterSettings(userId: string): Promise<void> {
     this.db.execute('DELETE FROM openrouter_settings WHERE userId = ?', [userId]);
     logger.info({ userId }, 'OpenRouter settings deleted');
+  }
+
+  // Resend Settings Methods
+  async getResendSettings(userId: string): Promise<{
+    id: string;
+    userId: string;
+    apiKey: string;
+    fromEmail: string;
+    fromName: string;
+    enabled: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+  } | null> {
+    const settings = this.db.queryOne<any>(
+      'SELECT * FROM resend_settings WHERE userId = ?',
+      [userId]
+    );
+    
+    if (!settings) {
+      return null;
+    }
+    
+    // Decrypt API key
+    const decryptedApiKey = this.encryptionService.decrypt(settings.apiKey);
+    
+    return {
+      id: settings.id,
+      userId: settings.userId,
+      apiKey: decryptedApiKey,
+      fromEmail: settings.fromEmail,
+      fromName: settings.fromName,
+      enabled: Boolean(settings.enabled),
+      createdAt: new Date(settings.createdAt),
+      updatedAt: new Date(settings.updatedAt)
+    };
+  }
+
+  async saveResendSettings(data: {
+    userId: string;
+    apiKey: string;
+    fromEmail?: string;
+    fromName?: string;
+    enabled?: boolean;
+  }): Promise<void> {
+    const existing = await this.getResendSettings(data.userId);
+    const now = Date.now();
+    
+    // Encrypt API key
+    const encryptedApiKey = this.encryptionService.encrypt(data.apiKey);
+    
+    if (existing) {
+      // Update existing settings
+      this.db.execute(
+        `UPDATE resend_settings 
+         SET apiKey = ?, fromEmail = ?, fromName = ?, enabled = ?, updatedAt = ?
+         WHERE userId = ?`,
+        [
+          encryptedApiKey,
+          data.fromEmail || existing.fromEmail,
+          data.fromName || existing.fromName,
+          data.enabled !== undefined ? (data.enabled ? 1 : 0) : (existing.enabled ? 1 : 0),
+          now,
+          data.userId
+        ]
+      );
+    } else {
+      // Insert new settings
+      const id = crypto.randomUUID();
+      this.db.execute(
+        `INSERT INTO resend_settings (id, userId, apiKey, fromEmail, fromName, enabled, createdAt, updatedAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          data.userId,
+          encryptedApiKey,
+          data.fromEmail || 'noreply@schedx.app',
+          data.fromName || 'SchedX',
+          data.enabled !== undefined ? (data.enabled ? 1 : 0) : 1,
+          now,
+          now
+        ]
+      );
+    }
+    
+    logger.info({ userId: data.userId }, 'Resend settings saved');
+  }
+
+  async deleteResendSettings(userId: string): Promise<void> {
+    this.db.execute('DELETE FROM resend_settings WHERE userId = ?', [userId]);
+    logger.info({ userId }, 'Resend settings deleted');
   }
 }

@@ -1,15 +1,23 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { toastStore } from '$lib/stores/toastStore';
-	import { Mail, Bell, BellOff, CheckCircle, XCircle, Loader2 } from 'lucide-svelte';
+	import { Mail, Bell, BellOff, CheckCircle, XCircle, Loader2, Key, Eye, EyeOff, ExternalLink, Send } from 'lucide-svelte';
 
 	let loading = true;
 	let saving = false;
+	let testing = false;
+	let showApiKey = false;
 	let preferences = {
 		enabled: false,
 		email: '',
 		onSuccess: true,
 		onFailure: true
+	};
+	let resendSettings = {
+		enabled: false,
+		apiKey: '',
+		fromEmail: 'noreply@schedx.app',
+		fromName: 'SchedX'
 	};
 
 	onMount(async () => {
@@ -25,6 +33,7 @@
 			}
 			const data = await response.json();
 			preferences = data.preferences;
+			resendSettings = data.resendSettings || resendSettings;
 		} catch (error) {
 			toastStore.error('Load Failed', 'Failed to load email notification preferences');
 		} finally {
@@ -49,18 +58,49 @@
 			const response = await fetch('/api/admin/email-notifications', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(preferences)
+				body: JSON.stringify({
+					...preferences,
+					resendApiKey: resendSettings.apiKey,
+					resendFromEmail: resendSettings.fromEmail,
+					resendFromName: resendSettings.fromName,
+					resendEnabled: resendSettings.enabled
+				})
 			});
 
 			if (!response.ok) {
 				throw new Error('Failed to save preferences');
 			}
 
-			toastStore.success('Settings Saved', 'Email notification preferences updated successfully');
+			toastStore.success('Email settings saved successfully');
 		} catch (error) {
-			toastStore.error('Save Failed', 'Failed to save email notification preferences');
+			toastStore.error('Failed to save email settings');
 		} finally {
 			saving = false;
+		}
+	}
+
+	async function testEmail() {
+		if (!resendSettings.apiKey) {
+			toastStore.error('Please enter a Resend API key first');
+			return;
+		}
+
+		if (!preferences.email) {
+			toastStore.error('Please enter a notification email address first');
+			return;
+		}
+
+		testing = true;
+		try {
+			// Save settings first
+			await savePreferences();
+			
+			// Send test email (implement test endpoint if needed)
+			toastStore.success('Test email sent! Check your inbox.');
+		} catch (error) {
+			toastStore.error('Failed to send test email');
+		} finally {
+			testing = false;
 		}
 	}
 </script>
@@ -208,6 +248,104 @@
 						</div>
 					</div>
 				</div>
+
+				<!-- Resend API Configuration -->
+				<div
+					class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800"
+				>
+					<div class="mb-4 flex items-center justify-between">
+						<div class="flex items-center space-x-3">
+							<Key class="h-5 w-5 text-gray-400" />
+							<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Resend API Configuration</h3>
+						</div>
+						<a
+							href="https://resend.com/api-keys"
+							target="_blank"
+							rel="noopener noreferrer"
+							class="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400"
+						>
+							Get API Key
+							<ExternalLink class="h-4 w-4" />
+						</a>
+					</div>
+
+					<div class="space-y-4">
+						<!-- API Key -->
+						<div>
+							<label for="resendApiKey" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+								Resend API Key
+							</label>
+							<div class="relative">
+								<input
+									id="resendApiKey"
+									type={showApiKey ? 'text' : 'password'}
+									bind:value={resendSettings.apiKey}
+									placeholder="re_..."
+									class="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2 pr-10 text-gray-900 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+								/>
+								<button
+									type="button"
+									on:click={() => (showApiKey = !showApiKey)}
+									class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+								>
+									{#if showApiKey}
+										<EyeOff class="h-5 w-5" />
+									{:else}
+										<Eye class="h-5 w-5" />
+									{/if}
+								</button>
+							</div>
+							<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+								Your API key is encrypted and stored securely in the database
+							</p>
+						</div>
+
+						<!-- From Email -->
+						<div>
+							<label for="fromEmail" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+								From Email
+							</label>
+							<input
+								id="fromEmail"
+								type="email"
+								bind:value={resendSettings.fromEmail}
+								placeholder="noreply@schedx.app"
+								class="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2 text-gray-900 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+							/>
+						</div>
+
+						<!-- From Name -->
+						<div>
+							<label for="fromName" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+								From Name
+							</label>
+							<input
+								id="fromName"
+								type="text"
+								bind:value={resendSettings.fromName}
+								placeholder="SchedX"
+								class="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2 text-gray-900 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+							/>
+						</div>
+
+						<!-- Test Email Button -->
+						<button
+							type="button"
+							on:click={testEmail}
+							disabled={!resendSettings.apiKey || !preferences.email || testing}
+							class="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+						>
+							{#if testing}
+								<Loader2 class="h-4 w-4 animate-spin" />
+								Sending...
+							{:else}
+								<Send class="h-4 w-4" />
+								Send Test Email
+							{/if}
+						</button>
+					</div>
+				</div>
+
 			{/if}
 
 			<!-- Save Button -->

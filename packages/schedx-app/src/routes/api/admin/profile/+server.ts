@@ -81,17 +81,29 @@ export const POST: RequestHandler = async ({ request, cookies }: any) => {
 
 		logger.debug('Profile update: Form data received');
 
-		// Prevent username changes since authentication is hardcoded to 'admin'
-		if (username !== 'admin') {
-			return json({ error: 'Username cannot be changed from "admin"' }, { status: 400 });
+		// Validate username format
+		if (username && !/^[a-zA-Z0-9_]{3,20}$/.test(username)) {
+			return json({ error: 'Username must be 3-20 characters (letters, numbers, underscores only)' }, { status: 400 });
 		}
 
-		// Update admin user profile (no avatar logic)
-		await (db as any).updateAdminUserProfile(user.id, {
-			displayName,
-			email,
-			updatedAt: new Date()
-		});
+		// Validate email format
+		if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+			return json({ error: 'Invalid email format' }, { status: 400 });
+		}
+
+		// Update admin user profile
+		try {
+			await (db as any).updateAdminUserProfile(user.id, {
+				username: username || undefined,
+				displayName: displayName || undefined,
+				email: email || undefined
+			});
+		} catch (error: any) {
+			if (error.message === 'Username already taken') {
+				return json({ error: 'Username already taken' }, { status: 400 });
+			}
+			throw error;
+		}
 
 		logger.debug('Profile update: Successfully updated profile');
 		return json({ success: true });

@@ -22,12 +22,21 @@ export const GET: RequestHandler = async ({ cookies }) => {
 		// Get email preferences
 		const preferences = await db.getEmailNotificationPreferences(userId);
 
+		// Get Resend settings
+		const resendSettings = await (db as any).getResendSettings(userId);
+
 		return json({
 			preferences: preferences || {
 				enabled: false,
 				email: null,
 				onSuccess: true,
 				onFailure: true
+			},
+			resendSettings: resendSettings || {
+				enabled: false,
+				apiKey: '',
+				fromEmail: 'noreply@schedx.app',
+				fromName: 'SchedX'
 			}
 		});
 	} catch (error) {
@@ -59,7 +68,12 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			return json({ error: 'Invalid email address' }, { status: 400 });
 		}
 
-		// Update preferences
+		// Validate Resend API key format if provided
+		if (body.resendApiKey && !body.resendApiKey.startsWith('re_')) {
+			return json({ error: 'Invalid Resend API key format. Keys should start with "re_"' }, { status: 400 });
+		}
+
+		// Update email notification preferences
 		await db.updateEmailNotificationPreferences(userId, {
 			enabled: body.enabled,
 			email: body.email,
@@ -67,7 +81,20 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			onFailure: body.onFailure
 		});
 
-		return json({ success: true, message: 'Email preferences updated successfully' });
+		// Update Resend settings if provided
+		if (body.resendApiKey || body.resendFromEmail || body.resendFromName || body.resendEnabled !== undefined) {
+			const existing = await (db as any).getResendSettings(userId);
+			
+			await (db as any).saveResendSettings({
+				userId,
+				apiKey: body.resendApiKey || existing?.apiKey || '',
+				fromEmail: body.resendFromEmail || existing?.fromEmail,
+				fromName: body.resendFromName || existing?.fromName,
+				enabled: body.resendEnabled !== undefined ? body.resendEnabled : existing?.enabled
+			});
+		}
+
+		return json({ success: true, message: 'Email settings updated successfully' });
 	} catch (error) {
 		console.error('Error updating email preferences:', error);
 		return json({ error: 'Failed to update email preferences' }, { status: 500 });
