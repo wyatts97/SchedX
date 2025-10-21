@@ -45,7 +45,11 @@ export class AIService {
 	 * Generate a tweet based on user prompt and preferences
 	 */
 	async generateTweet(options: GenerateTweetOptions): Promise<string> {
-		const { prompt, tone = 'casual', length = 'medium', context, userId = 'admin' } = options;
+		const { prompt, tone = 'casual', length = 'medium', context, userId } = options;
+		
+		if (!userId) {
+			throw new Error('User ID is required for AI generation');
+		}
 
 		// Get OpenRouter settings from database
 		const settings = await this.db.getOpenRouterSettings(userId);
@@ -233,7 +237,10 @@ Rules:
 	/**
 	 * Check if OpenRouter is configured for a user
 	 */
-	async isConfigured(userId: string = 'admin'): Promise<boolean> {
+	async isConfigured(userId?: string): Promise<boolean> {
+		if (!userId) {
+			return false;
+		}
 		try {
 			const settings = await this.db.getOpenRouterSettings(userId);
 			return !!(settings && settings.enabled && settings.apiKey);

@@ -253,10 +253,6 @@ export class DatabaseClient {
       params.push(updates.username);
     }
     
-    if (updates.displayName !== undefined) {
-      updateFields.push('displayName = ?');
-      params.push(updates.displayName);
-    }
     if (updates.email !== undefined) {
       updateFields.push('email = ?');
       params.push(updates.email);

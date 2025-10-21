@@ -52,6 +52,16 @@ export const POST: RequestHandler = userRateLimit({
 			length: length || 'default'
 		});
 
+		// Get user from session
+		const db = (await import('$lib/server/db')).getDbInstance();
+		const session = await db.getSession(adminSession);
+		if (!session || !session.data?.user?.id) {
+			return new Response(
+				JSON.stringify({ error: 'Invalid session' }),
+				{ status: 401, headers: { 'Content-Type': 'application/json' } }
+			);
+		}
+
 		// Generate tweet using AI service
 		const aiService = AIService.getInstance();
 		const generatedTweet = await aiService.generateTweet({
@@ -59,7 +69,7 @@ export const POST: RequestHandler = userRateLimit({
 			tone,
 			length,
 			context,
-			userId: 'admin' // For now, use fixed admin user ID
+			userId: session.data.user.id
 		});
 
 		return new Response(

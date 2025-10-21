@@ -25,12 +25,14 @@ export const GET: RequestHandler = async ({ cookies }: any) => {
 
 	try {
 		const db = getDbInstance();
-		const user = await (db as any).getAdminUserByUsername('admin');
-		if (!user) {
+		
+		// Get user from session
+		const session = await db.getSession(adminSession);
+		if (!session || !session.data?.user) {
 			return json(
 				{
-					profile: { username: '', displayName: '', email: '', avatar: '' },
-					error: 'Unauthorized'
+					profile: { username: '', email: '', avatar: '' },
+					error: 'Invalid session'
 				},
 				{ status: 401 }
 			);
@@ -38,17 +40,16 @@ export const GET: RequestHandler = async ({ cookies }: any) => {
 
 		return json({
 			profile: {
-				username: user.username ?? '',
-				displayName: user.displayName ?? '',
-				email: user.email ?? '',
-				avatar: user.avatar ?? ''
+				username: session.data.user.username ?? '',
+				email: session.data.user.email ?? '',
+				avatar: session.data.user.avatar ?? ''
 			}
 		});
 	} catch (error) {
-		logger.error('Error fetching profile');
+		logger.error('Error fetching profile', { error: error instanceof Error ? error.message : String(error) });
 		return json(
 			{
-				profile: { username: '', displayName: '', email: '', avatar: '' },
+				profile: { username: '', email: '', avatar: '' },
 				error: 'Failed to fetch profile'
 			},
 			{ status: 500 }
@@ -66,17 +67,18 @@ export const POST: RequestHandler = async ({ request, cookies }: any) => {
 
 	try {
 		const db = getDbInstance();
-		const user = await (db as any).getAdminUserByUsername('admin');
-		if (!user) {
-			logger.debug('Profile update: Admin user not found');
-			return json({ error: 'Unauthorized' }, { status: 401 });
+		
+		// Get user from session
+		const session = await db.getSession(adminSession);
+		if (!session || !session.data?.user) {
+			logger.debug('Profile update: Invalid session');
+			return json({ error: 'Invalid session' }, { status: 401 });
 		}
 
-		logger.debug('Profile update: Processing request for user:', user.username);
+		logger.debug('Profile update: Processing request for user:', session.data.user.username);
 
 		const formData = await request.formData();
 		const username = formData.get('username')?.toString() || '';
-		const displayName = formData.get('displayName')?.toString() || '';
 		const email = formData.get('email')?.toString() || '';
 
 		logger.debug('Profile update: Form data received');
@@ -91,11 +93,10 @@ export const POST: RequestHandler = async ({ request, cookies }: any) => {
 			return json({ error: 'Invalid email format' }, { status: 400 });
 		}
 
-		// Update admin user profile
+		// Update user profile
 		try {
-			await (db as any).updateAdminUserProfile(user.id, {
+			await (db as any).updateAdminUserProfile(session.data.user.id, {
 				username: username || undefined,
-				displayName: displayName || undefined,
 				email: email || undefined
 			});
 		} catch (error: any) {
@@ -108,7 +109,7 @@ export const POST: RequestHandler = async ({ request, cookies }: any) => {
 		logger.debug('Profile update: Successfully updated profile');
 		return json({ success: true });
 	} catch (error) {
-		logger.error('Error updating profile');
+		logger.error('Error updating profile', { error: error instanceof Error ? error.message : String(error) });
 		return json({ error: 'Failed to update profile' }, { status: 500 });
 	}
 };

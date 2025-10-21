@@ -61,19 +61,21 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			);
 		}
 
-		// Get admin user
+		// Get user from session
 		const db = getDbInstance();
-		const user = await (db as any).getAdminUserByUsername('admin');
-		if (!user) {
+		const session = await db.getSession(adminSession);
+		if (!session || !session.data?.user) {
 			return new Response(
-				JSON.stringify({ error: 'User not found' }),
-				{ status: 404, headers: { 'Content-Type': 'application/json' } }
+				JSON.stringify({ error: 'Invalid session' }),
+				{ status: 401, headers: { 'Content-Type': 'application/json' } }
 			);
 		}
+		
+		const userId = session.data.user.id;
 
 		// Generate unique filename
 		const ext = path.extname(file.name);
-		const filename = `avatar-${user.id}-${Date.now()}${ext}`;
+		const filename = `avatar-${userId}-${Date.now()}${ext}`;
 		const filepath = path.join(AVATAR_UPLOADS_DIR, filename);
 
 		// Save file
@@ -84,11 +86,11 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		const avatarUrl = `/uploads/avatars/${filename}`;
 
 		// Update user profile with new avatar
-		await (db as any).updateAdminUserProfile(user.id, {
+		await (db as any).updateAdminUserProfile(userId, {
 			avatar: avatarUrl
 		});
 
-		logger.info('Avatar uploaded successfully', { userId: user.id, filename });
+		logger.info('Avatar uploaded successfully', { userId, filename });
 
 		return new Response(
 			JSON.stringify({ 

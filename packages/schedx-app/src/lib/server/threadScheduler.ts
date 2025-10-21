@@ -67,8 +67,8 @@ export class ThreadSchedulerService {
 		try {
 			const db = getDbInstance();
 			
-			// Get all users (for now just admin)
-			const user = await (db as any).getAdminUserByUsername('admin');
+			// Get first admin user (role='admin')
+			const user = await (db as any).getAdminUserByUsername('');
 			if (!user) {
 				return;
 			}

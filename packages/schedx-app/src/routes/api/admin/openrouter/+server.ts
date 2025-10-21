@@ -15,9 +15,16 @@ export const GET: RequestHandler = async ({ cookies }) => {
 	try {
 		const db = getDbInstance();
 		
-		// For now, we use a fixed admin user ID
-		// In a multi-user system, you'd get this from the session
-		const userId = 'admin';
+		// Get user from session
+		const session = await db.getSession(adminSession);
+		if (!session || !session.data?.user?.id) {
+			return new Response(
+				JSON.stringify({ error: 'Invalid session' }),
+				{ status: 401, headers: { 'Content-Type': 'application/json' } }
+			);
+		}
+		
+		const userId = session.data.user.id;
 		
 		const settings = await db.getOpenRouterSettings(userId);
 		
@@ -56,6 +63,18 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
 	try {
 		const db = getDbInstance();
+		
+		// Get user from session
+		const session = await db.getSession(adminSession);
+		if (!session || !session.data?.user?.id) {
+			return new Response(
+				JSON.stringify({ error: 'Invalid session' }),
+				{ status: 401, headers: { 'Content-Type': 'application/json' } }
+			);
+		}
+		
+		const userId = session.data.user.id;
+		
 		const body = await request.json();
 		const { enabled, apiKey, defaultModel } = body;
 
@@ -73,9 +92,6 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 				{ status: 400, headers: { 'Content-Type': 'application/json' } }
 			);
 		}
-
-		// For now, we use a fixed admin user ID
-		const userId = 'admin';
 		
 		await db.saveOpenRouterSettings({
 			userId,

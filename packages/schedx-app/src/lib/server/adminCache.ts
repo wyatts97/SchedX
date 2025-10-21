@@ -17,22 +17,19 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 /**
  * Get admin user ID with caching
- * This replaces the repeated getAdminUserByUsername('admin') calls
+ * Gets the first user with role='admin'
  */
 export async function getAdminUserId(): Promise<string | null> {
   // Check cache first
-  if (cachedAdmin) {
-    const age = Date.now() - cachedAdmin.cachedAt;
-    if (age < CACHE_TTL) {
-      logger.debug({ userId: cachedAdmin.id, cacheAge: age }, 'Admin user ID from cache');
-      return cachedAdmin.id;
-    }
+  if (cachedAdmin && Date.now() - cachedAdmin.cachedAt < CACHE_TTL) {
+    logger.debug({ userId: cachedAdmin.id, cacheAge: Date.now() - cachedAdmin.cachedAt }, 'Admin user ID from cache');
+    return cachedAdmin.id;
   }
 
   // Cache miss or expired - fetch from database
   try {
     const db = getDbInstance();
-    const user = await (db as any).getAdminUserByUsername('admin');
+    const user = await (db as any).getAdminUserByUsername('');
     
     if (user) {
       cachedAdmin = {
@@ -62,7 +59,7 @@ export async function getAdminUser(): Promise<any | null> {
   // If we need the full user object, fetch it
   // (This is less common, so we don't cache the full object)
   const db = getDbInstance();
-  return await (db as any).getAdminUserByUsername('admin');
+  return await (db as any).getAdminUserByUsername('');
 }
 
 /**

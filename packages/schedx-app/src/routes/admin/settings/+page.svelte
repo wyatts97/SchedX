@@ -8,7 +8,7 @@
 	let loading = true;
 	let error = '';
 
-	let profileForm = { username: 'admin', displayName: '', email: '', avatar: '' };
+	let profileForm = { username: '', email: '', avatar: '' };
 	let profileError = '';
 	let profileSuccess = '';
 	let avatarFile: File | null = null;
@@ -22,7 +22,7 @@
 	let profile = get(adminProfile);
 	adminProfile.subscribe((value) => {
 		profile = value;
-		if (!profileForm.displayName && value.displayName) profileForm.displayName = value.displayName;
+		if (!profileForm.username && value.username) profileForm.username = value.username;
 		if (!profileForm.email && value.email) profileForm.email = value.email;
 		if (!profileForm.avatar && value.avatar) profileForm.avatar = value.avatar;
 	});
@@ -45,8 +45,7 @@
 			const data = await res.json();
 			if (data.profile) {
 				profileForm = {
-					username: data.profile.username || 'admin',
-					displayName: data.profile.displayName || '',
+					username: data.profile.username || '',
 					email: data.profile.email || '',
 					avatar: data.profile.avatar || ''
 				};
@@ -127,7 +126,6 @@
 		try {
 			const formData = new FormData();
 			formData.append('username', profileForm.username);
-			formData.append('displayName', profileForm.displayName);
 			formData.append('email', profileForm.email);
 
 			const res = await fetch('/api/admin/profile', { method: 'POST', body: formData });
@@ -276,19 +274,6 @@
 							<p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
 								3-20 characters (letters, numbers, underscores only)
 							</p>
-						</div>
-						<div>
-							<label
-								for="displayName"
-								class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-								>Display Name</label
-							>
-							<input
-								id="displayName"
-								class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
-								bind:value={profileForm.displayName}
-								placeholder="Enter display name"
-							/>
 						</div>
 						<div>
 							<label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300"
