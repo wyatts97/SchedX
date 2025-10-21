@@ -159,7 +159,7 @@
 										}
 									}}
 								>
-									<img class="size-8 shrink-0 rounded-full" src="/avatar.png" alt="Avatar" />
+									<img class="size-8 shrink-0 rounded-full" src={$adminProfile.avatar || '/avatar.png'} alt="{$adminProfile.username || 'Admin'} avatar" />
 								</button>
 
 								<div

@@ -40,7 +40,6 @@ export const handle = async ({ event, resolve }: any) => {
 				event.locals.user = {
 					id: session.data.user.id,
 					username: session.data.user.username,
-					displayName: session.data.user.displayName,
 					avatar: session.data.user.avatar,
 					email: session.data.user.email
 				};
@@ -103,7 +102,6 @@ export async function signIn(credentials: { username: string; password: string }
 			user: {
 				id: user.id,
 				username: user.username,
-				displayName: (user as any).displayName || user.username,
 				avatar: (user as any).avatar || '/avatar.png',
 				email: (user as any).email || `${user.username}@admin.local`
 			}

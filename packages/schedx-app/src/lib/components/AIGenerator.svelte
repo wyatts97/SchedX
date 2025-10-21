@@ -49,43 +49,27 @@
 		generating = true;
 
 		try {
-			// Build the system prompt
-			const systemPrompt = buildSystemPrompt(tone, length);
-			const fullPrompt = `${systemPrompt}\n\nUser request: ${prompt.trim()}${currentContent ? `\n\nAdditional context: ${currentContent}` : ''}\n\nTweet:`;
-
-			// Call HuggingFace Inference API (free, no auth required)
-			const response = await fetch('https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2', {
+			// Call backend API endpoint that uses OpenRouter
+			const response = await fetch('/api/ai/generate', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({
-					inputs: fullPrompt,
-					parameters: {
-						max_new_tokens: 150,
-						temperature: 0.7,
-						top_p: 0.9,
-						return_full_text: false,
-						do_sample: true
-					}
+					prompt: prompt.trim(),
+					tone,
+					length,
+					context: currentContent || undefined
 				})
 			});
 
 			if (!response.ok) {
-				if (response.status === 503) {
-					throw new Error('AI model is loading. Please wait 10-20 seconds and try again.');
-				}
-				throw new Error('Failed to generate tweet. Please try again.');
+				const errorData = await response.json();
+				throw new Error(errorData.error || 'Failed to generate tweet. Please try again.');
 			}
 
 			const data = await response.json();
-			let generatedText = '';
-
-			if (Array.isArray(data) && data.length > 0) {
-				generatedText = data[0].generated_text || '';
-			} else if (data.generated_text) {
-				generatedText = data.generated_text;
-			}
+			let generatedText = data.tweet || '';
 
 			if (!generatedText) {
 				throw new Error('No text generated. Please try again.');
