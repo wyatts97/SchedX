@@ -248,8 +248,6 @@ export class DatabaseClient {
     const updateFields: string[] = [];
     const params: any[] = [];
     
-    logger.debug('updateAdminUserProfile called', { id, updates });
-    
     // Check username uniqueness if changing
     if (updates.username !== undefined) {
       const existing = this.db.queryOne<{ id: string }>(
@@ -273,21 +271,16 @@ export class DatabaseClient {
     }
     
     if (updateFields.length === 0) {
-      logger.debug('No fields to update');
       return; // Nothing to update
     }
     
     updateFields.push('updatedAt = ?');
     params.push(now, id);
     
-    const sql = `UPDATE users SET ${updateFields.join(', ')} WHERE id = ?`;
-    logger.debug('Executing SQL', { sql, params });
-    
-    this.db.execute(sql, params);
-    
-    // Verify the update
-    const updated = this.db.queryOne<any>('SELECT username, email, avatar FROM users WHERE id = ?', [id]);
-    logger.debug('User after update', { id, updated });
+    this.db.execute(
+      `UPDATE users SET ${updateFields.join(', ')} WHERE id = ?`,
+      params
+    );
   }
 
   async getEmailNotificationPreferences(userId: string): Promise<{
