@@ -5,18 +5,20 @@ import path from 'path';
 import { getDbInstance } from '$lib/server/db';
 import logger from '$lib/logger';
 
-// Avatar uploads directory
-const AVATAR_UPLOADS_DIR = process.env.DOCKER === 'true'
-	? '/app/packages/schedx-app/static/uploads/avatars'
-	: path.join(process.cwd(), 'static/uploads/avatars');
-
-// Ensure directory exists
-if (!existsSync(AVATAR_UPLOADS_DIR)) {
-	await mkdir(AVATAR_UPLOADS_DIR, { recursive: true });
-}
-
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 const MAX_SIZE = 2 * 1024 * 1024; // 2MB
+
+function getAvatarUploadDir(): string {
+	return process.env.DOCKER === 'true'
+		? '/app/packages/schedx-app/static/uploads/avatars'
+		: path.join(process.cwd(), 'static/uploads/avatars');
+}
+
+async function ensureUploadDir(dir: string): Promise<void> {
+	if (!existsSync(dir)) {
+		await mkdir(dir, { recursive: true });
+	}
+}
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
 	const adminSession = cookies.get('admin_session');
@@ -29,6 +31,10 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 	}
 
 	try {
+		// Ensure upload directory exists
+		const AVATAR_UPLOADS_DIR = getAvatarUploadDir();
+		await ensureUploadDir(AVATAR_UPLOADS_DIR);
+		
 		const formData = await request.formData();
 		const file = formData.get('avatar') as File;
 
