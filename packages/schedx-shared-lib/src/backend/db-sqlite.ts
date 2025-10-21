@@ -214,6 +214,14 @@ export class DatabaseClient {
     return id;
   }
 
+  async hasAdminUsers(): Promise<boolean> {
+    const result = this.db.queryOne<{ count: number }>(
+      'SELECT COUNT(*) as count FROM users WHERE role = ?',
+      ['admin']
+    );
+    return result ? result.count > 0 : false;
+  }
+
   async getAdminUserByUsername(username: string): Promise<import('../types/types.js').AdminUser | null> {
     // Look up user by username (added in migration 008)
     const user = this.db.queryOne<any>(

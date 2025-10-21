@@ -44,8 +44,8 @@ export const initializeDatabase = async (): Promise<DatabaseClient> => {
 export async function ensureDefaultAdminUser() {
 	const db = getDbInstance();
 	// Check if ANY admin user exists (not just username 'admin')
-	const adminUsers = db['db'].prepare('SELECT id FROM users WHERE role = ?').all('admin');
-	if (adminUsers.length === 0) {
+	const hasAdmins = await (db as any).hasAdminUsers();
+	if (!hasAdmins) {
 		const bcrypt = (await import('bcrypt')).default;
 		const passwordHash = await bcrypt.hash('changeme', 10);
 		await db.createAdminUser({
