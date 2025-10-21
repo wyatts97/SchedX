@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
-	import { X, RefreshCw, ArrowRight, Sparkles } from 'lucide-svelte';
+	import { X, RefreshCw, ArrowRight, Sparkles, Bookmark, BookmarkCheck } from 'lucide-svelte';
 	import { toastStore } from '$lib/stores/toastStore';
+	import SavedPromptsPanel from './SavedPromptsPanel.svelte';
 
 	// Puter.js type declarations
 	type TweetTone = 'casual' | 'professional' | 'funny' | 'inspirational' | 'informative';
@@ -28,6 +29,9 @@
 	let generating = false;
 	let generatedTweet = '';
 	let showResult = false;
+	let showSavedPrompts = false;
+	let saving = false;
+	let isSaved = false;
 
 	const toneOptions = [
 		{ value: 'casual', label: 'Casual', emoji: '💬' },
@@ -47,6 +51,9 @@
 		if (!prompt.trim()) return;
 
 		generating = true;
+
+		// Add to history
+		await addToHistory();
 
 		try {
 			// Call backend API endpoint that uses OpenRouter
@@ -144,11 +151,59 @@
 		close();
 	}
 
+	async function savePrompt() {
+		if (!prompt.trim()) return;
+
+		saving = true;
+		try {
+			const response = await fetch('/api/prompts/saved', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ prompt: prompt.trim(), tone, length })
+			});
+
+			if (response.ok) {
+				isSaved = true;
+				toastStore.success('Prompt saved!');
+				setTimeout(() => isSaved = false, 2000);
+			} else {
+				const data = await response.json();
+				toastStore.error(data.error || 'Failed to save prompt');
+			}
+		} catch (error) {
+			toastStore.error('Failed to save prompt');
+		} finally {
+			saving = false;
+		}
+	}
+
+	async function addToHistory() {
+		try {
+			await fetch('/api/prompts/history', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ prompt: prompt.trim(), tone, length })
+			});
+		} catch (error) {
+			// Silently fail - history is not critical
+			console.error('Failed to add to history:', error);
+		}
+	}
+
+	function handleUsePrompt(promptText: string, promptTone: string, promptLength: string) {
+		prompt = promptText;
+		tone = promptTone as TweetTone;
+		length = promptLength as TweetLength;
+		showSavedPrompts = false;
+	}
+
 	function close() {
 		show = false;
 		prompt = '';
 		generatedTweet = '';
 		showResult = false;
+		showSavedPrompts = false;
+		isSaved = false;
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
@@ -297,14 +352,29 @@
 			<div
 				class="flex items-center justify-between border-t border-gray-200 px-6 py-4 dark:border-gray-700"
 			>
-				<button
-					type="button"
-					on:click={close}
-					class="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-					disabled={generating}
-				>
-					Cancel
-				</button>
+				<div class="flex gap-2">
+					<button
+						type="button"
+						on:click={close}
+						class="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+						disabled={generating}
+					>
+						Cancel
+					</button>
+					
+					{#if !showResult}
+						<!-- Saved Prompts Toggle -->
+						<button
+							type="button"
+							on:click={() => showSavedPrompts = !showSavedPrompts}
+							class="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+							disabled={generating}
+						>
+							<Bookmark class="h-4 w-4" />
+							Saved Prompts
+						</button>
+					{/if}
+				</div>
 
 				<div class="flex gap-2">
 					{#if showResult}
@@ -325,6 +395,26 @@
 							<ArrowRight class="h-4 w-4" />
 						</button>
 					{:else}
+						<!-- Save Prompt Button -->
+						<button
+							type="button"
+							on:click={savePrompt}
+							disabled={saving || !prompt.trim() || isSaved}
+							class="flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50
+								{isSaved 
+									? 'border-green-500 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300'
+									: 'border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'}"
+						>
+							{#if isSaved}
+								<BookmarkCheck class="h-4 w-4" />
+								Saved!
+							{:else}
+								<Bookmark class="h-4 w-4" />
+								Save Prompt
+							{/if}
+						</button>
+						
+						<!-- Generate Button -->
 						<button
 							type="button"
 							on:click={generate}
@@ -344,4 +434,11 @@
 			</div>
 		</div>
 	</div>
+	
+	<!-- Saved Prompts Panel -->
+	<SavedPromptsPanel 
+		isOpen={showSavedPrompts} 
+		onUsePrompt={handleUsePrompt}
+		onClose={() => showSavedPrompts = false}
+	/>
 {/if}
