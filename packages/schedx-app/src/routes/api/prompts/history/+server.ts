@@ -24,7 +24,7 @@ export const GET: RequestHandler = async ({ cookies }) => {
 		const userId = session.data.user.id;
 
 		// Fetch history ordered by most recent
-		const history = db['db'].query(`
+		const history = db['db'].prepare(`
 			SELECT id, prompt, tone, length, createdAt
 			FROM prompt_history
 			WHERE userId = ?
@@ -64,14 +64,14 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		}
 
 		// Check if this exact prompt already exists in history
-		const existing = db['db'].query(`
+		const existing = db['db'].prepare(`
 			SELECT id FROM prompt_history 
 			WHERE userId = ? AND prompt = ? AND tone = ? AND length = ?
 		`).get(userId, prompt.trim(), tone || null, length || null);
 
 		if (existing) {
 			// Update the timestamp to move it to the top
-			db['db'].query(`
+			db['db'].prepare(`
 				UPDATE prompt_history SET createdAt = ? WHERE id = ?
 			`).run(Date.now(), (existing as any).id);
 		} else {
@@ -79,13 +79,13 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			const id = crypto.randomUUID();
 			const now = Date.now();
 
-			db['db'].query(`
+			db['db'].prepare(`
 				INSERT INTO prompt_history (id, userId, prompt, tone, length, createdAt)
 				VALUES (?, ?, ?, ?, ?, ?)
 			`).run(id, userId, prompt.trim(), tone || null, length || null, now);
 
 			// Keep only the last 10 entries
-			const allHistory = db['db'].query(`
+			const allHistory = db['db'].prepare(`
 				SELECT id FROM prompt_history
 				WHERE userId = ?
 				ORDER BY createdAt DESC
@@ -94,7 +94,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			if (allHistory.length > MAX_HISTORY) {
 				const toDelete = allHistory.slice(MAX_HISTORY).map(h => h.id);
 				const placeholders = toDelete.map(() => '?').join(',');
-				db['db'].query(`
+				db['db'].prepare(`
 					DELETE FROM prompt_history WHERE id IN (${placeholders})
 				`).run(...toDelete);
 			}

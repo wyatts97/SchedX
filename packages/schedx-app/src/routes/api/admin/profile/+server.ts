@@ -107,7 +107,21 @@ export const POST: RequestHandler = async ({ request, cookies }: any) => {
 			throw error;
 		}
 
-		logger.debug('Profile update: Successfully updated profile');
+		// Update session data to reflect changes immediately
+		const updatedSessionData = {
+			...session.data,
+			user: {
+				...session.data.user,
+				username: username || session.data.user.username,
+				email: email || session.data.user.email
+			}
+		};
+		
+		// Save updated session
+		const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+		await db.saveSession(adminSession, updatedSessionData, expiresAt);
+
+		logger.debug('Profile update: Successfully updated profile and session');
 		return json({ success: true });
 	} catch (error) {
 		const errorMsg = error instanceof Error ? error.message : String(error);

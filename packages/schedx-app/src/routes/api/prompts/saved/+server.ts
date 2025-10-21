@@ -24,7 +24,7 @@ export const GET: RequestHandler = async ({ cookies }) => {
 		const userId = session.data.user.id;
 
 		// Fetch saved prompts ordered by most recently created
-		const prompts = db['db'].query(`
+		const prompts = db['db'].prepare(`
 			SELECT id, prompt, tone, length, usageCount, createdAt, updatedAt
 			FROM saved_prompts
 			WHERE userId = ?
@@ -63,7 +63,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		}
 
 		// Check if user has reached the limit
-		const count = db['db'].query(`
+		const count = db['db'].prepare(`
 			SELECT COUNT(*) as count FROM saved_prompts WHERE userId = ?
 		`).get(userId) as { count: number };
 
@@ -74,7 +74,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		}
 
 		// Check for duplicates
-		const existing = db['db'].query(`
+		const existing = db['db'].prepare(`
 			SELECT id FROM saved_prompts 
 			WHERE userId = ? AND prompt = ? AND tone = ? AND length = ?
 		`).get(userId, prompt.trim(), tone || null, length || null);
@@ -87,7 +87,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		const id = crypto.randomUUID();
 		const now = Date.now();
 
-		db['db'].query(`
+		db['db'].prepare(`
 			INSERT INTO saved_prompts (id, userId, prompt, tone, length, usageCount, createdAt, updatedAt)
 			VALUES (?, ?, ?, ?, ?, 0, ?, ?)
 		`).run(id, userId, prompt.trim(), tone || null, length || null, now, now);
@@ -129,7 +129,7 @@ export const DELETE: RequestHandler = async ({ request, cookies }) => {
 		}
 
 		// Delete the prompt (only if it belongs to the user)
-		db['db'].query(`
+		db['db'].prepare(`
 			DELETE FROM saved_prompts WHERE id = ? AND userId = ?
 		`).run(id, userId);
 

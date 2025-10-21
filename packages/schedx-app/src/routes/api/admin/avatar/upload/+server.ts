@@ -90,6 +90,19 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			avatar: avatarUrl
 		});
 
+		// Update session data to reflect avatar change immediately
+		const updatedSessionData = {
+			...session.data,
+			user: {
+				...session.data.user,
+				avatar: avatarUrl
+			}
+		};
+		
+		// Save updated session
+		const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+		await db.saveSession(adminSession, updatedSessionData, expiresAt);
+
 		logger.info('Avatar uploaded successfully', { userId, filename });
 
 		return new Response(
