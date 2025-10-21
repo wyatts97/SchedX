@@ -3,6 +3,7 @@
 	import AppIcon from './AppIcon.svelte';
 	import ThemeToggle from './ThemeToggle.svelte';
 	import { navigationConfig } from '$lib/config/navigation';
+	import { adminProfile } from './adminProfile';
 	import { Settings } from 'lucide-svelte';
 	import { onMount } from 'svelte';
 	import logger from '$lib/logger';
@@ -181,7 +182,7 @@
 										<p
 											class="theme-lightsout:text-white text-sm font-medium text-gray-800 dark:text-white"
 										>
-											admin
+											{$adminProfile.username || 'Administrator'}
 										</p>
 									</div>
 									<div class="space-y-0.5 p-1.5">

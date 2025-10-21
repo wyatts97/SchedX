@@ -4,6 +4,7 @@
 	import AppIcon from './AppIcon.svelte';
 	import ThemeToggle from './ThemeToggle.svelte';
 	import { showAdminMenu } from '$lib/stores/stores';
+	import { adminProfile } from './adminProfile';
 	import { Settings, LogOut } from 'lucide-svelte';
 	import logger from '$lib/logger';
 
@@ -165,8 +166,8 @@
 				>
 					<img
 						class="h-full w-full rounded-full object-cover"
-						src="/avatar.png"
-						alt="Admin avatar"
+						src={$adminProfile.avatar || '/avatar.png'}
+						alt="{$adminProfile.username || 'Admin'} avatar"
 						loading="lazy"
 					/>
 				</button>
@@ -187,7 +188,7 @@
 								Signed in as
 							</p>
 							<p class="theme-lightsout:text-white truncate text-sm font-medium text-gray-900 dark:text-white">
-								Administrator
+								{$adminProfile.username || 'Administrator'}
 							</p>
 						</div>
 
