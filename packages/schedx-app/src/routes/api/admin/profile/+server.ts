@@ -46,7 +46,8 @@ export const GET: RequestHandler = async ({ cookies }: any) => {
 			}
 		});
 	} catch (error) {
-		logger.error('Error fetching profile', { error: error instanceof Error ? error.message : String(error) });
+		const errorMsg = error instanceof Error ? error.message : String(error);
+		logger.error(`Error fetching profile: ${errorMsg}`);
 		return json(
 			{
 				profile: { username: '', email: '', avatar: '' },
@@ -109,7 +110,13 @@ export const POST: RequestHandler = async ({ request, cookies }: any) => {
 		logger.debug('Profile update: Successfully updated profile');
 		return json({ success: true });
 	} catch (error) {
-		logger.error('Error updating profile', { error: error instanceof Error ? error.message : String(error) });
-		return json({ error: 'Failed to update profile' }, { status: 500 });
+		const errorMsg = error instanceof Error ? error.message : String(error);
+		logger.error(`Error updating profile: ${errorMsg}`);
+		if (error instanceof Error && error.stack) {
+			logger.debug(`Stack trace: ${error.stack}`);
+		}
+		return json({ 
+			error: error instanceof Error ? error.message : 'Failed to update profile' 
+		}, { status: 500 });
 	}
 };

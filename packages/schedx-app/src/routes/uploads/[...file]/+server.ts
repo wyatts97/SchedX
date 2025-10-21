@@ -13,29 +13,42 @@ export const GET: RequestHandler = async ({ params }) => {
 		}
 
 		// Construct the file path
-		// In Docker, uploads are at /app/packages/schedx-app/uploads
-		// In dev, they're at process.cwd()/uploads
+		// Try static/uploads first (for avatars), then uploads (for media)
+		const staticUploadsDir = process.env.DOCKER === 'true'
+			? '/app/packages/schedx-app/static/uploads'
+			: path.join(process.cwd(), 'static/uploads');
 		const uploadsDir = process.env.DOCKER === 'true'
 			? '/app/packages/schedx-app/uploads'
 			: path.join(process.cwd(), 'uploads');
-		const filePath = path.join(uploadsDir, file);
+		
+		const staticFilePath = path.join(staticUploadsDir, file);
+		const uploadsFilePath = path.join(uploadsDir, file);
 
 		logger.debug(`Attempting to serve file: ${file}`);
-		logger.debug(`Uploads directory: ${uploadsDir}`);
-		logger.debug(`File path: ${filePath}`);
+		logger.debug(`Checking static path: ${staticFilePath}`);
+		logger.debug(`Checking uploads path: ${uploadsFilePath}`);
+
+		// Determine which file path to use
+		let filePath: string;
+		let baseDir: string;
+		
+		if (existsSync(staticFilePath)) {
+			filePath = staticFilePath;
+			baseDir = staticUploadsDir;
+		} else if (existsSync(uploadsFilePath)) {
+			filePath = uploadsFilePath;
+			baseDir = uploadsDir;
+		} else {
+			logger.debug(`File not found in either location`);
+			throw error(404, 'File not found');
+		}
 
 		// Security check: ensure the file is within the uploads directory
 		const normalizedFilePath = path.normalize(filePath);
-		const normalizedUploadsDir = path.normalize(uploadsDir);
+		const normalizedBaseDir = path.normalize(baseDir);
 
-		if (!normalizedFilePath.startsWith(normalizedUploadsDir)) {
+		if (!normalizedFilePath.startsWith(normalizedBaseDir)) {
 			throw error(403, 'Access denied');
-		}
-
-		// Check if file exists
-		if (!existsSync(filePath)) {
-			logger.debug(`File not found: ${filePath}`);
-			throw error(404, 'File not found');
 		}
 
 		// Read the file
@@ -79,7 +92,11 @@ export const GET: RequestHandler = async ({ params }) => {
 			}
 		});
 	} catch (err) {
-		logger.error('Error serving uploaded file');
+		const errorMsg = err instanceof Error ? err.message : String(err);
+		logger.error(`Error serving uploaded file: ${errorMsg}`);
+		if (err instanceof Error && err.stack) {
+			logger.debug(`Stack trace: ${err.stack}`);
+		}
 
 		if (err instanceof Error) {
 			if (err.message.includes('404')) {
