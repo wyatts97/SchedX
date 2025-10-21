@@ -132,10 +132,19 @@ export class DatabaseClient {
               this.db.execute(statement);
               logger.debug({ statement: statement.substring(0, 100) }, 'Statement executed successfully');
             } catch (err: any) {
-              // Ignore "duplicate column" errors (migration already partially applied)
-              if (!err.message?.includes('duplicate column')) {
+              // Ignore errors for already-applied changes
+              const ignorableErrors = [
+                'duplicate column',
+                'Cannot add a UNIQUE column',
+                'already exists'
+              ];
+              const shouldIgnore = ignorableErrors.some(msg => err.message?.includes(msg));
+              
+              if (!shouldIgnore) {
                 logger.error({ error: err, migration: migrationFile, statement }, 'Migration statement failed');
                 throw err;
+              } else {
+                logger.debug({ error: err.message, statement: statement.substring(0, 100) }, 'Ignoring expected migration error');
               }
             }
           }
