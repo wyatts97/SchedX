@@ -83,9 +83,11 @@ export const POST: RequestHandler = userRateLimit({
 			}
 		);
 	} catch (error) {
-		log.error('AI generation error', {
-			error: error instanceof Error ? error.message : String(error)
-		});
+		const errorMsg = error instanceof Error ? error.message : String(error);
+		log.error(`AI generation error: ${errorMsg}`);
+		if (error instanceof Error && error.stack) {
+			log.debug(`Stack trace: ${error.stack}`);
+		}
 
 		const errorMessage = error instanceof Error ? error.message : 'Failed to generate tweet';
 
