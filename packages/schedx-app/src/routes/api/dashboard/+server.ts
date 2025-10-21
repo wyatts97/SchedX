@@ -12,8 +12,8 @@ export const GET: RequestHandler = async ({ cookies }) => {
 
 	try {
 		const db = getDbInstance();
-		const user = await (db as any).getAdminUserByUsername('admin');
-		if (!user) {
+		const session = await db.getSession(adminSession);
+		if (!session || !session.data?.user) {
 			return json({ error: 'Unauthorized' }, { status: 401 });
 		}
 
