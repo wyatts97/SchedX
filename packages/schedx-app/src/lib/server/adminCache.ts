@@ -29,7 +29,8 @@ export async function getAdminUserId(): Promise<string | null> {
   // Cache miss or expired - fetch from database
   try {
     const db = getDbInstance();
-    const user = await (db as any).getAdminUserByUsername('');
+    // Get any admin user (not by username)
+    const user = db['db'].prepare('SELECT id, username FROM users WHERE role = ? LIMIT 1').get('admin') as { id: string; username: string } | undefined;
     
     if (user) {
       cachedAdmin = {
@@ -59,7 +60,8 @@ export async function getAdminUser(): Promise<any | null> {
   // If we need the full user object, fetch it
   // (This is less common, so we don't cache the full object)
   const db = getDbInstance();
-  return await (db as any).getAdminUserByUsername('');
+  const user = db['db'].prepare('SELECT * FROM users WHERE role = ? LIMIT 1').get('admin');
+  return user || null;
 }
 
 /**
