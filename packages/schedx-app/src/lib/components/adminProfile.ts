@@ -4,12 +4,14 @@ export type AdminProfile = {
 	username: string;
 	email: string;
 	avatar: string;
+	displayName?: string;
 };
 
 export const adminProfile = writable<AdminProfile>({
 	username: '',
 	email: '',
-	avatar: '/avatar.png'
+	avatar: '/avatar.png',
+	displayName: ''
 });
 
 export async function fetchAdminProfile() {
@@ -20,13 +22,15 @@ export async function fetchAdminProfile() {
 			adminProfile.set({
 				username: data.profile.username ?? '',
 				email: data.profile.email ?? '',
-				avatar: data.profile.avatar ?? '/avatar.png'
+				avatar: data.profile.avatar ?? '/avatar.png',
+				displayName: data.profile.displayName ?? ''
 			});
 		} else {
 			adminProfile.set({
 				username: '',
 				email: '',
-				avatar: '/avatar.png'
+				avatar: '/avatar.png',
+				displayName: ''
 			});
 		}
 	} catch (error) {
@@ -34,7 +38,8 @@ export async function fetchAdminProfile() {
 		adminProfile.set({
 			username: '',
 			email: '',
-			avatar: '/avatar.png'
+			avatar: '/avatar.png',
+			displayName: ''
 		});
 	}
 }

@@ -83,7 +83,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			url: `/uploads/${originalFilename}`
 		});
 	} catch (error) {
-		logger.error('Error updating media file:', error instanceof Error ? { error: error.message } : { error: String(error) });
+		logger.error(`Error updating media file: ${error instanceof Error ? error.message : String(error)}`);
 		return json({ error: 'Failed to update media file' }, { status: 500 });
 	}
 };

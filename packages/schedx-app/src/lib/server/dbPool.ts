@@ -66,7 +66,7 @@ class DatabasePool {
 
 			logger.info('Establishing database connection');
 
-			this.client = new MongoClient(config.MONGODB_URI, options);
+			this.client = new MongoClient(config.DATABASE_PATH, options);
 
 			// Add event listeners for monitoring
 			this.client.on('connectionPoolCreated', () => {

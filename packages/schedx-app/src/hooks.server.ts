@@ -114,13 +114,18 @@ const corsHandle: Handle = async ({ event, resolve }) => {
  */
 const rateLimitHandle: Handle = async ({ event, resolve }) => {
 	const path = event.url.pathname;
-	
+
+	// Bypass rate limiting for login endpoint (handled separately if needed)
+	if (path === '/api/login') {
+		return resolve(event);
+	}
+
 	// Apply rate limiting to API routes
 	if (path.startsWith('/api/')) {
 		const identifier = getRateLimitIdentifier(event.request, event.locals.user?.id);
 		
-		// Use stricter rate limiting for auth endpoints
-		const limiter = path.startsWith('/api/auth') || path.startsWith('/api/login')
+		// Use stricter rate limiting for auth endpoints (exclude /api/login)
+		const limiter = path.startsWith('/api/auth')
 			? authRateLimiter
 			: apiRateLimiter;
 		

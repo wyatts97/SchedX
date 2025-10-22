@@ -2,7 +2,9 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
 	import { X } from 'lucide-svelte';
-	import logger from '$lib/logger';
+	import logger from '$lib/server/logger';
+
+	let filerobotImageEditor: import('react-filerobot-image-editor').default | null = null;
 
 	export let open = false;
 	export let imageUrl = '';
@@ -10,7 +12,7 @@
 	export let onSave: ((editedImageBlob: Blob, filename: string) => Promise<void>) | null = null;
 
 	let editorContainer: HTMLDivElement;
-	let filerobotImageEditor: any;
+
 	let saving = false;
 
 	function closeEditor() {
@@ -25,18 +27,13 @@
 		if (!browser || !open || !imageUrl || !editorContainer) return;
 
 		try {
-			// Dynamically import the Filerobot Image Editor
-			const { default: FilerobotImageEditor, TABS, TOOLS } = await import(
-				'react-filerobot-image-editor'
-			);
+			const Filerobot = await import('react-filerobot-image-editor');
 
-			// Clean up any existing editor instance
 			if (filerobotImageEditor) {
 				filerobotImageEditor.terminate();
 			}
 
-			// Initialize the editor
-			filerobotImageEditor = new FilerobotImageEditor(editorContainer, {
+			filerobotImageEditor = new Filerobot.default(editorContainer, {
 				source: imageUrl,
 				onSave: async (editedImageObject: any, designState: any) => {
 					try {
@@ -54,7 +51,7 @@
 
 						closeEditor();
 					} catch (error) {
-						logger.error('Error saving edited image:', error instanceof Error ? { error: error.message } : { error: String(error) });
+						logger.error(`Error saving edited image: ${error instanceof Error ? error.message : String(error)}`);
 						alert('Failed to save edited image. Please try again.');
 					} finally {
 						saving = false;
@@ -106,14 +103,14 @@
 						}
 					]
 				},
-				tabsIds: [TABS.ADJUST, TABS.ANNOTATE, TABS.FILTERS, TABS.FINETUNE, TABS.RESIZE],
-				defaultTabId: TABS.ANNOTATE,
-				defaultToolId: TOOLS.TEXT
+				tabsIds: [Filerobot.TABS.ADJUST, Filerobot.TABS.ANNOTATE, Filerobot.TABS.FILTERS, Filerobot.TABS.FINETUNE, Filerobot.TABS.RESIZE],
+				defaultTabId: Filerobot.TABS.ANNOTATE,
+				defaultToolId: Filerobot.TOOLS.TEXT
 			});
 
 			logger.info('Image editor initialized successfully');
 		} catch (error) {
-			logger.error('Error initializing image editor:', error instanceof Error ? { error: error.message } : { error: String(error) });
+			logger.error(`Editor initialization failed: ${error instanceof Error ? error.message : String(error)}`);
 			alert('Failed to load image editor. Please try again.');
 		}
 	}

@@ -22,6 +22,11 @@ export function getDbInstance(): DatabaseClient {
 	return dbInstance;
 }
 
+export function getRawDbInstance() {
+	const db = getDbInstance();
+	return (db as any).db;
+}
+
 export const initializeDatabase = async (): Promise<DatabaseClient> => {
 	const db = getDbInstance();
 	await db.connect();

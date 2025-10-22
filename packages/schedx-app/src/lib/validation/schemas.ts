@@ -127,8 +127,9 @@ export const loginSchema = z.object({
         .min(1, 'Username is required')
         .max(50, 'Username must be less than 50 characters')
         .regex(/^[a-zA-Z0-9_.-]+$/, 'Username can only contain letters, numbers, dots, underscores, and hyphens'),
-    password: passwordSchema,
-    // Add requestId for better traceability
+    // Do NOT enforce complexity at login; only require a non-empty password
+    password: z.string().min(1, 'Password is required'),
+    // Optional requestId for traceability
     requestId: z.string().uuid().optional()
 });
 
