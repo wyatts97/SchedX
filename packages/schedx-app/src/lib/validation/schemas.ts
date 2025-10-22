@@ -109,9 +109,27 @@ export const adminUserSchema = z.object({
 	avatar: urlSchema.optional()
 });
 
+// Password requirements:
+// - At least 8 characters
+// - At least one uppercase letter
+// - At least one lowercase letter
+// - At least one number
+// - At least one special character
+const passwordSchema = z.string()
+    .min(8, 'Password must be at least 8 characters long')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+    .regex(/[0-9]/, 'Password must contain at least one number')
+    .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character');
+
 export const loginSchema = z.object({
-	username: z.string().min(1, 'Username is required'),
-	password: z.string().min(1, 'Password is required')
+    username: z.string()
+        .min(1, 'Username is required')
+        .max(50, 'Username must be less than 50 characters')
+        .regex(/^[a-zA-Z0-9_.-]+$/, 'Username can only contain letters, numbers, dots, underscores, and hyphens'),
+    password: passwordSchema,
+    // Add requestId for better traceability
+    requestId: z.string().uuid().optional()
 });
 
 export type LoginData = z.infer<typeof loginSchema>;
