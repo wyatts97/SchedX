@@ -1,6 +1,13 @@
 # Stage 1: Build all packages
 FROM node:22-bullseye-slim AS builder
 
+# Install system dependencies for node-llama-cpp
+RUN apt-get update && apt-get install -y \
+    git \
+    build-essential \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 # Copy root package files and all workspace package.jsons
@@ -33,6 +40,11 @@ fi
 
 # Stage 2: Production image
 FROM node:22-bullseye-slim
+
+# Runtime dependencies
+RUN apt-get update && apt-get install -y \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user for security
 RUN groupadd -r schedx && useradd -r -g schedx schedx
