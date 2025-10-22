@@ -6,6 +6,17 @@ import { createValidationMiddleware } from '$lib/validation/middleware';
 import { loginSchema, type LoginData } from '$lib/validation/schemas';
 import { ipRateLimit, RATE_LIMITS } from '$lib/rate-limiting';
 
+export const OPTIONS = () => {
+    return new Response(null, {
+        headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'POST, OPTIONS',
+            'Access-Control-Allow-Credentials': 'false',
+            'Access-Control-Max-Age': '600'
+        }
+    });
+};
+
 export const POST = ipRateLimit(RATE_LIMITS.login)(
 	createValidationMiddleware(loginSchema)(async (data: LoginData, { cookies }) => {
 		try {
@@ -14,7 +25,15 @@ export const POST = ipRateLimit(RATE_LIMITS.login)(
 
 			if (result.error) {
 				logger.warn('Login failed', { username: data.username, error: result.error });
-				return json({ error: result.error }, { status: 401 });
+				return json({ error: result.error }, { 
+					status: 401,
+					headers: {
+						'Access-Control-Allow-Origin': '*',
+						'Access-Control-Allow-Methods': 'POST, OPTIONS',
+						'Access-Control-Allow-Credentials': 'false',
+						'Access-Control-Max-Age': '600'
+					}
+				});
 			}
 
 			logger.info('Login successful', { username: data.username });
@@ -30,10 +49,25 @@ export const POST = ipRateLimit(RATE_LIMITS.login)(
 				maxAge: 8 * 60 * 60 // 8 hours instead of 30 days
 			});
 
-			return json({ success: true });
+			return json({ success: true }, {
+				headers: {
+					'Access-Control-Allow-Origin': '*',
+					'Access-Control-Allow-Methods': 'POST, OPTIONS',
+					'Access-Control-Allow-Credentials': 'false',
+					'Access-Control-Max-Age': '600'
+				}
+			});
 		} catch (error) {
 			logger.error('Login error', { error });
-			return json({ error: 'Internal server error' }, { status: 500 });
+			return json({ error: 'Internal server error' }, { 
+				status: 500,
+				headers: {
+					'Access-Control-Allow-Origin': '*',
+					'Access-Control-Allow-Methods': 'POST, OPTIONS',
+					'Access-Control-Allow-Credentials': 'false',
+					'Access-Control-Max-Age': '600'
+				}
+			});
 		}
 	})
 );
