@@ -203,7 +203,7 @@
 
 					<!-- Avatar Upload -->
 					<div class="mb-6">
-						<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3" for="avatar-upload">
 							Profile Avatar
 						</label>
 						<div class="flex items-center gap-4">
