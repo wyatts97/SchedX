@@ -2,7 +2,6 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
 	import { X } from 'lucide-svelte';
-	import logger from '$lib/server/logger';
 
 	let filerobotImageEditor: import('react-filerobot-image-editor').default | null = null;
 
@@ -38,7 +37,7 @@
 				onSave: async (editedImageObject: any, designState: any) => {
 					try {
 						saving = true;
-						logger.info('Image edited, saving...');
+						console.log('Image edited, saving...');
 
 						// Convert the edited image to a Blob
 						const response = await fetch(editedImageObject.imageBase64);
@@ -51,7 +50,7 @@
 
 						closeEditor();
 					} catch (error) {
-						logger.error(`Error saving edited image: ${error instanceof Error ? error.message : String(error)}`);
+						console.error(`Error saving edited image: ${error instanceof Error ? error.message : String(error)}`);
 						alert('Failed to save edited image. Please try again.');
 					} finally {
 						saving = false;
@@ -108,9 +107,9 @@
 				defaultToolId: Filerobot.TOOLS.TEXT
 			});
 
-			logger.info('Image editor initialized successfully');
+			console.log('Image editor initialized successfully');
 		} catch (error) {
-			logger.error(`Editor initialization failed: ${error instanceof Error ? error.message : String(error)}`);
+			console.error(`Editor initialization failed: ${error instanceof Error ? error.message : String(error)}`);
 			alert('Failed to load image editor. Please try again.');
 		}
 	}
