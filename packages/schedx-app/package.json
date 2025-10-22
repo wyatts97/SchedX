@@ -37,7 +37,6 @@
 	"dependencies": {
 		"@schedx/shared-lib": "*",
 		"autoprefixer": "^10.4.21",
-
 		"bcrypt": "^5.1.1",
 		"date-fns-tz": "^3.2.0",
 		"emoji-picker-element": "^1.26.3",
@@ -47,6 +46,7 @@
 		"pino-pretty": "^13.0.0",
 		"postcss": "^8.5.6",
 		"preline": "^3.1.0",
+		"react-filerobot-image-editor": "^4.9.1",
 		"socks": "^2.8.6",
 		"twitter-api-v2": "^1.24.0",
 		"zod": "^3.22.4"
