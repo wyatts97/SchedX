@@ -14,7 +14,12 @@ const config = {
 		adapter: adapter({
 			// Increase body size limit for file uploads
 			bodySizeLimit: parseInt(process.env.BODY_SIZE_LIMIT) || 20485760
-		})
+		}),
+		csrf: {
+			// Disable CSRF origin check for Docker/self-hosted deployments
+			// This allows access from local network IPs
+			checkOrigin: false
+		}
 	}
 };
 

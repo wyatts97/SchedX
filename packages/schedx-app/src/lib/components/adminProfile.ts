@@ -4,7 +4,6 @@ export type AdminProfile = {
 	username: string;
 	email: string;
 	avatar: string;
-	displayName?: string;
 };
 
 export const adminProfile = writable<AdminProfile>({
@@ -21,8 +20,7 @@ export async function fetchAdminProfile() {
 			adminProfile.set({
 				username: data.profile.username ?? '',
 				email: data.profile.email ?? '',
-				avatar: data.profile.avatar ?? '/avatar.png',
-				displayName: data.profile.displayName ?? data.profile.username ?? ''
+				avatar: data.profile.avatar ?? '/avatar.png'
 			});
 		} else {
 			adminProfile.set({

@@ -36,7 +36,7 @@
 			}
 
 			// Initialize the editor
-			filerobotImageEditor = new (FilerobotImageEditor as any)(editorContainer, {
+			filerobotImageEditor = new FilerobotImageEditor(editorContainer, {
 				source: imageUrl,
 				onSave: async (editedImageObject: any, designState: any) => {
 					try {

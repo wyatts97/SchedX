@@ -187,9 +187,7 @@
 									muted
 									playsinline
 									preload="metadata"
-								>
-									<track kind="captions" />
-								</video>
+								/>
 							{:else}
 								<img
 									class="absolute inset-y-0 right-0 h-full w-32 rounded-e-lg object-cover sm:w-48"
@@ -292,10 +290,6 @@
 	<div
 		class="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 backdrop-blur-sm transition-opacity duration-200"
 		on:click={closeImageModal}
-		on:keydown={(e) => e.key === 'Escape' && closeImageModal()}
-		role="dialog"
-		aria-modal="true"
-		tabindex="-1"
 	>
 		<div
 			class="relative max-h-[90vh] max-w-[90vw] overflow-hidden rounded-lg bg-white dark:bg-gray-900"
@@ -312,7 +306,7 @@
 			<!-- Image -->
 			<img
 				src={modalImageUrl}
-				alt="Tweet media preview"
+				alt="Full size image"
 				class="max-h-[90vh] max-w-[90vw] object-contain"
 			/>
 		</div>
