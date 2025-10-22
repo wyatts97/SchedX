@@ -11,6 +11,9 @@ RUN apt-get update && apt-get install -y \
 # Use prebuilt binaries to skip compilation
 ENV NODE_LLAMA_CPP_SKIP_DOWNLOAD=true
 
+# Limit memory usage during build
+ENV NODE_OPTIONS="--max-old-space-size=2048"
+
 WORKDIR /app
 
 # Copy root package files and all workspace package.jsons
@@ -18,6 +21,9 @@ COPY package.json package-lock.json ./
 COPY packages/schedx-app/package.json ./packages/schedx-app/
 COPY packages/schedx-shared-lib/package.json ./packages/schedx-shared-lib/
 COPY packages/schedx-scheduler/package.json ./packages/schedx-scheduler/
+
+# Build with fewer parallel processes
+RUN npm config set maxsockets 1
 
 # Install all dependencies (for all workspaces)
 RUN npm ci
