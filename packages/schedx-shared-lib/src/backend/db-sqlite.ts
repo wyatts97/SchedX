@@ -1950,4 +1950,182 @@ export class DatabaseClient {
       [id, userId]
     );
   }
+
+  // ============================================
+  // AI USAGE TRACKING METHODS
+  // ============================================
+
+  async trackAIUsage(data: {
+    userId: string;
+    model: string;
+    promptTokens?: number;
+    completionTokens?: number;
+    totalTokens?: number;
+    cached?: boolean;
+    success?: boolean;
+    errorMessage?: string;
+  }): Promise<void> {
+    const id = crypto.randomUUID();
+    const now = Date.now();
+    
+    this.db.execute(
+      `INSERT INTO ai_usage (
+        id, userId, model, promptTokens, completionTokens, totalTokens,
+        cached, success, errorMessage, createdAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        data.userId,
+        data.model,
+        data.promptTokens || 0,
+        data.completionTokens || 0,
+        data.totalTokens || 0,
+        data.cached ? 1 : 0,
+        data.success !== false ? 1 : 0,
+        data.errorMessage || null,
+        now
+      ]
+    );
+    
+    logger.debug({ userId: data.userId, model: data.model }, 'AI usage tracked');
+  }
+
+  async getAIUsageStats(userId: string, timeframe: 'day' | 'week' | 'month' = 'month'): Promise<{
+    totalRequests: number;
+    successfulRequests: number;
+    cachedRequests: number;
+    totalTokens: number;
+    byModel: Record<string, number>;
+  }> {
+    const now = Date.now();
+    const timeframes = {
+      day: 24 * 60 * 60 * 1000,
+      week: 7 * 24 * 60 * 60 * 1000,
+      month: 30 * 24 * 60 * 60 * 1000
+    };
+    const since = now - timeframes[timeframe];
+    
+    const usage = this.db.query<any>(
+      `SELECT model, COUNT(*) as count, SUM(totalTokens) as tokens, 
+              SUM(cached) as cached, SUM(success) as successful
+       FROM ai_usage
+       WHERE userId = ? AND createdAt >= ?
+       GROUP BY model`,
+      [userId, since]
+    );
+    
+    const stats = {
+      totalRequests: 0,
+      successfulRequests: 0,
+      cachedRequests: 0,
+      totalTokens: 0,
+      byModel: {} as Record<string, number>
+    };
+    
+    for (const row of usage) {
+      stats.totalRequests += row.count;
+      stats.successfulRequests += row.successful || 0;
+      stats.cachedRequests += row.cached || 0;
+      stats.totalTokens += row.tokens || 0;
+      stats.byModel[row.model] = row.count;
+    }
+    
+    return stats;
+  }
+
+  // ============================================
+  // MULTIPLE API KEYS METHODS
+  // ============================================
+
+  async getOpenRouterApiKeys(userId: string): Promise<Array<{
+    id: string;
+    userId: string;
+    apiKey: string;
+    label: string | null;
+    isActive: boolean;
+    lastUsed: Date | null;
+    totalRequests: number;
+    failedRequests: number;
+    createdAt: Date;
+    updatedAt: Date;
+  }>> {
+    const keys = this.db.query<any>(
+      `SELECT * FROM openrouter_api_keys 
+       WHERE userId = ? AND isActive = 1
+       ORDER BY lastUsed DESC NULLS LAST`,
+      [userId]
+    );
+    
+    return keys.map(k => ({
+      id: k.id,
+      userId: k.userId,
+      apiKey: this.encryptionService.decrypt(k.apiKey),
+      label: k.label,
+      isActive: Boolean(k.isActive),
+      lastUsed: k.lastUsed ? new Date(k.lastUsed) : null,
+      totalRequests: k.totalRequests || 0,
+      failedRequests: k.failedRequests || 0,
+      createdAt: new Date(k.createdAt),
+      updatedAt: new Date(k.updatedAt)
+    }));
+  }
+
+  async addOpenRouterApiKey(data: {
+    userId: string;
+    apiKey: string;
+    label?: string;
+  }): Promise<string> {
+    const id = crypto.randomUUID();
+    const now = Date.now();
+    const encryptedApiKey = this.encryptionService.encrypt(data.apiKey);
+    
+    this.db.execute(
+      `INSERT INTO openrouter_api_keys (
+        id, userId, apiKey, label, isActive, totalRequests, failedRequests,
+        createdAt, updatedAt
+      ) VALUES (?, ?, ?, ?, 1, 0, 0, ?, ?)`,
+      [id, data.userId, encryptedApiKey, data.label || null, now, now]
+    );
+    
+    logger.info({ userId: data.userId, keyId: id }, 'OpenRouter API key added');
+    return id;
+  }
+
+  async updateApiKeyUsage(keyId: string, success: boolean): Promise<void> {
+    const now = Date.now();
+    
+    if (success) {
+      this.db.execute(
+        `UPDATE openrouter_api_keys 
+         SET lastUsed = ?, totalRequests = totalRequests + 1, updatedAt = ?
+         WHERE id = ?`,
+        [now, now, keyId]
+      );
+    } else {
+      this.db.execute(
+        `UPDATE openrouter_api_keys 
+         SET failedRequests = failedRequests + 1, updatedAt = ?
+         WHERE id = ?`,
+        [now, keyId]
+      );
+    }
+  }
+
+  async deleteOpenRouterApiKey(keyId: string, userId: string): Promise<void> {
+    this.db.execute(
+      'DELETE FROM openrouter_api_keys WHERE id = ? AND userId = ?',
+      [keyId, userId]
+    );
+    logger.info({ userId, keyId }, 'OpenRouter API key deleted');
+  }
+
+  async toggleApiKeyStatus(keyId: string, userId: string, isActive: boolean): Promise<void> {
+    const now = Date.now();
+    this.db.execute(
+      `UPDATE openrouter_api_keys 
+       SET isActive = ?, updatedAt = ?
+       WHERE id = ? AND userId = ?`,
+      [isActive ? 1 : 0, now, keyId, userId]
+    );
+  }
 }

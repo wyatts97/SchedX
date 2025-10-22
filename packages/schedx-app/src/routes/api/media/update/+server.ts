@@ -23,7 +23,7 @@ function loadMediaMetadata(): Record<string, any> {
 		const data = readFile(MEDIA_METADATA_FILE, 'utf8');
 		return JSON.parse(data.toString());
 	} catch (error) {
-		logger.error('Error loading media metadata');
+		logger.error({ error }, 'Error loading media metadata');
 		return {};
 	}
 }
@@ -33,7 +33,7 @@ async function saveMediaMetadata(metadata: Record<string, any>): Promise<void> {
 	try {
 		await writeFile(MEDIA_METADATA_FILE, JSON.stringify(metadata, null, 2));
 	} catch (error) {
-		logger.error('Error saving media metadata');
+		logger.error({ error }, 'Error saving media metadata');
 		throw error;
 	}
 }
@@ -83,7 +83,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			url: `/uploads/${originalFilename}`
 		});
 	} catch (error) {
-		logger.error('Error updating media file:', error instanceof Error ? { error: error.message } : { error: String(error) });
+		logger.error({ error: error instanceof Error ? error.message : String(error) }, 'Error updating media file');
 		return json({ error: 'Failed to update media file' }, { status: 500 });
 	}
 };

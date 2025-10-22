@@ -32,6 +32,8 @@
 	let showSavedPrompts = false;
 	let saving = false;
 	let isSaved = false;
+	let usageStats: any = null;
+	let loadingStats = false;
 
 	const toneOptions = [
 		{ value: 'casual', label: 'Casual', emoji: '💬' },
@@ -47,6 +49,21 @@
 		{ value: 'long', label: 'Long', desc: '~280 chars' }
 	];
 
+	async function loadUsageStats() {
+		loadingStats = true;
+		try {
+			const response = await fetch('/api/ai/usage?timeframe=month');
+			if (response.ok) {
+				const data = await response.json();
+				usageStats = data.stats;
+			}
+		} catch (error) {
+			console.error('Failed to load usage stats:', error);
+		} finally {
+			loadingStats = false;
+		}
+	}
+
 	async function generate() {
 		if (!prompt.trim()) return;
 
@@ -54,6 +71,12 @@
 
 		// Add to history
 		await addToHistory();
+		
+		// Refresh usage stats after generation
+		const refreshStats = async () => {
+			await new Promise(resolve => setTimeout(resolve, 500));
+			await loadUsageStats();
+		};
 
 		try {
 			// Call backend API endpoint that uses OpenRouter
@@ -85,11 +108,19 @@
 			// Clean and validate the tweet
 			generatedTweet = cleanTweet(generatedText, length);
 			showResult = true;
+			
+			// Refresh usage stats
+			refreshStats();
 		} catch (error) {
 			toastStore.error(error instanceof Error ? error.message : 'Failed to generate tweet');
-		} finally {
+	} finally {
 			generating = false;
 		}
+	}
+	
+	// Load usage stats when component opens
+	$: if (show && !usageStats && !loadingStats) {
+		loadUsageStats();
 	}
 
 	function buildSystemPrompt(tone: TweetTone, length: TweetLength): string {
@@ -326,6 +357,21 @@
 							<br/>
 							<span class="text-xs opacity-75">Powered by OpenRouter • Multiple AI Models</span>
 						</div>
+						
+						<!-- Usage Stats Banner -->
+						{#if usageStats}
+							<div class="mt-3 rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-800/50">
+								<div class="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400">
+									<div class="flex items-center gap-3">
+										<span>📊 This month: <strong class="text-gray-900 dark:text-white">{usageStats.totalRequests}</strong> generations</span>
+										{#if usageStats.cachedRequests > 0}
+											<span class="text-green-600 dark:text-green-400">⚡ {usageStats.cachedRequests} from cache</span>
+										{/if}
+									</div>
+									<span class="text-gray-500">{Math.round((usageStats.successfulRequests / usageStats.totalRequests) * 100)}% success</span>
+								</div>
+							</div>
+						{/if}
 					</div>
 				{:else}
 					<!-- Generated Result -->

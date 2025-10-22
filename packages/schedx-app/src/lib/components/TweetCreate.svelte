@@ -25,7 +25,8 @@
 	export let initialDate = '';
 	export let mode: 'create' | 'edit' | 'schedule' = 'create';
 	export let tweetId: string | null = null;
-	export let loading = false;
+	// eslint-disable-next-line no-unused-vars
+	export const loading = false; // External reference only
 	export let maxUploadSize: number = 52428800; // fallback to 50MB
 	let maxUploadMB = (maxUploadSize / (1024 * 1024)).toFixed(0);
 

@@ -16,7 +16,8 @@
 	import logger from '$lib/logger';
 	import { toastStore } from '$lib/stores/toastStore';
 
-	export let data: PageData;
+	// eslint-disable-next-line no-unused-vars
+	export const data: PageData = {} as PageData; // External reference only
 
 	let loading = false;
 	let error = '';
