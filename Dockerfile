@@ -1,5 +1,5 @@
 # Stage 1: Build all packages
-FROM node:22-bullseye-slim AS builder
+FROM node:22-bookworm-slim AS builder
 
 # Install only essential build tools
 RUN apt-get update && apt-get install -y \
@@ -42,7 +42,7 @@ RUN if [ "$USE_LOCAL_AI" = "true" ]; then \
 fi
 
 # Stage 2: Production image
-FROM node:22-bullseye-slim
+FROM node:22-bookworm-slim
 
 # Runtime dependencies
 RUN apt-get update && apt-get install -y \
