@@ -24,12 +24,7 @@ export const GET: RequestHandler = async ({ cookies }) => {
 		const userId = session.data.user.id;
 
 		// Fetch saved prompts ordered by most recently created
-		const prompts = db['db'].prepare(`
-			SELECT id, prompt, tone, length, usageCount, createdAt, updatedAt
-			FROM saved_prompts
-			WHERE userId = ?
-			ORDER BY createdAt DESC
-		`).all(userId);
+		const prompts = (db as any).getSavedPrompts(userId);
 
 		return json({ prompts });
 	} catch (error) {
@@ -63,21 +58,16 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		}
 
 		// Check if user has reached the limit
-		const count = db['db'].prepare(`
-			SELECT COUNT(*) as count FROM saved_prompts WHERE userId = ?
-		`).get(userId) as { count: number };
+		const count = (db as any).getSavedPromptsCount(userId);
 
-		if (count.count >= MAX_SAVED_PROMPTS) {
+		if (count >= MAX_SAVED_PROMPTS) {
 			return json({ 
 				error: `Maximum of ${MAX_SAVED_PROMPTS} saved prompts reached. Please delete some to save new ones.` 
 			}, { status: 400 });
 		}
 
 		// Check for duplicates
-		const existing = db['db'].prepare(`
-			SELECT id FROM saved_prompts 
-			WHERE userId = ? AND prompt = ? AND tone = ? AND length = ?
-		`).get(userId, prompt.trim(), tone || null, length || null);
+		const existing = (db as any).findSavedPrompt(userId, prompt.trim(), tone || null, length || null);
 
 		if (existing) {
 			return json({ error: 'This prompt is already saved' }, { status: 400 });
@@ -87,10 +77,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		const id = crypto.randomUUID();
 		const now = Date.now();
 
-		db['db'].prepare(`
-			INSERT INTO saved_prompts (id, userId, prompt, tone, length, usageCount, createdAt, updatedAt)
-			VALUES (?, ?, ?, ?, ?, 0, ?, ?)
-		`).run(id, userId, prompt.trim(), tone || null, length || null, now, now);
+		(db as any).saveSavedPrompt(id, userId, prompt.trim(), tone || null, length || null, now);
 
 		logger.info(`Saved prompt for user ${userId}`);
 
@@ -129,9 +116,7 @@ export const DELETE: RequestHandler = async ({ request, cookies }) => {
 		}
 
 		// Delete the prompt (only if it belongs to the user)
-		db['db'].prepare(`
-			DELETE FROM saved_prompts WHERE id = ? AND userId = ?
-		`).run(id, userId);
+		(db as any).deleteSavedPrompt(id, userId);
 
 		logger.info(`Deleted saved prompt ${id} for user ${userId}`);
 

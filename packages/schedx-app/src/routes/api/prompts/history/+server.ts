@@ -24,13 +24,7 @@ export const GET: RequestHandler = async ({ cookies }) => {
 		const userId = session.data.user.id;
 
 		// Fetch history ordered by most recent
-		const history = db['db'].prepare(`
-			SELECT id, prompt, tone, length, createdAt
-			FROM prompt_history
-			WHERE userId = ?
-			ORDER BY createdAt DESC
-			LIMIT ${MAX_HISTORY}
-		`).all(userId);
+		const history = (db as any).getPromptHistory(userId, MAX_HISTORY);
 
 		return json({ history });
 	} catch (error) {
@@ -67,25 +61,10 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		const id = crypto.randomUUID();
 		const now = Date.now();
 
-		db['db'].prepare(`
-			INSERT INTO prompt_history (id, userId, prompt, tone, length, createdAt)
-			VALUES (?, ?, ?, ?, ?, ?)
-		`).run(id, userId, prompt.trim(), tone || null, length || null, now);
+		(db as any).addPromptHistory(id, userId, prompt.trim(), tone || null, length || null, now);
 
 		// Keep only the last 10 entries
-		const allHistory = db['db'].prepare(`
-			SELECT id FROM prompt_history
-			WHERE userId = ?
-			ORDER BY createdAt DESC
-		`).all(userId) as Array<{ id: string }>;
-
-		if (allHistory.length > MAX_HISTORY) {
-			const toDelete = allHistory.slice(MAX_HISTORY).map(h => h.id);
-			const placeholders = toDelete.map(() => '?').join(',');
-			db['db'].prepare(`
-				DELETE FROM prompt_history WHERE id IN (${placeholders})
-			`).run(...toDelete);
-		}
+		(db as any).deleteOldPromptHistory(userId, MAX_HISTORY);
 
 		return json({ success: true });
 	} catch (error) {

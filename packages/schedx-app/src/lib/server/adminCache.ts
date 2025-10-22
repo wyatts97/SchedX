@@ -30,7 +30,7 @@ export async function getAdminUserId(): Promise<string | null> {
   try {
     const db = getDbInstance();
     // Get any admin user (not by username)
-    const user = db['db'].prepare('SELECT id, username FROM users WHERE role = ? LIMIT 1').get('admin') as { id: string; username: string } | undefined;
+    const user = await (db as any).getFirstAdminUser();
     
     if (user) {
       cachedAdmin = {
@@ -60,7 +60,7 @@ export async function getAdminUser(): Promise<any | null> {
   // If we need the full user object, fetch it
   // (This is less common, so we don't cache the full object)
   const db = getDbInstance();
-  const user = db['db'].prepare('SELECT * FROM users WHERE role = ? LIMIT 1').get('admin');
+  const user = await (db as any).getFirstAdminUser();
   return user || null;
 }
 

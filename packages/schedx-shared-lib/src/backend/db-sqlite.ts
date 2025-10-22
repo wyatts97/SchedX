@@ -222,6 +222,14 @@ export class DatabaseClient {
     return result ? result.count > 0 : false;
   }
 
+  async getFirstAdminUser(): Promise<{ id: string; username: string } | null> {
+    const user = this.db.queryOne<{ id: string; username: string }>(
+      'SELECT id, username FROM users WHERE role = ? LIMIT 1',
+      ['admin']
+    );
+    return user || null;
+  }
+
   async getAdminUserByUsername(username: string): Promise<import('../types/types.js').AdminUser | null> {
     // Look up user by username (added in migration 008)
     const user = this.db.queryOne<any>(
@@ -1861,5 +1869,85 @@ export class DatabaseClient {
   async deleteResendSettings(userId: string): Promise<void> {
     this.db.execute('DELETE FROM resend_settings WHERE userId = ?', [userId]);
     logger.info({ userId }, 'Resend settings deleted');
+  }
+
+  // ============================================
+  // PROMPT MANAGEMENT METHODS
+  // ============================================
+
+  getSavedPrompts(userId: string) {
+    return this.db.query(
+      `SELECT id, prompt, tone, length, usageCount, createdAt, updatedAt
+       FROM saved_prompts
+       WHERE userId = ?
+       ORDER BY createdAt DESC`,
+      [userId]
+    );
+  }
+
+  getPromptHistory(userId: string, limit: number = 10) {
+    return this.db.query(
+      `SELECT id, prompt, tone, length, createdAt
+       FROM prompt_history
+       WHERE userId = ?
+       ORDER BY createdAt DESC
+       LIMIT ?`,
+      [userId, limit]
+    );
+  }
+
+  addPromptHistory(id: string, userId: string, prompt: string, tone: string | null, length: string | null, createdAt: number) {
+    this.db.execute(
+      `INSERT INTO prompt_history (id, userId, prompt, tone, length, createdAt)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [id, userId, prompt, tone, length, createdAt]
+    );
+  }
+
+  deleteOldPromptHistory(userId: string, keepCount: number) {
+    const allHistory = this.db.query<{ id: string }>(
+      `SELECT id FROM prompt_history WHERE userId = ? ORDER BY createdAt DESC`,
+      [userId]
+    );
+    
+    if (allHistory.length > keepCount) {
+      const toDelete = allHistory.slice(keepCount).map(h => h.id);
+      const placeholders = toDelete.map(() => '?').join(',');
+      this.db.execute(
+        `DELETE FROM prompt_history WHERE id IN (${placeholders})`,
+        toDelete
+      );
+    }
+  }
+
+  getSavedPromptsCount(userId: string): number {
+    const result = this.db.queryOne<{ count: number }>(
+      'SELECT COUNT(*) as count FROM saved_prompts WHERE userId = ?',
+      [userId]
+    );
+    return result?.count || 0;
+  }
+
+  findSavedPrompt(userId: string, prompt: string, tone: string | null, length: string | null) {
+    return this.db.queryOne(
+      `SELECT id FROM saved_prompts
+       WHERE userId = ? AND prompt = ? AND tone = ? AND length = ?`,
+      [userId, prompt, tone, length]
+    );
+  }
+
+  saveSavedPrompt(id: string, userId: string, prompt: string, tone: string | null, length: string | null, now: number) {
+    this.db.execute(
+      `INSERT INTO saved_prompts (id, userId, prompt, tone, length, usageCount, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, 0, ?, ?)`,
+      [id, userId, prompt, tone, length, now, now]
+    );
+  }
+
+  deleteSavedPrompt(id: string, userId: string) {
+    this.db.execute(
+      'DELETE FROM saved_prompts WHERE id = ? AND userId = ?',
+      [id, userId]
+    );
   }
 }
