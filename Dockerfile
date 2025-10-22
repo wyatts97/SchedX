@@ -1,12 +1,15 @@
 # Stage 1: Build all packages
 FROM node:22-bullseye-slim AS builder
 
-# Install system dependencies for node-llama-cpp
+# Install only essential build tools
 RUN apt-get update && apt-get install -y \
     git \
     build-essential \
     libgomp1 \
     && rm -rf /var/lib/apt/lists/*
+
+# Use prebuilt binaries to skip compilation
+ENV NODE_LLAMA_CPP_SKIP_DOWNLOAD=true
 
 WORKDIR /app
 
