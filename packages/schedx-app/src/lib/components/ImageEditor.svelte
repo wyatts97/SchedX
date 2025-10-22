@@ -26,13 +26,13 @@
 		if (!browser || !open || !imageUrl || !editorContainer) return;
 
 		try {
-			const Filerobot = await import('react-filerobot-image-editor');
+			const { default: Editor } = await import('react-filerobot-image-editor');
 
 			if (filerobotImageEditor) {
 				filerobotImageEditor.terminate();
 			}
 
-			filerobotImageEditor = new Filerobot.default(editorContainer, {
+			filerobotImageEditor = new Editor(editorContainer, {
 				source: imageUrl,
 				onSave: async (editedImageObject: any, designState: any) => {
 					try {
@@ -102,9 +102,9 @@
 						}
 					]
 				},
-				tabsIds: [Filerobot.TABS.ADJUST, Filerobot.TABS.ANNOTATE, Filerobot.TABS.FILTERS, Filerobot.TABS.FINETUNE, Filerobot.TABS.RESIZE],
-				defaultTabId: Filerobot.TABS.ANNOTATE,
-				defaultToolId: Filerobot.TOOLS.TEXT
+				tabsIds: ['Adjust', 'Annotate', 'Filters', 'FineTune', 'Resize'],
+				defaultTabId: 'Annotate',
+				defaultToolId: 'Text'
 			});
 
 			console.log('Image editor initialized successfully');
