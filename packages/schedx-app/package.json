@@ -12,7 +12,8 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --write .",
 		"lint": "prettier --check .",
-		"start": "node build"
+		"start": "node build",
+		"download-model": "mkdir -p static/models && wget -O static/models/tinyllama.gguf https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf"
 	},
 	"devDependencies": {
 		"@eslint/js": "^9.37.0",
@@ -42,6 +43,7 @@
 		"emoji-picker-element": "^1.26.3",
 		"lodash": "^4.17.21",
 		"lucide-svelte": "^0.344.0",
+		"node-llama-cpp": "^2.0.0",
 		"pino": "^9.7.0",
 		"pino-pretty": "^13.0.0",
 		"postcss": "^8.5.6",

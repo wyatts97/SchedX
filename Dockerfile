@@ -23,6 +23,14 @@ RUN echo "=== Verifying migrations were copied ===" && \
 RUN npm run build -w @schedx/app
 RUN npm run build -w @schedx/scheduler
 
+# Download TinyLlama model if enabled
+ARG USE_LOCAL_AI=true
+RUN if [ "$USE_LOCAL_AI" = "true" ]; then \
+    mkdir -p /app/static/models && \
+    curl -L https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf \
+    -o /app/static/models/tinyllama.gguf; \
+fi
+
 # Stage 2: Production image
 FROM node:22-bullseye-slim
 
@@ -36,10 +44,19 @@ COPY --from=builder --chown=schedx:schedx /app/package.json ./
 COPY --from=builder --chown=schedx:schedx /app/package-lock.json ./
 COPY --from=builder --chown=schedx:schedx /app/node_modules ./node_modules
 COPY --from=builder --chown=schedx:schedx /app/packages ./packages
+COPY --from=builder --chown=schedx:schedx /app/static/models ./static/models
 
 # Create uploads and data directories with correct ownership
-RUN mkdir -p /app/packages/schedx-app/uploads /data && \
+RUN mkdir -p /app/packages/schedx-app/uploads /data /app/static/models && \
     chown -R schedx:schedx /app/packages/schedx-app/uploads /data
+
+# Download TinyLlama model if enabled
+ARG USE_LOCAL_AI=true
+RUN if [ "$USE_LOCAL_AI" = "true" ]; then \
+    curl -L https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf \
+    -o /app/static/models/tinyllama.gguf && \
+    chown schedx:schedx /app/static/models/tinyllama.gguf; \
+fi
 
 # Switch to non-root user
 USER schedx

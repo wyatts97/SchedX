@@ -408,25 +408,25 @@
 				</div>
 			</a>
 
-			<!-- OpenRouter AI Card -->
+			<!-- Local AI Card -->
 			<a
-				href="/admin/settings/openrouter"
+				href="/admin/settings/local-ai"
 				class="block rounded-lg bg-white shadow transition-all duration-200 hover:shadow-md dark:bg-gray-800"
 			>
 				<div class="px-4 py-5 sm:p-6">
 					<div class="flex items-center justify-between">
 						<div class="flex items-center space-x-4">
 							<div
-								class="flex h-12 w-12 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/20"
+								class="flex h-12 w-12 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/20"
 							>
-								<Sparkles class="h-6 w-6 text-purple-600 dark:text-purple-400" />
+								<Sparkles class="h-6 w-6 text-green-600 dark:text-green-400" />
 							</div>
 							<div>
 								<h3 class="text-lg font-medium text-gray-900 dark:text-white">
-									OpenRouter AI
+									Local AI
 								</h3>
 								<p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-									Configure AI-powered tweet suggestions with OpenRouter
+									Configure offline AI model for tweet generation
 								</p>
 							</div>
 						</div>

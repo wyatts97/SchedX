@@ -1,6 +1,9 @@
 services:
   app:
-    build: .
+    build:
+      context: .
+      args:
+        USE_LOCAL_AI: ${USE_LOCAL_AI:-true}
     command: npm start -w @schedx/app
     ports:
       - "${PORT:-5173}:${PORT:-5173}"
@@ -33,7 +36,10 @@ services:
       - schedx-network
 
   scheduler:
-    build: .
+    build:
+      context: .
+      args:
+        USE_LOCAL_AI: ${USE_LOCAL_AI:-true}
     command: npm start -w @schedx/scheduler
     env_file:
       - .env.docker
