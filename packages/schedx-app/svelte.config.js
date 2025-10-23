@@ -19,7 +19,14 @@ const config = {
 			// Disable CSRF origin check for Docker/self-hosted deployments
 			// This allows access from local network IPs
 			checkOrigin: false
+		},
+		alias: {
+			$components: 'src/lib/components',
+			$lib: 'src/lib'
 		}
+	},
+	vitePlugin: {
+		inspector: false
 	}
 };
 

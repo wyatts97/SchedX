@@ -11,6 +11,16 @@ export default defineConfig(({ mode }) => {
 		ssr: {
 			external: ['react-filerobot-image-editor', 'react', 'react-dom']
 		},
+		resolve: {
+			dedupe: ['react', 'react-dom'],
+			alias: {
+				react: 'react',
+				'react-dom': 'react-dom'
+			}
+		},
+		optimizeDeps: {
+			include: ['react', 'react-dom', 'react-filerobot-image-editor']
+		},
 		server: {
 			host,
 			port,

@@ -1,9 +1,7 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
 	import { X } from 'lucide-svelte';
-	import React from 'react';
-	import ReactDOM from 'react-dom/client';
 
 	export let open = false;
 	export let imageUrl = '';
@@ -17,6 +15,8 @@
 	let FilerobotImageEditor: any = null;
 	let TABS: any = null;
 	let TOOLS: any = null;
+	let React: any = null;
+	let ReactDOM: any = null;
 
 	function closeEditor() {
 		if (reactRoot && browser) {
@@ -36,15 +36,23 @@
 
 		try {
 			initError = false;
-			console.log('Initializing image editor with URL:', imageUrl);
 
-			// Dynamically import only the Filerobot editor (React is already imported)
+			// Import React and ReactDOM first and expose globally
+			if (!React || !ReactDOM) {
+				React = await import('react');
+				ReactDOM = await import('react-dom/client');
+				
+				// Expose React globally for the Filerobot library
+				(window as any).React = React.default || React;
+				(window as any).ReactDOM = ReactDOM.default || ReactDOM;
+			}
+
+			// Then import Filerobot editor
 			if (!FilerobotImageEditor) {
 				const FilerobotModule = await import('react-filerobot-image-editor');
 				FilerobotImageEditor = FilerobotModule.default;
 				TABS = FilerobotModule.TABS;
 				TOOLS = FilerobotModule.TOOLS;
-				console.log('Filerobot module loaded', { hasEditor: !!FilerobotImageEditor, hasTABS: !!TABS });
 			}
 
 			// Clean up previous instance
@@ -52,13 +60,16 @@
 				reactRoot.unmount();
 			}
 
+			// Use the React from window to ensure same instance
+			const ReactInstance = (window as any).React;
+			const ReactDOMInstance = (window as any).ReactDOM;
+
 			// Create React element with editor
-			const editorElement = React.createElement(FilerobotImageEditor, {
+			const editorElement = ReactInstance.createElement(FilerobotImageEditor, {
 				source: imageUrl,
 				onSave: async (editedImageObject: any, designState: any) => {
 					try {
 						saving = true;
-						console.log('Image edited, saving...', editedImageObject);
 
 						// Convert the edited image to a Blob
 						const response = await fetch(editedImageObject.imageBase64);
@@ -78,7 +89,6 @@
 					}
 				},
 				onClose: () => {
-					console.log('Editor closed by user');
 					closeEditor();
 				},
 				annotationsCommon: {
@@ -106,11 +116,8 @@
 			});
 
 			// Create React root and render
-			console.log('Creating React root and rendering editor...');
-			reactRoot = ReactDOM.createRoot(editorContainer);
+			reactRoot = ReactDOMInstance.createRoot(editorContainer);
 			reactRoot.render(editorElement);
-
-			console.log('Image editor initialized and rendered successfully');
 		} catch (error) {
 			console.error('Editor initialization failed:', error);
 			initError = true;

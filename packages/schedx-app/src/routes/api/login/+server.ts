@@ -18,14 +18,14 @@ export const POST = ipRateLimit(RATE_LIMITS.login)(
             }
 
             logger.info('Login successful', { username: data.username });
-            // Set session cookie
+            // Set session cookie (30 days to match session expiry)
             const allowLocalNetwork = process.env.ALLOW_LOCAL_NETWORK === 'true';
             cookies.set('admin_session', result.sessionId!, {
                 path: '/',
                 httpOnly: true,
                 secure: !allowLocalNetwork && process.env.NODE_ENV === 'production',
                 sameSite: 'lax',
-                maxAge: 8 * 60 * 60
+                maxAge: 30 * 24 * 60 * 60
             });
 
             return json({ success: true });

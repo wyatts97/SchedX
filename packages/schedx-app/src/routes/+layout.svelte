@@ -15,6 +15,21 @@
 
 	onMount(() => {
 		if (browser) {
+			// Initialize React globally for image editor
+			const initReact = async () => {
+				try {
+					if (!(window as any).React) {
+						const React = await import('react');
+						const ReactDOM = await import('react-dom/client');
+						(window as any).React = React.default || React;
+						(window as any).ReactDOM = ReactDOM.default || ReactDOM;
+					}
+				} catch (error) {
+					logger.error('Error initializing React globally', error);
+				}
+			};
+			initReact();
+
 			// Initialize Preline v3
 			const initPreline = async () => {
 				try {

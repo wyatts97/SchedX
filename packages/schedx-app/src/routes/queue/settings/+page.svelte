@@ -29,7 +29,9 @@
 
 	async function fetchAccounts() {
 		try {
-			const res = await fetch('/api/accounts');
+			const res = await fetch('/api/accounts', {
+				credentials: 'same-origin'
+			});
 			if (res.ok) {
 				const data = await res.json();
 				accounts = data.accounts || [];
@@ -45,7 +47,9 @@
 			const url = selectedAccountId
 				? `/api/queue/settings?accountId=${selectedAccountId}`
 				: '/api/queue/settings';
-			const res = await fetch(url);
+			const res = await fetch(url, {
+				credentials: 'same-origin'
+			});
 			if (res.ok) {
 				const data = await res.json();
 				if (data.settings) {
@@ -62,6 +66,9 @@
 						twitterAccountId: selectedAccountId
 					};
 				}
+			} else if (res.status === 401) {
+				toastStore.error('Authentication Required', 'Please log in to access queue settings');
+				goto('/login');
 			}
 		} catch (e) {
 			logger.error('Failed to load queue settings:', { error: e });
@@ -85,11 +92,17 @@
 			const res = await fetch('/api/queue/settings', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(settingsToSave)
+				body: JSON.stringify(settingsToSave),
+				credentials: 'same-origin'
 			});
 
 			if (!res.ok) {
-				const error = await res.json();
+				const error = await res.json().catch(() => ({ error: 'Failed to save settings' }));
+				if (res.status === 401) {
+					toastStore.error('Authentication Required', 'Please log in to save settings');
+					goto('/login');
+					return;
+				}
 				throw new Error(error.error || 'Failed to save settings');
 			}
 

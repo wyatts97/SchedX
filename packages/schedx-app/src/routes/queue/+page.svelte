@@ -19,7 +19,9 @@
 
 	async function fetchAccounts() {
 		try {
-			const res = await fetch('/api/accounts');
+			const res = await fetch('/api/accounts', {
+				credentials: 'same-origin'
+			});
 			if (res.ok) {
 				const data = await res.json();
 				accounts = data.accounts || [];
@@ -36,9 +38,12 @@
 			const url = selectedAccountId
 				? `/api/queue?accountId=${selectedAccountId}`
 				: '/api/queue';
-			const res = await fetch(url);
+			const res = await fetch(url, {
+				credentials: 'same-origin'
+			});
 			if (!res.ok) {
-				throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+				const errorData = await res.json().catch(() => ({ error: res.statusText }));
+				throw new Error(errorData.error || `HTTP ${res.status}: ${res.statusText}`);
 			}
 			const data = await res.json();
 			queuedTweets = data.tweets || [];
@@ -58,9 +63,13 @@
 	async function processQueue() {
 		processingQueue = true;
 		try {
-			const res = await fetch('/api/queue/process', { method: 'POST' });
+			const res = await fetch('/api/queue/process', { 
+				method: 'POST',
+				credentials: 'same-origin'
+			});
 			if (!res.ok) {
-				throw new Error('Failed to process queue');
+				const errorData = await res.json().catch(() => ({ error: 'Failed to process queue' }));
+				throw new Error(errorData.error || 'Failed to process queue');
 			}
 			const data = await res.json();
 			toastStore.success('Queue Processed', `Scheduled ${data.scheduled} tweets`);
@@ -79,10 +88,12 @@
 			const res = await fetch('/api/queue/shuffle', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ twitterAccountId: selectedAccountId })
+				body: JSON.stringify({ twitterAccountId: selectedAccountId }),
+				credentials: 'same-origin'
 			});
 			if (!res.ok) {
-				throw new Error('Failed to shuffle queue');
+				const errorData = await res.json().catch(() => ({ error: 'Failed to shuffle queue' }));
+				throw new Error(errorData.error || 'Failed to shuffle queue');
 			}
 			toastStore.success('Queue Shuffled', 'Tweet order randomized');
 			await fetchQueue();
@@ -100,9 +111,13 @@
 		}
 
 		try {
-			const res = await fetch(`/api/tweets/${tweetId}`, { method: 'DELETE' });
+			const res = await fetch(`/api/tweets/${tweetId}`, { 
+				method: 'DELETE',
+				credentials: 'same-origin'
+			});
 			if (!res.ok) {
-				throw new Error('Failed to delete tweet');
+				const errorData = await res.json().catch(() => ({ error: 'Failed to delete tweet' }));
+				throw new Error(errorData.error || 'Failed to delete tweet');
 			}
 			toastStore.success('Removed', 'Tweet removed from queue');
 			await fetchQueue();
