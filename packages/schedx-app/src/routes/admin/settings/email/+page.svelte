@@ -231,24 +231,6 @@
 					</div>
 				</div>
 
-				<!-- Info Box -->
-				<div class="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
-					<div class="flex items-start space-x-3">
-						<Mail class="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-600 dark:text-blue-400" />
-						<div class="flex-1">
-							<h4 class="font-medium text-blue-900 dark:text-blue-300">
-								Email Service Configuration
-							</h4>
-							<p class="mt-1 text-sm text-blue-800 dark:text-blue-400">
-								Make sure to configure your email service provider (Resend) in the environment
-								variables. Set <code class="rounded bg-blue-100 px-1 py-0.5 dark:bg-blue-800">EMAIL_NOTIFICATIONS_ENABLED=true</code>
-								and add your <code class="rounded bg-blue-100 px-1 py-0.5 dark:bg-blue-800">RESEND_API_KEY</code>
-								to enable email notifications.
-							</p>
-						</div>
-					</div>
-				</div>
-
 				<!-- Resend API Configuration -->
 				<div
 					class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800"

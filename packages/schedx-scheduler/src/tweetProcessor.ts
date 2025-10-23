@@ -3,35 +3,43 @@ import { DatabaseClient, EmailService } from '@schedx/shared-lib/backend';
 import { TokenManager } from './tokenManager.js';
 import { log } from './logger.js';
 import { TwitterApi } from 'twitter-api-v2';
-import { 
-  ORIGIN, 
-  EMAIL_NOTIFICATIONS_ENABLED, 
-  RESEND_API_KEY, 
-  EMAIL_FROM, 
-  EMAIL_FROM_NAME 
-} from './config.js';
+import { ORIGIN } from './config.js';
 
 export class TweetProcessor {
   private dbClient: DatabaseClient;
   private tokenManager: TokenManager;
-  private emailService: EmailService | null = null;
 
   constructor(dbClient: DatabaseClient) {
     this.dbClient = dbClient;
     this.tokenManager = new TokenManager(dbClient);
-    
-    // Initialize email service if enabled
-    if (EMAIL_NOTIFICATIONS_ENABLED && RESEND_API_KEY) {
-      this.emailService = new EmailService({
+  }
+
+  /**
+   * Get email service for a user based on their Resend settings
+   */
+  private async getEmailServiceForUser(userId: string): Promise<EmailService | null> {
+    try {
+      // Get user's Resend settings from database
+      const resendSettings = await (this.dbClient as any).getResendSettings(userId);
+      
+      if (!resendSettings || !resendSettings.enabled || !resendSettings.apiKey) {
+        return null;
+      }
+
+      // Create and return email service instance
+      return new EmailService({
         enabled: true,
         provider: 'resend',
-        apiKey: RESEND_API_KEY,
-        fromEmail: EMAIL_FROM,
-        fromName: EMAIL_FROM_NAME
+        apiKey: resendSettings.apiKey,
+        fromEmail: resendSettings.fromEmail || 'noreply@schedx.app',
+        fromName: resendSettings.fromName || 'SchedX'
       });
-      log.info('Email notification service initialized');
-    } else {
-      log.info('Email notifications disabled');
+    } catch (error) {
+      log.error('Error getting email service for user', { 
+        userId, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
+      return null;
     }
   }
 
@@ -319,10 +327,6 @@ export class TweetProcessor {
     account: UserAccount,
     twitterTweetId: string
   ): Promise<void> {
-    if (!this.emailService || !this.emailService.isEnabled()) {
-      return;
-    }
-
     try {
       // Get user email preferences
       const preferences = await this.dbClient.getEmailNotificationPreferences(userId);
@@ -332,11 +336,18 @@ export class TweetProcessor {
         return;
       }
 
+      // Get email service for this user
+      const emailService = await this.getEmailServiceForUser(userId);
+      if (!emailService || !emailService.isEnabled()) {
+        log.debug('Email service not configured for user', { userId });
+        return;
+      }
+
       // Construct tweet URL
       const tweetUrl = `https://twitter.com/${account.username}/status/${twitterTweetId}`;
 
       // Send email
-      const result = await this.emailService.sendTweetSuccessNotification(preferences.email, {
+      const result = await emailService.sendTweetSuccessNotification(preferences.email, {
         tweetContent: tweet.content,
         tweetUrl,
         accountUsername: account.username,
@@ -379,10 +390,6 @@ export class TweetProcessor {
     account: UserAccount,
     errorMessage: string
   ): Promise<void> {
-    if (!this.emailService || !this.emailService.isEnabled()) {
-      return;
-    }
-
     try {
       // Get user email preferences
       const preferences = await this.dbClient.getEmailNotificationPreferences(userId);
@@ -392,8 +399,15 @@ export class TweetProcessor {
         return;
       }
 
+      // Get email service for this user
+      const emailService = await this.getEmailServiceForUser(userId);
+      if (!emailService || !emailService.isEnabled()) {
+        log.debug('Email service not configured for user', { userId });
+        return;
+      }
+
       // Send email
-      const result = await this.emailService.sendTweetFailureNotification(preferences.email, {
+      const result = await emailService.sendTweetFailureNotification(preferences.email, {
         tweetContent: tweet.content,
         accountUsername: account.username,
         accountDisplayName: account.displayName || account.username,

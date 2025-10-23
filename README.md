@@ -5,9 +5,11 @@
   
   <em>Modern, self-hosted Twitter/X scheduling and management platform with multi-account support</em>
   
-  [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+  [![License: Elastic 2.0](https://img.shields.io/badge/License-Elastic%202.0-blue.svg)](LICENSE)
   [![Node.js](https://img.shields.io/badge/Node.js-22.x-green.svg)](https://nodejs.org/)
   [![SvelteKit](https://img.shields.io/badge/SvelteKit-2.x-orange.svg)](https://kit.svelte.dev/)
+  [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker)](https://www.docker.com/)
+  [![TypeScript](https://img.shields.io/badge/TypeScript-4.9%2B-3178C6.svg?logo=typescript)](https://www.typescriptlang.org/)
 </div>
 
 ---
@@ -42,6 +44,20 @@
 
 ---
 
+## 🏗️ Project Structure
+
+```
+schedx/
+├── packages/
+│   ├── schedx-app/         # Frontend application (SvelteKit)
+│   ├── schedx-scheduler/   # Background job scheduler
+│   └── schedx-shared-lib/  # Shared code and utilities
+├── static/                # Static assets
+├── .env                   # Environment configuration
+├── docker-compose.yml     # Docker Compose configuration
+└── README.md             # This file
+```
+
 ## 🚀 Quick Start
 
 ### **Prerequisites**
@@ -70,8 +86,8 @@ npm install
 ```bash
 # Create environment file
 cat > .env << 'EOF'
-AUTH_SECRET=19T80r0DzwbN1xlYWVRmXuAgckkGazr2
-DB_ENCRYPTION_KEY=CA6FLUXuu9cACwfLYwoyHr02B4UBbXwO
+AUTH_SECRET=(use openssl rand -base64 32)
+DB_ENCRYPTION_KEY=(use openssl rand -base64 32)
 DATABASE_PATH=./data/schedx.db
 NODE_ENV=development
 PORT=5173
@@ -115,6 +131,16 @@ Default admin credentials:
 > ⚠️ **Change the default password immediately after first login!**
 
 ---
+
+## 🔍 Technology Stack
+
+- **Frontend**: SvelteKit, TypeScript, Tailwind CSS
+- **Backend**: Node.js, Express
+- **Database**: SQLite with encryption
+- **Authentication**: OAuth 2.0 with PKCE
+- **Scheduling**: Node-cron
+- **Containerization**: Docker
+- **Build Tool**: Vite
 
 ## 🔧 Twitter API Setup
 
@@ -162,7 +188,74 @@ In your app settings, navigate to **Keys and Tokens**:
 
 ---
 
-## 🐳 Production Deployment
+## 🚀 Production Deployment
+
+### Prerequisites
+
+- Docker and Docker Compose
+- Domain name (recommended)
+- SSL certificate (Let's Encrypt recommended)
+- Twitter API credentials
+
+### Deployment Options
+
+#### Option 1: Docker Compose (Recommended)
+
+```bash
+# Clone the repository
+git clone https://github.com/wyatts97/schedx.git
+cd schedx
+
+# Configure environment variables
+cp .env.example .env
+nano .env  # Edit with your configuration
+
+# Start the stack
+docker-compose up -d
+```
+
+#### Option 2: Manual Setup
+
+1. Install dependencies:
+   ```bash
+   npm install
+   npm run build
+   ```
+
+2. Start the application:
+   ```bash
+   # In separate terminals
+   npm run start:app
+   npm run start:scheduler
+   ```
+
+### Updating
+
+```bash
+git pull origin main
+docker-compose up -d --build
+```
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please follow these steps:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📝 License
+
+This project is licensed under the [Elastic License 2.0](LICENSE).
+
+## 🙏 Acknowledgments
+
+- Built with ❤️ using modern web technologies
+- Inspired by the need for a self-hosted Twitter scheduling solution
 
 ### **Docker Compose Deployment**
 
@@ -520,9 +613,17 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ---
 
-## 📝 License
+## 📋 License
 
-MIT License - see [LICENSE](LICENSE) for details.
+This project is licensed under the [Elastic License 2.0](LICENSE).
+
+### Key License Terms:
+- **Personal Use**: Free to use for personal, non-commercial purposes
+- **Modifications**: Allowed for personal use
+- **Commercial Use**: Requires a commercial license
+- **Attribution**: Required in all copies and derivative works
+
+For full license terms, see [LICENSE](LICENSE) file.
 
 ---
 

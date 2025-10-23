@@ -42,12 +42,5 @@ export const ORIGIN = process.env.ORIGIN || (process.env.NODE_ENV === 'productio
   ? (() => { throw new Error('ORIGIN must be set in production'); })()
   : `http://localhost:${PORT}`);
 
-// Email notification configuration
-export const EMAIL_NOTIFICATIONS_ENABLED = process.env.EMAIL_NOTIFICATIONS_ENABLED === 'true';
-export const EMAIL_PROVIDER = process.env.EMAIL_PROVIDER || 'resend';
-export const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
-export const EMAIL_FROM = process.env.EMAIL_FROM || 'noreply@schedx.app';
-export const EMAIL_FROM_NAME = process.env.EMAIL_FROM_NAME || 'SchedX';
-
-// Note: Twitter API credentials are now managed through the database
-// and will be retrieved dynamically for each account
+// Note: Email notification settings and Twitter API credentials are now managed through the database
+// and will be retrieved dynamically for each user/account
