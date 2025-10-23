@@ -1,9 +1,9 @@
 # Stage 1: Builder
 FROM node:22-bullseye-slim AS builder
 
-# Install system dependencies
+# Install system dependencies including curl for faster downloads
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends git && \
+    apt-get install -y --no-install-recommends git curl && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -41,6 +41,9 @@ FROM node:22-bullseye-slim
 RUN groupadd -r schedx && useradd -r -g schedx schedx
 
 WORKDIR /app
+
+# Copy workspace configuration files
+COPY --from=builder --chown=schedx:schedx /app/package.json /app/package-lock.json ./
 
 # Copy built files
 COPY --from=builder --chown=schedx:schedx /app/node_modules ./node_modules
