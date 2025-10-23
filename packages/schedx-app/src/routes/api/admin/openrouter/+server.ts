@@ -30,7 +30,15 @@ export const GET: RequestHandler = async ({ cookies }) => {
 		
 		if (!settings) {
 			return new Response(
-				JSON.stringify({ settings: { enabled: false, apiKey: '', defaultModel: 'meta-llama/llama-4-scout:free' } }),
+				JSON.stringify({ 
+					settings: { 
+						enabled: false, 
+						apiKey: '', 
+						model: 'openai/gpt-3.5-turbo',
+						temperature: 0.8,
+						maxTokens: 150
+					} 
+				}),
 				{ status: 200, headers: { 'Content-Type': 'application/json' } }
 			);
 		}
@@ -76,7 +84,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		const userId = session.data.user.id;
 		
 		const body = await request.json();
-		const { enabled, apiKey, defaultModel } = body;
+		const { enabled, apiKey, model, temperature, maxTokens } = body;
 
 		// Validate input
 		if (enabled && (!apiKey || !apiKey.trim())) {
@@ -88,7 +96,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
 		if (enabled && !apiKey.startsWith('sk-or-')) {
 			return new Response(
-				JSON.stringify({ error: 'Invalid API key format' }),
+				JSON.stringify({ error: 'Invalid API key format. OpenRouter keys start with sk-or-' }),
 				{ status: 400, headers: { 'Content-Type': 'application/json' } }
 			);
 		}
@@ -96,11 +104,13 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		await db.saveOpenRouterSettings({
 			userId,
 			apiKey: apiKey || '',
-			defaultModel: defaultModel || 'meta-llama/llama-4-scout:free',
+			model: model || 'openai/gpt-3.5-turbo',
+			temperature: temperature !== undefined ? temperature : 0.8,
+			maxTokens: maxTokens !== undefined ? maxTokens : 150,
 			enabled: Boolean(enabled)
 		});
 
-		log.info('OpenRouter settings saved', { userId, enabled, defaultModel });
+		log.info('OpenRouter settings saved', { userId, enabled, model });
 
 		return new Response(
 			JSON.stringify({ success: true }),

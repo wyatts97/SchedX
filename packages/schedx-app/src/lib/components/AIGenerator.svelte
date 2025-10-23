@@ -56,7 +56,7 @@
 		await addToHistory();
 
 		try {
-			// Call backend API endpoint that uses local AI
+			// Call backend API endpoint that uses OpenRouter
 			const response = await fetch('/api/ai/generate', {
 				method: 'POST',
 				headers: {
@@ -324,7 +324,7 @@
 						<div class="rounded-lg bg-purple-50 p-3 text-sm text-purple-800 dark:bg-purple-900/20 dark:text-purple-300">
 							<strong>💡 Tip:</strong> Be specific! The more details you provide, the better the result.
 							<br/>
-							<span class="text-xs opacity-75">Powered by Local AI • ONNX Runtime</span>
+							<span class="text-xs opacity-75">Powered by OpenRouter • Configure in Admin Settings</span>
 						</div>
 					</div>
 				{:else}

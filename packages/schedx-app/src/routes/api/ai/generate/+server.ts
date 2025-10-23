@@ -1,5 +1,5 @@
 import type { RequestHandler } from '@sveltejs/kit';
-import { AIService } from '$lib/server/aiService';
+import { OpenRouterService } from '$lib/server/openRouterService';
 import { log } from '$lib/server/logger';
 import { z } from 'zod';
 import { userRateLimit, RATE_LIMITS } from '$lib/rate-limiting';
@@ -62,15 +62,37 @@ export const POST: RequestHandler = userRateLimit({
 			);
 		}
 
-		// Generate tweet using AI service
-		const aiService = AIService.getInstance();
-		const generatedTweet = await aiService.generateTweet({
-			prompt,
-			tone,
-			length,
-			context,
-			userId: session.data.user.id
-		});
+		const userId = session.data.user.id;
+
+		// Get OpenRouter settings
+		const openRouterSettings = await db.getOpenRouterSettings(userId);
+		
+		if (!openRouterSettings || !openRouterSettings.enabled) {
+			return new Response(
+				JSON.stringify({ 
+					error: 'OpenRouter is not configured. Please configure it in Admin Settings.' 
+				}),
+				{ status: 400, headers: { 'Content-Type': 'application/json' } }
+			);
+		}
+
+		// Generate tweet using OpenRouter service
+		const openRouterService = OpenRouterService.getInstance();
+		const generatedTweet = await openRouterService.generateTweet(
+			{
+				prompt,
+				tone,
+				length,
+				context,
+				userId
+			},
+			{
+				apiKey: openRouterSettings.apiKey,
+				model: openRouterSettings.model,
+				temperature: openRouterSettings.temperature,
+				maxTokens: openRouterSettings.maxTokens
+			}
+		);
 
 		return new Response(
 			JSON.stringify({

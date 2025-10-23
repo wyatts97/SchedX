@@ -1786,6 +1786,101 @@ export class DatabaseClient {
     logger.info({ userId }, 'Resend settings deleted');
   }
 
+  // OpenRouter Settings Methods
+  async getOpenRouterSettings(userId: string): Promise<{
+    id: string;
+    userId: string;
+    apiKey: string;
+    model: string;
+    temperature: number;
+    maxTokens: number;
+    enabled: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+  } | null> {
+    const settings = this.db.queryOne<any>(
+      'SELECT * FROM openrouter_settings WHERE userId = ?',
+      [userId]
+    );
+    
+    if (!settings) {
+      return null;
+    }
+    
+    // Decrypt API key
+    const decryptedApiKey = this.encryptionService.decrypt(settings.apiKey);
+    
+    return {
+      id: settings.id,
+      userId: settings.userId,
+      apiKey: decryptedApiKey,
+      model: settings.model,
+      temperature: settings.temperature,
+      maxTokens: settings.maxTokens,
+      enabled: Boolean(settings.enabled),
+      createdAt: new Date(settings.createdAt),
+      updatedAt: new Date(settings.updatedAt)
+    };
+  }
+
+  async saveOpenRouterSettings(data: {
+    userId: string;
+    apiKey: string;
+    model?: string;
+    temperature?: number;
+    maxTokens?: number;
+    enabled?: boolean;
+  }): Promise<void> {
+    const existing = await this.getOpenRouterSettings(data.userId);
+    const now = Date.now();
+    
+    // Encrypt API key
+    const encryptedApiKey = this.encryptionService.encrypt(data.apiKey);
+    
+    if (existing) {
+      // Update existing settings
+      this.db.execute(
+        `UPDATE openrouter_settings 
+         SET apiKey = ?, model = ?, temperature = ?, maxTokens = ?, enabled = ?, updatedAt = ?
+         WHERE userId = ?`,
+        [
+          encryptedApiKey,
+          data.model || existing.model,
+          data.temperature !== undefined ? data.temperature : existing.temperature,
+          data.maxTokens !== undefined ? data.maxTokens : existing.maxTokens,
+          data.enabled !== undefined ? (data.enabled ? 1 : 0) : (existing.enabled ? 1 : 0),
+          now,
+          data.userId
+        ]
+      );
+    } else {
+      // Insert new settings
+      const id = crypto.randomUUID();
+      this.db.execute(
+        `INSERT INTO openrouter_settings (id, userId, apiKey, model, temperature, maxTokens, enabled, createdAt, updatedAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          data.userId,
+          encryptedApiKey,
+          data.model || 'openai/gpt-3.5-turbo',
+          data.temperature !== undefined ? data.temperature : 0.8,
+          data.maxTokens !== undefined ? data.maxTokens : 150,
+          data.enabled !== undefined ? (data.enabled ? 1 : 0) : 1,
+          now,
+          now
+        ]
+      );
+    }
+    
+    logger.info({ userId: data.userId }, 'OpenRouter settings saved');
+  }
+
+  async deleteOpenRouterSettings(userId: string): Promise<void> {
+    this.db.execute('DELETE FROM openrouter_settings WHERE userId = ?', [userId]);
+    logger.info({ userId }, 'OpenRouter settings deleted');
+  }
+
   // ============================================
   // PROMPT MANAGEMENT METHODS
   // ============================================

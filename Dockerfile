@@ -22,35 +22,18 @@ COPY packages/schedx-scheduler/package.json ./packages/schedx-scheduler/
 RUN --mount=type=cache,target=/root/.npm \
     npm ci
 
-# Stage 2: Model Download (conditional)
-FROM deps AS model-downloader
-
-COPY .env.docker ./
-COPY packages/schedx-app/scripts ./packages/schedx-app/scripts
-
-# Download model if enabled (with cache for downloaded files)
-RUN --mount=type=cache,target=/tmp/model-cache \
-    if grep -q '^USE_LOCAL_AI=true$' .env.docker; then \
-      cd packages/schedx-app && \
-      npm run download-model && \
-      [ -f "static/models/distilgpt2.onnx" ] || (echo "Model download failed" && exit 1); \
-    fi
-
-# Stage 3: Builder
+# Stage 2: Builder
 FROM deps AS builder
 
 # Copy source files
 COPY . .
 
-# Copy model from downloader stage if it exists
-COPY --from=model-downloader /app/packages/schedx-app/static/ ./packages/schedx-app/static/
-
-# Build packages in parallel where possible
+# Build packages
 RUN npm run build -w @schedx/shared-lib && \
     npm run build -w @schedx/app && \
     npm run build -w @schedx/scheduler
 
-# Stage 4: Production Runtime
+# Stage 3: Production Runtime
 FROM node:22-bullseye-slim AS runner
 
 # Create non-root user
