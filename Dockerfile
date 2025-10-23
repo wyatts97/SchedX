@@ -14,6 +14,10 @@ ENV NODE_LLAMA_CPP_SKIP_DOWNLOAD=true
 # Limit memory usage during build
 ENV NODE_OPTIONS="--max-old-space-size=2048"
 
+#Force a generic build for node-llama-cpp to avoid CPU incompatibility
+
+ENV NODE_LLAMA_CPP_CMAKE_ARGS="-DLLAMA_AVX2=OFF -DLLAMA_AVX=OFF -DLLAMA_F16C=OFF -DLLAMA_FMA=OFF"
+
 WORKDIR /app
 
 # Copy root package files and all workspace package.jsons
