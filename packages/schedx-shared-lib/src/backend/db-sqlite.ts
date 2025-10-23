@@ -1814,9 +1814,9 @@ export class DatabaseClient {
       id: settings.id,
       userId: settings.userId,
       apiKey: decryptedApiKey,
-      model: settings.model,
-      temperature: settings.temperature,
-      maxTokens: settings.maxTokens,
+      model: settings.model || settings.defaultModel || 'openai/gpt-3.5-turbo',
+      temperature: settings.temperature ?? 0.8,
+      maxTokens: settings.maxTokens ?? 150,
       enabled: Boolean(settings.enabled),
       createdAt: new Date(settings.createdAt),
       updatedAt: new Date(settings.updatedAt)

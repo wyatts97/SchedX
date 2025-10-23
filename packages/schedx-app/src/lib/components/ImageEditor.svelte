@@ -3,38 +3,50 @@
 	import { browser } from '$app/environment';
 	import { X } from 'lucide-svelte';
 
-	let filerobotImageEditor: any = null;
-
 	export let open = false;
 	export let imageUrl = '';
 	export let filename = '';
 	export let onSave: ((editedImageBlob: Blob, filename: string) => Promise<void>) | null = null;
 
 	let editorContainer: HTMLDivElement;
-
+	let reactRoot: any = null;
 	let saving = false;
+	let initError = false;
 
 	function closeEditor() {
-		if (filerobotImageEditor) {
-			filerobotImageEditor.terminate();
-			filerobotImageEditor = null;
+		if (reactRoot && browser) {
+			try {
+				reactRoot.unmount();
+				reactRoot = null;
+			} catch (e) {
+				console.error('Error unmounting React editor:', e);
+			}
 		}
 		open = false;
+		initError = false;
 	}
 
 	async function initializeEditor() {
 		if (!browser || !open || !imageUrl || !editorContainer) return;
 
 		try {
-			// Dynamically import the VanillaJS editor (client-side only)
-			const FilerobotImageEditor = (await import('filerobot-image-editor')).default;
+			initError = false;
+			console.log('Initializing image editor...');
 
-			if (filerobotImageEditor) {
-				filerobotImageEditor.terminate();
+			// Dynamically import React and the editor
+			const [React, ReactDOM, { default: FilerobotImageEditor, TABS }] = await Promise.all([
+				import('react'),
+				import('react-dom/client'),
+				import('react-filerobot-image-editor')
+			]);
+
+			// Clean up previous instance
+			if (reactRoot) {
+				reactRoot.unmount();
 			}
 
-			// Create editor instance with config
-			const config = {
+			// Create React element with editor
+			const editorElement = React.createElement(FilerobotImageEditor as any, {
 				source: imageUrl,
 				onSave: async (editedImageObject: any, designState: any) => {
 					try {
@@ -52,11 +64,15 @@
 
 						closeEditor();
 					} catch (error) {
-						console.error(`Error saving edited image:`, error);
+						console.error('Error saving edited image:', error);
 						alert('Failed to save edited image. Please try again.');
 					} finally {
 						saving = false;
 					}
+				},
+				onClose: () => {
+					console.log('Editor closed by user');
+					closeEditor();
 				},
 				annotationsCommon: {
 					fill: '#ff0000'
@@ -77,25 +93,19 @@
 						}
 					]
 				},
-				tabsIds: ['Adjust', 'Annotate', 'Filters', 'Resize'],
-				defaultTabId: 'Annotate',
+				tabsIds: [TABS.ADJUST, TABS.ANNOTATE, TABS.FILTERS, TABS.RESIZE],
+				defaultTabId: TABS.ANNOTATE,
 				defaultToolId: 'Text'
-			};
-
-			// Instantiate editor
-			filerobotImageEditor = new FilerobotImageEditor(editorContainer, config);
-
-			// Render with onClose callback
-			filerobotImageEditor.render({
-				onClose: (closingReason: string) => {
-					console.log('Editor closed:', closingReason);
-					closeEditor();
-				}
 			});
+
+			// Create React root and render
+			reactRoot = ReactDOM.createRoot(editorContainer);
+			reactRoot.render(editorElement);
 
 			console.log('Image editor initialized successfully');
 		} catch (error) {
-			console.error(`Editor initialization failed: ${error instanceof Error ? error.message : String(error)}`);
+			console.error('Editor initialization failed:', error);
+			initError = true;
 			alert('Failed to load image editor. Please try again.');
 		}
 	}
@@ -107,9 +117,13 @@
 
 	// Clean up on destroy
 	onDestroy(() => {
-		if (filerobotImageEditor) {
-			filerobotImageEditor.terminate();
-			filerobotImageEditor = null;
+		if (reactRoot && browser) {
+			try {
+				reactRoot.unmount();
+				reactRoot = null;
+			} catch (e) {
+				console.error('Error unmounting React editor:', e);
+			}
 		}
 	});
 </script>
@@ -141,7 +155,20 @@
 			</button>
 
 			<!-- Editor Container -->
-			<div bind:this={editorContainer} class="h-full w-full"></div>
+			{#if initError}
+				<div class="flex h-full w-full items-center justify-center">
+					<div class="text-center">
+						<p class="text-lg font-medium text-red-600 dark:text-red-400">
+							Failed to load image editor
+						</p>
+						<p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+							Please close this dialog and try again.
+						</p>
+					</div>
+				</div>
+			{:else}
+				<div bind:this={editorContainer} class="h-full w-full"></div>
+			{/if}
 
 			<!-- Saving Overlay -->
 			{#if saving}

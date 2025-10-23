@@ -52,8 +52,13 @@
       if (response.ok) {
         const data = await response.json();
         settings = data.settings;
+      } else {
+        const error = await response.json();
+        console.error('Failed to load settings:', error);
+        toastStore.error(error.details || error.error || 'Failed to load OpenRouter settings');
       }
     } catch (error) {
+      console.error('Failed to load settings:', error);
       toastStore.error('Failed to load OpenRouter settings');
     } finally {
       loading = false;
@@ -131,11 +136,13 @@
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to save settings');
+        console.error('Failed to save settings:', error);
+        throw new Error(error.details || error.error || 'Failed to save settings');
       }
       
       toastStore.success('OpenRouter settings saved successfully');
     } catch (error) {
+      console.error('Save settings error:', error);
       toastStore.error(error instanceof Error ? error.message : 'Failed to save settings');
     } finally {
       saving = false;
@@ -145,6 +152,12 @@
   async function testConnection() {
     if (!settings.apiKey) {
       toastStore.error('Please enter an API key first');
+      return;
+    }
+
+    // Save settings first before testing
+    if (!settings.enabled) {
+      toastStore.error('Please enable and save OpenRouter settings first');
       return;
     }
 
@@ -165,9 +178,11 @@
         toastStore.success('Connection successful! OpenRouter is working.');
       } else {
         const error = await response.json();
-        throw new Error(error.error || 'Connection test failed');
+        console.error('Connection test failed:', error);
+        throw new Error(error.details || error.error || 'Connection test failed');
       }
     } catch (error) {
+      console.error('Test connection error:', error);
       toastStore.error(error instanceof Error ? error.message : 'Connection test failed');
     } finally {
       testing = false;

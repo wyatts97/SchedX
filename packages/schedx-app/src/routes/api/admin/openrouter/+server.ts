@@ -14,10 +14,12 @@ export const GET: RequestHandler = async ({ cookies }) => {
 
 	try {
 		const db = getDbInstance();
+		log.debug('GET /api/admin/openrouter - DB instance retrieved');
 		
 		// Get user from session
 		const session = await db.getSession(adminSession);
 		if (!session || !session.data?.user?.id) {
+			log.warn('GET /api/admin/openrouter - Invalid session');
 			return new Response(
 				JSON.stringify({ error: 'Invalid session' }),
 				{ status: 401, headers: { 'Content-Type': 'application/json' } }
@@ -25,8 +27,10 @@ export const GET: RequestHandler = async ({ cookies }) => {
 		}
 		
 		const userId = session.data.user.id;
+		log.debug('GET /api/admin/openrouter - User authenticated', { userId });
 		
 		const settings = await db.getOpenRouterSettings(userId);
+		log.debug('GET /api/admin/openrouter - Settings retrieved', { hasSettings: !!settings });
 		
 		if (!settings) {
 			return new Response(
@@ -48,12 +52,19 @@ export const GET: RequestHandler = async ({ cookies }) => {
 			{ status: 200, headers: { 'Content-Type': 'application/json' } }
 		);
 	} catch (error) {
+		const errorMsg = error instanceof Error ? error.message : String(error);
+		const errorStack = error instanceof Error ? error.stack : undefined;
 		log.error('Failed to get OpenRouter settings', {
-			error: error instanceof Error ? error.message : String(error)
+			error: errorMsg,
+			stack: errorStack
 		});
+		console.error('GET /api/admin/openrouter error:', error);
 		
 		return new Response(
-			JSON.stringify({ error: 'Failed to load settings' }),
+			JSON.stringify({ 
+				error: 'Failed to load settings',
+				details: errorMsg 
+			}),
 			{ status: 500, headers: { 'Content-Type': 'application/json' } }
 		);
 	}
@@ -71,10 +82,12 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
 	try {
 		const db = getDbInstance();
+		log.debug('POST /api/admin/openrouter - DB instance retrieved');
 		
 		// Get user from session
 		const session = await db.getSession(adminSession);
 		if (!session || !session.data?.user?.id) {
+			log.warn('POST /api/admin/openrouter - Invalid session');
 			return new Response(
 				JSON.stringify({ error: 'Invalid session' }),
 				{ status: 401, headers: { 'Content-Type': 'application/json' } }
@@ -82,9 +95,11 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		}
 		
 		const userId = session.data.user.id;
+		log.debug('POST /api/admin/openrouter - User authenticated', { userId });
 		
 		const body = await request.json();
 		const { enabled, apiKey, model, temperature, maxTokens } = body;
+		log.debug('POST /api/admin/openrouter - Request body parsed', { enabled, model });
 
 		// Validate input
 		if (enabled && (!apiKey || !apiKey.trim())) {
@@ -117,12 +132,19 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			{ status: 200, headers: { 'Content-Type': 'application/json' } }
 		);
 	} catch (error) {
+		const errorMsg = error instanceof Error ? error.message : String(error);
+		const errorStack = error instanceof Error ? error.stack : undefined;
 		log.error('Failed to save OpenRouter settings', {
-			error: error instanceof Error ? error.message : String(error)
+			error: errorMsg,
+			stack: errorStack
 		});
+		console.error('POST /api/admin/openrouter error:', error);
 		
 		return new Response(
-			JSON.stringify({ error: 'Failed to save settings' }),
+			JSON.stringify({ 
+				error: 'Failed to save settings',
+				details: errorMsg 
+			}),
 			{ status: 500, headers: { 'Content-Type': 'application/json' } }
 		);
 	}

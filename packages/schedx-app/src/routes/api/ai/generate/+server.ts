@@ -27,7 +27,9 @@ export const POST: RequestHandler = userRateLimit({
 	}
 
 	try {
+		log.debug('POST /api/ai/generate - Request received');
 		const body = await request.json();
+		log.debug('POST /api/ai/generate - Body parsed', { hasPrompt: !!body.prompt });
 		
 		// Validate request
 		const validationResult = generateSchema.safeParse(body);
@@ -54,8 +56,11 @@ export const POST: RequestHandler = userRateLimit({
 
 		// Get user from session
 		const db = (await import('$lib/server/db')).getDbInstance();
+		log.debug('POST /api/ai/generate - DB instance retrieved');
+		
 		const session = await db.getSession(adminSession);
 		if (!session || !session.data?.user?.id) {
+			log.warn('POST /api/ai/generate - Invalid session');
 			return new Response(
 				JSON.stringify({ error: 'Invalid session' }),
 				{ status: 401, headers: { 'Content-Type': 'application/json' } }
@@ -63,9 +68,14 @@ export const POST: RequestHandler = userRateLimit({
 		}
 
 		const userId = session.data.user.id;
+		log.debug('POST /api/ai/generate - User authenticated', { userId });
 
 		// Get OpenRouter settings
 		const openRouterSettings = await db.getOpenRouterSettings(userId);
+		log.debug('POST /api/ai/generate - Settings retrieved', { 
+			hasSettings: !!openRouterSettings,
+			enabled: openRouterSettings?.enabled 
+		});
 		
 		if (!openRouterSettings || !openRouterSettings.enabled) {
 			return new Response(
@@ -77,6 +87,7 @@ export const POST: RequestHandler = userRateLimit({
 		}
 
 		// Generate tweet using OpenRouter service
+		log.debug('POST /api/ai/generate - Calling OpenRouter service');
 		const openRouterService = OpenRouterService.getInstance();
 		const generatedTweet = await openRouterService.generateTweet(
 			{
@@ -106,16 +117,19 @@ export const POST: RequestHandler = userRateLimit({
 		);
 	} catch (error) {
 		const errorMsg = error instanceof Error ? error.message : String(error);
-		log.error(`AI generation error: ${errorMsg}`);
-		if (error instanceof Error && error.stack) {
-			log.debug(`Stack trace: ${error.stack}`);
-		}
+		const errorStack = error instanceof Error ? error.stack : undefined;
+		log.error('AI generation error', {
+			error: errorMsg,
+			stack: errorStack
+		});
+		console.error('POST /api/ai/generate error:', error);
 
 		const errorMessage = error instanceof Error ? error.message : 'Failed to generate tweet';
 
 		return new Response(
 			JSON.stringify({
-				error: errorMessage
+				error: errorMessage,
+				details: errorMsg
 			}),
 			{
 				status: 500,
