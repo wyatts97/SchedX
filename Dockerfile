@@ -28,9 +28,6 @@ RUN npm ci
 # Copy all source files
 COPY . .
 
-# Copy model files
-COPY static/models/ ./static/models/
-
 # Build in correct order: shared-lib MUST be built first
 RUN npm run build -w @schedx/shared-lib
 RUN npm run build -w @schedx/app
