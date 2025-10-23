@@ -187,7 +187,7 @@
 									muted
 									playsinline
 									preload="metadata"
-								/>
+								></video>
 							{:else}
 								<img
 									class="absolute inset-y-0 right-0 h-full w-32 rounded-e-lg object-cover sm:w-48"
@@ -287,7 +287,7 @@
 
 <!-- Image Modal -->
 {#if showImageModal}
-	<div
+	<div role="button">
 		class="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 backdrop-blur-sm transition-opacity duration-200"
 		on:click={closeImageModal}
 	>
@@ -306,7 +306,7 @@
 			<!-- Image -->
 			<img
 				src={modalImageUrl}
-				alt="Full size image"
+				alt="Full size"
 				class="max-h-[90vh] max-w-[90vw] object-contain"
 			/>
 		</div>
