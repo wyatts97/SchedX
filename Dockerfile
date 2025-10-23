@@ -1,33 +1,34 @@
-# Stage 1: Build all packages
+# Stage 1: Builder
 FROM node:22-bullseye-slim AS builder
 
-# Install git for npm dependencies
+# Install system dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends git && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Copy package files FIRST
+# 1. Copy package files first
 COPY package.json package-lock.json ./
 COPY packages/schedx-app/package.json ./packages/schedx-app/
 COPY packages/schedx-shared-lib/package.json ./packages/schedx-shared-lib/
 COPY packages/schedx-scheduler/package.json ./packages/schedx-scheduler/
 
-# Install all dependencies
+# 2. Install workspace dependencies
 RUN npm ci
 
-# Then check .env for AI flag
+# 3. Copy all remaining source files
+COPY . .
+
+# 4. Conditionally download model
 COPY .env.docker ./
 RUN if grep -q '^USE_LOCAL_AI=true$' .env.docker; then \
     cd packages/schedx-app && \
-    npm run download-model; \
+    npm run download-model && \
+    cd ../..; \
 fi
 
-# Copy remaining source files
-COPY . .
-
-# Build in correct order
+# 5. Build in correct order
 RUN npm run build -w @schedx/shared-lib
 RUN npm run build -w @schedx/app
 RUN npm run build -w @schedx/scheduler
