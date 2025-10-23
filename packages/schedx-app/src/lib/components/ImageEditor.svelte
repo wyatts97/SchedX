@@ -3,7 +3,7 @@
 	import { browser } from '$app/environment';
 	import { X } from 'lucide-svelte';
 
-	let filerobotImageEditor: import('react-filerobot-image-editor').default | null = null;
+	let filerobotImageEditor: any = null;
 
 	export let open = false;
 	export let imageUrl = '';
@@ -26,20 +26,20 @@
 		if (!browser || !open || !imageUrl || !editorContainer) return;
 
 		try {
-			// Dynamically import the editor (client-side only)
-			const FilerobotImageEditor = await import('react-filerobot-image-editor');
-			const Editor = FilerobotImageEditor.default;
+			// Dynamically import the VanillaJS editor (client-side only)
+			const FilerobotImageEditor = (await import('filerobot-image-editor')).default;
 
 			if (filerobotImageEditor) {
 				filerobotImageEditor.terminate();
 			}
 
-			filerobotImageEditor = new Editor(editorContainer, {
+			// Create editor instance with config
+			const config = {
 				source: imageUrl,
 				onSave: async (editedImageObject: any, designState: any) => {
 					try {
 						saving = true;
-						console.log('Image edited, saving...');
+						console.log('Image edited, saving...', editedImageObject);
 
 						// Convert the edited image to a Blob
 						const response = await fetch(editedImageObject.imageBase64);
@@ -52,14 +52,11 @@
 
 						closeEditor();
 					} catch (error) {
-						console.error(`Error saving edited image: ${error instanceof Error ? error.message : String(error)}`);
+						console.error(`Error saving edited image:`, error);
 						alert('Failed to save edited image. Please try again.');
 					} finally {
 						saving = false;
 					}
-				},
-				onClose: () => {
-					closeEditor();
 				},
 				annotationsCommon: {
 					fill: '#ff0000'
@@ -78,35 +75,22 @@
 							descriptionKey: '21:9',
 							ratio: 21 / 9
 						}
-					],
-					presetsFolders: [
-						{
-							titleKey: 'socialMedia',
-							groups: [
-								{
-									titleKey: 'facebook',
-									items: [
-										{
-											titleKey: 'profile',
-											width: 180,
-											height: 180,
-											descriptionKey: 'fbProfileSize'
-										},
-										{
-											titleKey: 'coverPhoto',
-											width: 820,
-											height: 312,
-											descriptionKey: 'fbCoverPhotoSize'
-										}
-									]
-								}
-							]
-						}
 					]
 				},
-				tabsIds: ['Adjust', 'Annotate', 'Filters', 'FineTune', 'Resize'],
+				tabsIds: ['Adjust', 'Annotate', 'Filters', 'Resize'],
 				defaultTabId: 'Annotate',
 				defaultToolId: 'Text'
+			};
+
+			// Instantiate editor
+			filerobotImageEditor = new FilerobotImageEditor(editorContainer, config);
+
+			// Render with onClose callback
+			filerobotImageEditor.render({
+				onClose: (closingReason: string) => {
+					console.log('Editor closed:', closingReason);
+					closeEditor();
+				}
 			});
 
 			console.log('Image editor initialized successfully');

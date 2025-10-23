@@ -16,15 +16,16 @@ export const GET: RequestHandler = async ({ cookies }) => {
 
 		const db = getDbInstance();
 
-		// Verify admin user exists
-		const user = await (db as any).getAdminUserByUsername('admin');
-		if (!user) {
-			log.info('Accounts API - Admin user not found');
+		// Verify session is valid
+		const session = await db.getSession(adminSession);
+		if (!session || !session.data?.user?.id) {
+			log.info('Accounts API - Invalid session');
 			return new Response(JSON.stringify({ error: 'Unauthorized' }), {
 				status: 401,
 				headers: { 'Content-Type': 'application/json' }
 			});
 		}
+
 		log.info('Fetching all user accounts');
 		const accounts = await (db as any).getAllUserAccounts();
 		log.info(`Accounts API - Found ${accounts.length} accounts in database`);
@@ -96,9 +97,10 @@ export const DELETE: RequestHandler = async ({ cookies, request }) => {
 
 		const db = getDbInstance();
 
-		// Verify admin user exists
-		const user = await (db as any).getAdminUserByUsername('admin');
-		if (!user) {
+		// Verify session is valid
+		const session = await db.getSession(adminSession);
+		if (!session || !session.data?.user?.id) {
+			log.info('Accounts API - Invalid session');
 			return new Response(JSON.stringify({ error: 'Unauthorized' }), {
 				status: 401,
 				headers: { 'Content-Type': 'application/json' }
