@@ -78,6 +78,7 @@ export interface ThreadTweet {
 export interface QueueSettings {
   id?: string;
   userId: string;
+  twitterAccountId?: string; // Optional: if set, settings apply to specific account only
   enabled: boolean;
   postingTimes: string[]; // Array of times like ["09:00", "13:00", "17:00"]
   timezone: string;

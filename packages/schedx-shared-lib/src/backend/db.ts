@@ -778,9 +778,16 @@ export class DatabaseClient {
     );
   }
 
-  async getQueueSettings(userId: string): Promise<any | null> {
+  async getQueueSettings(userId: string, twitterAccountId?: string): Promise<any | null> {
     const db = await this.connect();
-    const settings = await db.collection('queue_settings').findOne({ userId });
+    const query: any = { userId };
+    if (twitterAccountId) {
+      query.twitterAccountId = twitterAccountId;
+    } else {
+      // If no accountId specified, get the default (no twitterAccountId set)
+      query.twitterAccountId = { $exists: false };
+    }
+    const settings = await db.collection('queue_settings').findOne(query);
     if (!settings) return null;
     
     return {
@@ -788,6 +795,16 @@ export class DatabaseClient {
       id: settings._id.toString(),
       _id: undefined
     };
+  }
+
+  async getAllQueueSettings(userId: string): Promise<any[]> {
+    const db = await this.connect();
+    const settingsArray = await db.collection('queue_settings').find({ userId }).toArray();
+    return settingsArray.map(settings => ({
+      ...settings,
+      id: settings._id.toString(),
+      _id: undefined
+    }));
   }
 
   async saveQueueSettings(settings: any): Promise<string> {
@@ -801,12 +818,60 @@ export class DatabaseClient {
       );
       return id;
     } else {
-      const result = await db.collection('queue_settings').insertOne({
-        ...settingsData,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      });
-      return result.insertedId.toString();
+      // Check if settings already exist for this user/account combination
+      const query: any = { userId: settingsData.userId };
+      if (settingsData.twitterAccountId) {
+        query.twitterAccountId = settingsData.twitterAccountId;
+      } else {
+        query.twitterAccountId = { $exists: false };
+      }
+      const existing = await db.collection('queue_settings').findOne(query);
+      
+      if (existing) {
+        // Update existing settings
+        await db.collection('queue_settings').updateOne(
+          { _id: existing._id },
+          { $set: { ...settingsData, updatedAt: new Date() } }
+        );
+        return existing._id.toString();
+      } else {
+        // Insert new settings
+        const result = await db.collection('queue_settings').insertOne({
+          ...settingsData,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+        return result.insertedId.toString();
+      }
+    }
+  }
+
+  async shuffleQueue(userId: string, twitterAccountId?: string): Promise<void> {
+    const db = await this.connect();
+    const query: any = { userId, status: TweetStatus.QUEUED };
+    if (twitterAccountId) {
+      query.twitterAccountId = twitterAccountId;
+    }
+    
+    // Get all queued tweets
+    const tweets = await db.collection('tweets').find(query).toArray();
+    
+    // Shuffle the array using Fisher-Yates algorithm
+    for (let i = tweets.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [tweets[i], tweets[j]] = [tweets[j], tweets[i]];
+    }
+    
+    // Update queue positions
+    const updates = tweets.map((tweet, index) => ({
+      updateOne: {
+        filter: { _id: tweet._id },
+        update: { $set: { queuePosition: index, updatedAt: new Date() } }
+      }
+    }));
+    
+    if (updates.length > 0) {
+      await db.collection('tweets').bulkWrite(updates);
     }
   }
 

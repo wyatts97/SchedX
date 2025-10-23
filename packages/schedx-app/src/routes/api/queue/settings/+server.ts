@@ -3,7 +3,7 @@ import { getDbInstance } from '$lib/server/db';
 import { log } from '$lib/server/logger';
 
 // GET: Fetch queue settings
-export const GET: RequestHandler = async ({ cookies }) => {
+export const GET: RequestHandler = async ({ cookies, url }) => {
 	try {
 		const adminSession = cookies.get('admin_session');
 		if (!adminSession) {
@@ -23,7 +23,10 @@ export const GET: RequestHandler = async ({ cookies }) => {
 		}
 		const userId = user.id;
 
-		const settings = await db.getQueueSettings(userId);
+		// Get optional account filter from query params
+		const accountId = url.searchParams.get('accountId') || undefined;
+
+		const settings = await (db as any).getQueueSettings(userId, accountId);
 
 		return new Response(
 			JSON.stringify({

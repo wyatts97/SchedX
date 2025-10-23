@@ -11,25 +11,56 @@
 		timezone: 'America/New_York',
 		minInterval: 60,
 		maxPostsPerDay: 10,
-		skipWeekends: false
+		skipWeekends: false,
+		twitterAccountId: undefined as string | undefined
 	};
 
 	let loading = true;
 	let saving = false;
 	let newTime = '';
+	let accounts: any[] = [];
+	let selectedAccountId: string | undefined = undefined;
+	let allSettings: any[] = [];
 
 	onMount(async () => {
+		await fetchAccounts();
 		await fetchSettings();
 	});
+
+	async function fetchAccounts() {
+		try {
+			const res = await fetch('/api/accounts');
+			if (res.ok) {
+				const data = await res.json();
+				accounts = data.accounts || [];
+			}
+		} catch (e) {
+			logger.error('Failed to load accounts:', { error: e });
+		}
+	}
 
 	async function fetchSettings() {
 		loading = true;
 		try {
-			const res = await fetch('/api/queue/settings');
+			const url = selectedAccountId
+				? `/api/queue/settings?accountId=${selectedAccountId}`
+				: '/api/queue/settings';
+			const res = await fetch(url);
 			if (res.ok) {
 				const data = await res.json();
 				if (data.settings) {
-					settings = data.settings;
+					settings = { ...data.settings, twitterAccountId: selectedAccountId };
+				} else {
+					// No settings found, use defaults
+					settings = {
+						enabled: true,
+						postingTimes: ['09:00', '13:00', '17:00'],
+						timezone: 'America/New_York',
+						minInterval: 60,
+						maxPostsPerDay: 10,
+						skipWeekends: false,
+						twitterAccountId: selectedAccountId
+					};
 				}
 			}
 		} catch (e) {
@@ -39,20 +70,36 @@
 		}
 	}
 
+	function onAccountChange() {
+		fetchSettings();
+	}
+
 	async function saveSettings() {
 		saving = true;
 		try {
+			const settingsToSave = {
+				...settings,
+				twitterAccountId: selectedAccountId || undefined
+			};
+
 			const res = await fetch('/api/queue/settings', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(settings)
+				body: JSON.stringify(settingsToSave)
 			});
 
 			if (!res.ok) {
-				throw new Error('Failed to save settings');
+				const error = await res.json();
+				throw new Error(error.error || 'Failed to save settings');
 			}
 
-			toastStore.success('Settings Saved', 'Queue settings updated successfully');
+			const accountName = selectedAccountId
+				? accounts.find((a) => a.providerAccountId === selectedAccountId)?.username || 'account'
+				: 'default';
+			toastStore.success(
+				'Settings Saved',
+				`Queue settings for ${accountName} updated successfully`
+			);
 			goto('/queue');
 		} catch (e) {
 			toastStore.error('Save Failed', 'Failed to save queue settings');
@@ -104,6 +151,31 @@
 		</div>
 	{:else}
 		<form on:submit|preventDefault={saveSettings} class="space-y-6">
+			<!-- Account Selector -->
+			{#if accounts.length > 1}
+				<div class="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+					<h3 class="mb-4 text-lg font-medium text-gray-900 dark:text-white">
+						Twitter Account
+					</h3>
+					<p class="mb-4 text-sm text-gray-500 dark:text-gray-400">
+						Configure queue settings for a specific account or use default settings for all accounts
+					</p>
+					<select
+						bind:value={selectedAccountId}
+						on:change={onAccountChange}
+						class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
+					>
+						<option value={undefined}>Default (All Accounts)</option>
+						{#each accounts as account}
+							<option value={account.providerAccountId}>
+								@{account.username}
+								{#if account.isDefault}(Default){/if}
+							</option>
+						{/each}
+					</select>
+				</div>
+			{/if}
+
 			<!-- Enable Queue -->
 			<div class="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
 				<div class="flex items-center justify-between">

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Settings, Calendar as CalendarIcon, Edit, Trash2, GripVertical } from 'lucide-svelte';
+	import { Settings, Calendar as CalendarIcon, Edit, Trash2, GripVertical, Shuffle } from 'lucide-svelte';
 	import { toastStore } from '$lib/stores/toastStore';
 	import logger from '$lib/logger';
 
@@ -8,16 +8,35 @@
 	let loading = true;
 	let error = '';
 	let processingQueue = false;
+	let shuffling = false;
+	let accounts: any[] = [];
+	let selectedAccountId: string | undefined = undefined;
 
 	onMount(async () => {
+		await fetchAccounts();
 		await fetchQueue();
 	});
+
+	async function fetchAccounts() {
+		try {
+			const res = await fetch('/api/accounts');
+			if (res.ok) {
+				const data = await res.json();
+				accounts = data.accounts || [];
+			}
+		} catch (e) {
+			logger.error('Failed to load accounts:', { error: e });
+		}
+	}
 
 	async function fetchQueue() {
 		loading = true;
 		error = '';
 		try {
-			const res = await fetch('/api/queue');
+			const url = selectedAccountId
+				? `/api/queue?accountId=${selectedAccountId}`
+				: '/api/queue';
+			const res = await fetch(url);
 			if (!res.ok) {
 				throw new Error(`HTTP ${res.status}: ${res.statusText}`);
 			}
@@ -30,6 +49,10 @@
 		} finally {
 			loading = false;
 		}
+	}
+
+	function onAccountChange() {
+		fetchQueue();
 	}
 
 	async function processQueue() {
@@ -47,6 +70,27 @@
 			logger.error('Failed to process queue:', { error: e });
 		} finally {
 			processingQueue = false;
+		}
+	}
+
+	async function shuffleQueue() {
+		shuffling = true;
+		try {
+			const res = await fetch('/api/queue/shuffle', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ twitterAccountId: selectedAccountId })
+			});
+			if (!res.ok) {
+				throw new Error('Failed to shuffle queue');
+			}
+			toastStore.success('Queue Shuffled', 'Tweet order randomized');
+			await fetchQueue();
+		} catch (e) {
+			toastStore.error('Shuffle Failed', 'Failed to shuffle queue');
+			logger.error('Failed to shuffle queue:', { error: e });
+		} finally {
+			shuffling = false;
 		}
 	}
 
@@ -106,6 +150,29 @@
 		</div>
 	</div>
 
+	<!-- Account Filter -->
+	{#if accounts.length > 1}
+		<div class="mb-6 rounded-lg bg-white p-4 shadow dark:bg-gray-800">
+			<label for="account-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+				Filter by Account
+			</label>
+			<select
+				id="account-filter"
+				bind:value={selectedAccountId}
+				on:change={onAccountChange}
+				class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
+			>
+				<option value={undefined}>All Accounts</option>
+				{#each accounts as account}
+					<option value={account.providerAccountId}>
+						@{account.username}
+						{#if account.isDefault}(Default){/if}
+					</option>
+				{/each}
+			</select>
+		</div>
+	{/if}
+
 	<!-- Queue Stats -->
 	<div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
 		<div class="rounded-lg bg-white p-4 shadow dark:bg-gray-800">
@@ -124,7 +191,19 @@
 	<!-- Queue List -->
 	<div class="rounded-lg bg-white shadow dark:bg-gray-800">
 		<div class="px-4 py-5 sm:p-6">
-			<h2 class="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Queued Tweets</h2>
+			<div class="mb-4 flex items-center justify-between">
+				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Queued Tweets</h2>
+				{#if queuedTweets.length > 1}
+					<button
+						on:click={shuffleQueue}
+						disabled={shuffling}
+						class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all duration-200 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
+					>
+						<Shuffle class="h-4 w-4" />
+						{shuffling ? 'Shuffling...' : 'Shuffle Queue'}
+					</button>
+				{/if}
+			</div>
 
 			{#if loading}
 				<div class="flex items-center justify-center py-12">

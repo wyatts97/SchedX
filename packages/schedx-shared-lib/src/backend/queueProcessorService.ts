@@ -14,36 +14,99 @@ const log = {
 export class QueueProcessorService {
 	/**
 	 * Process the queue and assign scheduled times to queued tweets
+	 * Processes each account's queue separately with its own settings
 	 */
 	static async processQueue(
 		db: any,
-		userId: string
+		userId: string,
+		twitterAccountId?: string
 	): Promise<{ scheduled: number; errors: string[] }> {
 		const errors: string[] = [];
 		let scheduled = 0;
 
 		try {
-			// Get queue settings
-			const settings = await db.getQueueSettings(userId);
-			if (!settings || !settings.enabled) {
-				log.info('Queue processing skipped - queue is disabled');
+			// Get all queue settings for this user
+			const allSettings = await db.getAllQueueSettings(userId);
+			
+			// Filter settings if specific account requested
+			const settingsToProcess = twitterAccountId
+				? allSettings.filter((s: any) => s.twitterAccountId === twitterAccountId)
+				: allSettings;
+
+			// If no settings found, try default settings
+			if (settingsToProcess.length === 0) {
+				const defaultSettings = await db.getQueueSettings(userId);
+				if (defaultSettings && defaultSettings.enabled) {
+					settingsToProcess.push(defaultSettings);
+				}
+			}
+
+			if (settingsToProcess.length === 0) {
+				log.info('Queue processing skipped - no enabled queue settings found');
 				return { scheduled: 0, errors: [] };
 			}
 
-			// Get all queued tweets ordered by position
-			const queuedTweets = await db.getTweetsByStatus(userId, TweetStatus.QUEUED);
+			// Process queue for each settings configuration
+			for (const settings of settingsToProcess) {
+				if (!settings.enabled) {
+					continue;
+				}
+
+				const result = await this.processQueueForAccount(
+					db,
+					userId,
+					settings
+				);
+				scheduled += result.scheduled;
+				errors.push(...result.errors);
+			}
+
+			return { scheduled, errors };
+		} catch (error) {
+			const errorMsg = `Queue processing failed: ${error}`;
+			log.error(errorMsg, { error });
+			errors.push(errorMsg);
+			return { scheduled, errors };
+		}
+	}
+
+	/**
+	 * Process queue for a specific account/settings configuration
+	 */
+	private static async processQueueForAccount(
+		db: any,
+		userId: string,
+		settings: QueueSettings
+	): Promise<{ scheduled: number; errors: string[] }> {
+		const errors: string[] = [];
+		let scheduled = 0;
+
+		try {
+			// Get queued tweets for this account
+			const allQueuedTweets = await db.getTweetsByStatus(userId, TweetStatus.QUEUED);
+			const queuedTweets = settings.twitterAccountId
+				? allQueuedTweets.filter((t: Tweet) => t.twitterAccountId === settings.twitterAccountId)
+				: allQueuedTweets;
+
 			if (!queuedTweets || queuedTweets.length === 0) {
-				log.info('No queued tweets to process');
+				log.info('No queued tweets to process for account', {
+					twitterAccountId: settings.twitterAccountId || 'default'
+				});
 				return { scheduled: 0, errors: [] };
 			}
 
 			log.info(`Processing ${queuedTweets.length} queued tweets`, {
 				userId,
+				twitterAccountId: settings.twitterAccountId || 'default',
 				queueLength: queuedTweets.length
 			});
 
 			// Get existing scheduled tweets to avoid conflicts
-			const scheduledTweets = await db.getTweetsByStatus(userId, TweetStatus.SCHEDULED);
+			const allScheduledTweets = await db.getTweetsByStatus(userId, TweetStatus.SCHEDULED);
+			// Filter to same account if account-specific settings
+			const scheduledTweets = settings.twitterAccountId
+				? allScheduledTweets.filter((t: Tweet) => t.twitterAccountId === settings.twitterAccountId)
+				: allScheduledTweets;
 			const existingTimes = new Set<number>(
 				scheduledTweets.map((t: Tweet) => t.scheduledDate.getTime())
 			);
@@ -79,6 +142,7 @@ export class QueueProcessorService {
 			if (queuedTweets.length > timeSlots.length) {
 				const remaining = queuedTweets.length - timeSlots.length;
 				log.warn(`${remaining} queued tweets could not be scheduled - no available time slots`, {
+					twitterAccountId: settings.twitterAccountId || 'default',
 					queuedCount: queuedTweets.length,
 					availableSlots: timeSlots.length
 				});
@@ -86,8 +150,8 @@ export class QueueProcessorService {
 
 			return { scheduled, errors };
 		} catch (error) {
-			const errorMsg = `Queue processing failed: ${error}`;
-			log.error(errorMsg, { error });
+			const errorMsg = `Queue processing failed for account: ${error}`;
+			log.error(errorMsg, { error, twitterAccountId: settings.twitterAccountId });
 			errors.push(errorMsg);
 			return { scheduled, errors };
 		}

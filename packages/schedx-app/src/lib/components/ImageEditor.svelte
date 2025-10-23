@@ -2,6 +2,8 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
 	import { X } from 'lucide-svelte';
+	import React from 'react';
+	import ReactDOM from 'react-dom/client';
 
 	export let open = false;
 	export let imageUrl = '';
@@ -12,6 +14,9 @@
 	let reactRoot: any = null;
 	let saving = false;
 	let initError = false;
+	let FilerobotImageEditor: any = null;
+	let TABS: any = null;
+	let TOOLS: any = null;
 
 	function closeEditor() {
 		if (reactRoot && browser) {
@@ -33,20 +38,14 @@
 			initError = false;
 			console.log('Initializing image editor with URL:', imageUrl);
 
-			// Dynamically import React and the editor
-			const React = await import('react');
-			const ReactDOM = await import('react-dom/client');
-			const FilerobotModule = await import('react-filerobot-image-editor');
-			
-			const FilerobotImageEditor = FilerobotModule.default;
-			const { TABS, TOOLS } = FilerobotModule;
-			
-			console.log('Modules loaded successfully', { 
-				hasEditor: !!FilerobotImageEditor, 
-				hasTABS: !!TABS,
-				hasReact: !!React,
-				hasReactDOM: !!ReactDOM
-			});
+			// Dynamically import only the Filerobot editor (React is already imported)
+			if (!FilerobotImageEditor) {
+				const FilerobotModule = await import('react-filerobot-image-editor');
+				FilerobotImageEditor = FilerobotModule.default;
+				TABS = FilerobotModule.TABS;
+				TOOLS = FilerobotModule.TOOLS;
+				console.log('Filerobot module loaded', { hasEditor: !!FilerobotImageEditor, hasTABS: !!TABS });
+			}
 
 			// Clean up previous instance
 			if (reactRoot) {
@@ -54,7 +53,7 @@
 			}
 
 			// Create React element with editor
-			const editorElement = React.default.createElement(FilerobotImageEditor as any, {
+			const editorElement = React.createElement(FilerobotImageEditor, {
 				source: imageUrl,
 				onSave: async (editedImageObject: any, designState: any) => {
 					try {
@@ -108,7 +107,7 @@
 
 			// Create React root and render
 			console.log('Creating React root and rendering editor...');
-			reactRoot = ReactDOM.default.createRoot(editorContainer);
+			reactRoot = ReactDOM.createRoot(editorContainer);
 			reactRoot.render(editorElement);
 
 			console.log('Image editor initialized and rendered successfully');

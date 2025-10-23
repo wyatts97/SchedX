@@ -1,10 +1,9 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import { getDbInstance } from '$lib/server/db';
-import { TweetStatus } from '@schedx/shared-lib/types/types';
 import { log } from '$lib/server/logger';
 
-// GET: Fetch queued tweets
-export const GET: RequestHandler = async ({ cookies, url }) => {
+// POST: Shuffle queue tweets
+export const POST: RequestHandler = async ({ request, cookies }) => {
 	try {
 		const adminSession = cookies.get('admin_session');
 		if (!adminSession) {
@@ -24,29 +23,20 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
 		}
 		const userId = user.id;
 
-		// Get optional account filter from query params
-		const accountId = url.searchParams.get('accountId') || undefined;
+		// Get optional account filter from request body
+		const body = await request.json().catch(() => ({}));
+		const twitterAccountId = body.twitterAccountId;
 
-		// Get queued tweets, optionally filtered by account
-		let tweets;
-		if (accountId) {
-			// Filter by specific account
-			const allTweets = await db.getTweetsByStatus(userId, TweetStatus.QUEUED);
-			tweets = allTweets.filter((t: any) => t.twitterAccountId === accountId);
-		} else {
-			// Get all queued tweets
-			tweets = await db.getTweetsByStatus(userId, TweetStatus.QUEUED);
-		}
+		log.info('Shuffling queue', { userId, twitterAccountId });
 
-		// Sort by queue position
-		tweets.sort((a: any, b: any) => (a.queuePosition || 0) - (b.queuePosition || 0));
+		await (db as any).shuffleQueue(userId, twitterAccountId);
 
-		log.info('Fetched queued tweets', { count: tweets.length, accountId });
+		log.info('Queue shuffled successfully', { userId, twitterAccountId });
 
 		return new Response(
 			JSON.stringify({
-				tweets,
-				success: true
+				success: true,
+				message: 'Queue shuffled successfully'
 			}),
 			{
 				status: 200,
@@ -54,10 +44,10 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
 			}
 		);
 	} catch (error) {
-		log.error('Error fetching queued tweets', { error });
+		log.error('Error shuffling queue', { error });
 		return new Response(
 			JSON.stringify({
-				error: 'Failed to fetch queued tweets',
+				error: 'Failed to shuffle queue',
 				details: error instanceof Error ? error.message : 'Unknown error'
 			}),
 			{
