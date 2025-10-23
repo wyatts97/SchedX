@@ -31,14 +31,22 @@
 
 		try {
 			initError = false;
-			console.log('Initializing image editor...');
+			console.log('Initializing image editor with URL:', imageUrl);
 
 			// Dynamically import React and the editor
-			const [React, ReactDOM, { default: FilerobotImageEditor, TABS }] = await Promise.all([
-				import('react'),
-				import('react-dom/client'),
-				import('react-filerobot-image-editor')
-			]);
+			const React = await import('react');
+			const ReactDOM = await import('react-dom/client');
+			const FilerobotModule = await import('react-filerobot-image-editor');
+			
+			const FilerobotImageEditor = FilerobotModule.default;
+			const { TABS, TOOLS } = FilerobotModule;
+			
+			console.log('Modules loaded successfully', { 
+				hasEditor: !!FilerobotImageEditor, 
+				hasTABS: !!TABS,
+				hasReact: !!React,
+				hasReactDOM: !!ReactDOM
+			});
 
 			// Clean up previous instance
 			if (reactRoot) {
@@ -46,7 +54,7 @@
 			}
 
 			// Create React element with editor
-			const editorElement = React.createElement(FilerobotImageEditor as any, {
+			const editorElement = React.default.createElement(FilerobotImageEditor as any, {
 				source: imageUrl,
 				onSave: async (editedImageObject: any, designState: any) => {
 					try {
@@ -95,14 +103,15 @@
 				},
 				tabsIds: [TABS.ADJUST, TABS.ANNOTATE, TABS.FILTERS, TABS.RESIZE],
 				defaultTabId: TABS.ANNOTATE,
-				defaultToolId: 'Text'
+				defaultToolId: TOOLS.TEXT
 			});
 
 			// Create React root and render
-			reactRoot = ReactDOM.createRoot(editorContainer);
+			console.log('Creating React root and rendering editor...');
+			reactRoot = ReactDOM.default.createRoot(editorContainer);
 			reactRoot.render(editorElement);
 
-			console.log('Image editor initialized successfully');
+			console.log('Image editor initialized and rendered successfully');
 		} catch (error) {
 			console.error('Editor initialization failed:', error);
 			initError = true;
