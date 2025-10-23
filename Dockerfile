@@ -14,14 +14,15 @@ COPY packages/schedx-app/package.json ./packages/schedx-app/
 COPY packages/schedx-shared-lib/package.json ./packages/schedx-shared-lib/
 COPY packages/schedx-scheduler/package.json ./packages/schedx-scheduler/
 
+# Install all dependencies
+RUN npm ci
+
 # Then check .env for AI flag
 COPY .env.docker ./
 RUN if grep -q '^USE_LOCAL_AI=true$' .env.docker; then \
+    cd packages/schedx-app && \
     npm run download-model; \
 fi
-
-# Install all dependencies
-RUN npm ci
 
 # Copy remaining source files
 COPY . .
