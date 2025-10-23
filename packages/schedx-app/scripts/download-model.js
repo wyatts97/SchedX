@@ -25,33 +25,66 @@ if (process.env.USE_LOCAL_AI !== 'true') {
   process.exit(0);
 }
 
-const MODEL_URL = 'https://github.com/onnx/models/raw/main/text/machine_comprehension/gpt-2/model/distilgpt2-10.onnx';
+// Using Hugging Face's ONNX model (GPT-2 base model, ~500MB)
+const MODEL_URL = 'https://huggingface.co/onnx-community/gpt2-ONNX/resolve/main/onnx/model.onnx';
 const MODEL_PATH = join(__dirname, '../static/models/distilgpt2.onnx');
 
 // Create directory if needed
 mkdirSync(dirname(MODEL_PATH), { recursive: true });
 
-console.log(`Downloading model to ${MODEL_PATH}`);
+console.log(`Downloading model from ${MODEL_URL}`);
+console.log(`Saving to ${MODEL_PATH}`);
 
 const file = createWriteStream(MODEL_PATH);
-get(MODEL_URL, response => {
-  if (response.statusCode !== 200) {
-    file.destroy();
-    throw new Error(`Failed to download model: HTTP ${response.statusCode}`);
+
+function downloadFile(url, redirectCount = 0) {
+  if (redirectCount > 5) {
+    throw new Error('Too many redirects');
   }
-  
-  response.pipe(file);
-  
-  file.on('finish', () => {
-    file.close();
-    if (!existsSync(MODEL_PATH)) {
-      throw new Error('Download completed but file not found');
+
+  get(url, response => {
+    // Handle redirects
+    if (response.statusCode === 301 || response.statusCode === 302 || response.statusCode === 307 || response.statusCode === 308) {
+      const redirectUrl = response.headers.location;
+      console.log(`Following redirect to: ${redirectUrl}`);
+      file.destroy();
+      downloadFile(redirectUrl, redirectCount + 1);
+      return;
     }
-    const size = statSync(MODEL_PATH).size;
-    console.log(`Download successful! Size: ${(size / (1024 * 1024)).toFixed(2)} MB`);
+
+    if (response.statusCode !== 200) {
+      file.destroy();
+      throw new Error(`Failed to download model: HTTP ${response.statusCode}`);
+    }
+    
+    console.log('Download started...');
+    let downloaded = 0;
+    const totalSize = parseInt(response.headers['content-length'] || '0', 10);
+    
+    response.on('data', (chunk) => {
+      downloaded += chunk.length;
+      if (totalSize > 0) {
+        const percent = ((downloaded / totalSize) * 100).toFixed(1);
+        process.stdout.write(`\rProgress: ${percent}% (${(downloaded / (1024 * 1024)).toFixed(2)} MB / ${(totalSize / (1024 * 1024)).toFixed(2)} MB)`);
+      }
+    });
+    
+    response.pipe(file);
+    
+    file.on('finish', () => {
+      file.close();
+      console.log('\n'); // New line after progress
+      if (!existsSync(MODEL_PATH)) {
+        throw new Error('Download completed but file not found');
+      }
+      const size = statSync(MODEL_PATH).size;
+      console.log(`✓ Download successful! Size: ${(size / (1024 * 1024)).toFixed(2)} MB`);
+    });
+  }).on('error', err => {
+    file.destroy();
+    if (existsSync(MODEL_PATH)) unlinkSync(MODEL_PATH);
+    throw err;
   });
-}).on('error', err => {
-  file.destroy();
-  if (existsSync(MODEL_PATH)) unlinkSync(MODEL_PATH);
-  throw err;
-});
+}
+
+downloadFile(MODEL_URL);
