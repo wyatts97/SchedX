@@ -1,5 +1,5 @@
 # Stage 1: Build all packages
-FROM node:22-bookworm-slim AS builder
+FROM node:22-bullseye-slim AS builder
 
 # Install git for npm dependencies
 RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
@@ -24,7 +24,7 @@ RUN npm run build -w @schedx/app
 RUN npm run build -w @schedx/scheduler
 
 # Stage 2: Production image
-FROM node:22-bookworm-slim
+FROM node:22-bullseye-slim
 
 # Create non-root user for security
 RUN groupadd -r schedx && useradd -r -g schedx schedx
