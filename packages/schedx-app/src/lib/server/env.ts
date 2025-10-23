@@ -2,6 +2,8 @@ import { log } from './logger';
 import { resolve, dirname } from 'path';
 import { mkdirSync, existsSync } from 'fs';
 
+
+
 export interface EnvironmentConfig {
 	// Authentication
 	AUTH_SECRET: string;
@@ -18,6 +20,11 @@ export interface EnvironmentConfig {
 
 	// File uploads
 	MAX_UPLOAD_SIZE: number;
+
+	// Local AI
+	USE_LOCAL_AI: string;
+	LOCAL_AI_TEMPERATURE?: string;
+	LOCAL_AI_MAX_TOKENS?: string;
 }
 
 /**
@@ -63,7 +70,12 @@ export function validateEnvironment(): EnvironmentConfig {
 		NODE_ENV: (process.env.NODE_ENV as EnvironmentConfig['NODE_ENV']) || 'development',
 
 		// File uploads
-		MAX_UPLOAD_SIZE: parseInt(process.env.MAX_UPLOAD_SIZE || '52428800', 10) // 50MB default
+		MAX_UPLOAD_SIZE: parseInt(process.env.MAX_UPLOAD_SIZE || '52428800', 10), // 50MB default
+
+// Local AI
+		USE_LOCAL_AI: process.env.USE_LOCAL_AI || 'false',
+		LOCAL_AI_TEMPERATURE: process.env.LOCAL_AI_TEMPERATURE,
+		LOCAL_AI_MAX_TOKENS: process.env.LOCAL_AI_MAX_TOKENS
 	};
 
 	// Validate required fields

@@ -1,4 +1,6 @@
-import { env } from '$env/dynamic/private';
+import { getEnvironmentConfig } from '$lib/server/env';
+
+const env = getEnvironmentConfig();
 
 export async function generateTweet(prompt: string, tone: string, length: string): Promise<string> {
   try {

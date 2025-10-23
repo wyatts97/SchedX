@@ -1,22 +1,8 @@
 # Stage 1: Build all packages
 FROM node:22-bookworm-slim AS builder
 
-# Install only essential build tools
-RUN apt-get update && apt-get install -y \
-    git \
-    build-essential \
-    libgomp1 \
-    && rm -rf /var/lib/apt/lists/*
-
-# Use prebuilt binaries to skip compilation
-ENV NODE_LLAMA_CPP_SKIP_DOWNLOAD=true
-
-# Limit memory usage during build
-ENV NODE_OPTIONS="--max-old-space-size=2048"
-
-#Force a generic build for node-llama-cpp to avoid CPU incompatibility
-
-ENV NODE_LLAMA_CPP_CMAKE_ARGS="-DLLAMA_AVX2=OFF -DLLAMA_AVX=OFF -DLLAMA_F16C=OFF -DLLAMA_FMA=OFF"
+# Install git for npm dependencies
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -26,9 +12,6 @@ COPY packages/schedx-app/package.json ./packages/schedx-app/
 COPY packages/schedx-shared-lib/package.json ./packages/schedx-shared-lib/
 COPY packages/schedx-scheduler/package.json ./packages/schedx-scheduler/
 
-# Build with fewer parallel processes
-RUN npm config set maxsockets 1
-
 # Install all dependencies (for all workspaces)
 RUN npm ci
 
@@ -37,27 +20,11 @@ COPY . .
 
 # Build in correct order: shared-lib MUST be built first
 RUN npm run build -w @schedx/shared-lib
-RUN echo "=== Verifying migrations were copied ===" && \
-    ls -la /app/packages/schedx-shared-lib/dist/backend/migrations/ && \
-    echo "=== Migration files found ===" || echo "=== ERROR: No migration files! ==="
 RUN npm run build -w @schedx/app
 RUN npm run build -w @schedx/scheduler
 
-# Download TinyLlama model if enabled
-ARG USE_LOCAL_AI=true
-RUN if [ "$USE_LOCAL_AI" = "true" ]; then \
-    mkdir -p /app/static/models && \
-    curl -L https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf \
-    -o /app/static/models/tinyllama.gguf; \
-fi
-
 # Stage 2: Production image
 FROM node:22-bookworm-slim
-
-# Runtime dependencies
-RUN apt-get update && apt-get install -y \
-    libgomp1 \
-    && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user for security
 RUN groupadd -r schedx && useradd -r -g schedx schedx
@@ -69,19 +36,10 @@ COPY --from=builder --chown=schedx:schedx /app/package.json ./
 COPY --from=builder --chown=schedx:schedx /app/package-lock.json ./
 COPY --from=builder --chown=schedx:schedx /app/node_modules ./node_modules
 COPY --from=builder --chown=schedx:schedx /app/packages ./packages
-COPY --from=builder --chown=schedx:schedx /app/static/models ./static/models
 
 # Create uploads and data directories with correct ownership
-RUN mkdir -p /app/packages/schedx-app/uploads /data /app/static/models && \
+RUN mkdir -p /app/packages/schedx-app/uploads /data && \
     chown -R schedx:schedx /app/packages/schedx-app/uploads /data
-
-# Download TinyLlama model if enabled
-ARG USE_LOCAL_AI=true
-RUN if [ "$USE_LOCAL_AI" = "true" ]; then \
-    curl -L https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf \
-    -o /app/static/models/tinyllama.gguf && \
-    chown schedx:schedx /app/static/models/tinyllama.gguf; \
-fi
 
 # Switch to non-root user
 USER schedx
