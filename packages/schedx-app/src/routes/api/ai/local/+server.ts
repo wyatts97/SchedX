@@ -1,9 +1,11 @@
 import { getEnvironmentConfig } from '$lib/server/env';
+import { InferenceSession, Tensor } from 'onnxruntime-node';
 import type { RequestHandler } from '@sveltejs/kit';
-import { pipeline } from '@xenova/transformers';
+// @ts-ignore - SvelteKit env import
+import { env } from '$env/dynamic/private';
 
-// Skip local model check
-// transformerEnv.allowLocalModels = false;
+// Initialize ONNX session
+const session = await InferenceSession.create('./static/models/distilgpt2.onnx');
 
 type RequestBody = {
   prompt: string;
@@ -11,33 +13,30 @@ type RequestBody = {
   length: string;
 };
 
-// Create a singleton instance of the text generation pipeline
-const generator = await pipeline('text-generation', 'Xenova/phi-1_5', {
-  quantized: true
-});
-const env = getEnvironmentConfig();
+const envConfig = getEnvironmentConfig();
 
 export const POST: RequestHandler = async ({ request }) => {
-  if (process.env.USE_LOCAL_AI !== 'true') {
-    return new Response('Local AI disabled', { status: 501 });
+  if (env.USE_LOCAL_AI !== 'true') {
+    return new Response('Local AI disabled', { 
+      status: 501,
+      headers: { 'Cache-Control': 'no-store' }
+    });
   }
 
   try {
     const { prompt, tone, length } = (await request.json()) as RequestBody;
 
-    const response = await generator(
-      `Generate a ${tone} tweet (${length}): ${prompt}\n\nTweet:`,
-      {
-        max_new_tokens: 120,
-        temperature: 0.8
-      }
-    );
+    // Prepare inputs
+    const inputs = new Tensor('string', [
+      `Generate a ${tone} tweet (${length}): ${prompt}\n\nTweet:`
+    ]);
 
-    // @ts-ignore
-    return new Response(response[0].generated_text.trim());
+    // Run inference
+    const { output } = await session.run({ inputs });
 
+    return new Response(output.data[0].toString().trim());
   } catch (error) {
-    console.error('AI generation error:', error);
-    return new Response('Failed to generate tweet', { status: 500 });
+    console.error('AI generation failed:', error);
+    return new Response('AI service unavailable', { status: 500 });
   }
 };

@@ -8,6 +8,14 @@ RUN apt-get update && \
 
 WORKDIR /app
 
+# Copy .env first to check USE_LOCAL_AI
+COPY .env.docker ./
+
+# Only download if USE_LOCAL_AI=true
+RUN if grep -q '^USE_LOCAL_AI=true$' .env.docker; then \
+    npm run download-model; \
+fi
+
 # Copy root package files and all workspace package.jsons
 COPY package.json package-lock.json ./
 COPY packages/schedx-app/package.json ./packages/schedx-app/
@@ -19,6 +27,9 @@ RUN npm ci
 
 # Copy all source files
 COPY . .
+
+# Copy model files
+COPY static/models/ ./static/models/
 
 # Build in correct order: shared-lib MUST be built first
 RUN npm run build -w @schedx/shared-lib
