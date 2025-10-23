@@ -25,8 +25,13 @@ export class AIService {
 	private config = getEnvironmentConfig();
 
 	private constructor() {
-		// Model path relative to the build output
-		this.modelPath = join(process.cwd(), 'packages', 'schedx-app', 'static', 'models', 'distilgpt2.onnx');
+		// Model path - handle both Docker and local environments
+		// In Docker: /app/packages/schedx-app/static/models/distilgpt2.onnx
+		// Locally: process.cwd()/packages/schedx-app/static/models/distilgpt2.onnx
+		const isDocker = process.env.DOCKER === 'true';
+		this.modelPath = isDocker 
+			? '/app/packages/schedx-app/static/models/distilgpt2.onnx'
+			: join(process.cwd(), 'packages', 'schedx-app', 'static', 'models', 'distilgpt2.onnx');
 	}
 
 	static getInstance(): AIService {

@@ -9,10 +9,7 @@ export default defineConfig(({ mode }) => {
 	return {
 		plugins: [sveltekit()],
 		ssr: {
-			external: ['mongodb']
-		},
-		optimizeDeps: {
-			exclude: ['mongodb']
+			external: ['react-filerobot-image-editor', 'react', 'react-dom']
 		},
 		server: {
 			host,

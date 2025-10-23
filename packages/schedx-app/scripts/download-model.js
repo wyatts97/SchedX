@@ -37,6 +37,8 @@ console.log(`Downloading model from ${MODEL_URL}`);
 console.log(`Saving to ${MODEL_PATH}`);
 
 // Try using curl or wget first (better for large files and redirects)
+let downloadSucceeded = false;
+
 try {
   console.log('Attempting download with curl...');
   execSync(`curl -L -o "${MODEL_PATH}" "${MODEL_URL}"`, { 
@@ -48,7 +50,7 @@ try {
     const size = statSync(MODEL_PATH).size;
     if (size > 1000000) { // At least 1MB
       console.log(`✓ Download successful! Size: ${(size / (1024 * 1024)).toFixed(2)} MB`);
-      process.exit(0);
+      downloadSucceeded = true;
     } else {
       console.log('Downloaded file too small, trying alternative method...');
       unlinkSync(MODEL_PATH);
@@ -66,7 +68,7 @@ try {
       const size = statSync(MODEL_PATH).size;
       if (size > 1000000) {
         console.log(`✓ Download successful! Size: ${(size / (1024 * 1024)).toFixed(2)} MB`);
-        process.exit(0);
+        downloadSucceeded = true;
       } else {
         unlinkSync(MODEL_PATH);
       }
@@ -74,6 +76,11 @@ try {
   } catch (wgetErr) {
     console.log('wget failed, falling back to Node.js https...');
   }
+}
+
+// Exit if download succeeded
+if (downloadSucceeded) {
+  process.exit(0);
 }
 
 // Fallback to Node.js https

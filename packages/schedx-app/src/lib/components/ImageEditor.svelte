@@ -26,7 +26,9 @@
 		if (!browser || !open || !imageUrl || !editorContainer) return;
 
 		try {
-			const { default: Editor } = await import('react-filerobot-image-editor');
+			// Dynamically import the editor (client-side only)
+			const FilerobotImageEditor = await import('react-filerobot-image-editor');
+			const Editor = FilerobotImageEditor.default;
 
 			if (filerobotImageEditor) {
 				filerobotImageEditor.terminate();
