@@ -296,12 +296,6 @@ MAX_UPLOAD_SIZE=52428800
 # Scheduler (runs every minute)
 CRON_SCHEDULE=* * * * *
 
-# Optional: Email Notifications
-EMAIL_NOTIFICATIONS_ENABLED=false
-EMAIL_PROVIDER=resend
-RESEND_API_KEY=your_resend_api_key
-EMAIL_FROM=noreply@yourdomain.com
-
 
 #### **Step 3: Deploy**
 ```bash
@@ -581,8 +575,6 @@ docker-compose down             # Stop all services
 - `MAX_UPLOAD_SIZE` - Max file size in bytes (default: 52428800 = 50MB)
 - `CRON_SCHEDULE` - Scheduler cron pattern (default: `* * * * *`)
 - `LOG_LEVEL` - Logging level (default: info)
-- `EMAIL_NOTIFICATIONS_ENABLED` - Enable email notifications
-- `RESEND_API_KEY` - Resend API key for emails
 
 ### **Database Schema**
 
