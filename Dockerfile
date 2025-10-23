@@ -25,6 +25,7 @@ COPY .env.docker ./
 RUN if grep -q '^USE_LOCAL_AI=true$' .env.docker; then \
     cd packages/schedx-app && \
     npm run download-model && \
+    [ -f "static/models/distilgpt2.onnx" ] || (echo "Model download failed" && exit 1) && \
     cd ../..; \
 fi
 

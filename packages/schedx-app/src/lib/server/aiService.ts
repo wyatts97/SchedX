@@ -1,5 +1,8 @@
 import { log } from '$lib/server/logger';
-import { getDbInstance } from '$lib/server/db';
+import { getEnvironmentConfig } from '$lib/server/env';
+import { InferenceSession, Tensor } from 'onnxruntime-node';
+import { join } from 'path';
+import { existsSync } from 'fs';
 
 export type TweetTone = 'casual' | 'professional' | 'funny' | 'inspirational' | 'informative';
 export type TweetLength = 'short' | 'medium' | 'long';
@@ -12,27 +15,19 @@ interface GenerateTweetOptions {
 	userId?: string;
 }
 
-interface OpenRouterResponse {
-	choices?: Array<{
-		message: {
-			content: string;
-		};
-	}>;
-	error?: {
-		message: string;
-	};
-}
-
 /**
- * AI Service for generating tweet content using OpenRouter
- * Retrieves API key from database settings
+ * AI Service for generating tweet content using local ONNX model
  */
 export class AIService {
 	private static instance: AIService;
-	private readonly openRouterUrl = 'https://openrouter.ai/api/v1/chat/completions';
-	private db = getDbInstance();
+	private session: InferenceSession | null = null;
+	private modelPath: string;
+	private config = getEnvironmentConfig();
 
-	private constructor() {}
+	private constructor() {
+		// Model path relative to the build output
+		this.modelPath = join(process.cwd(), 'packages', 'schedx-app', 'static', 'models', 'distilgpt2.onnx');
+	}
 
 	static getInstance(): AIService {
 		if (!AIService.instance) {
@@ -42,54 +37,60 @@ export class AIService {
 	}
 
 	/**
+	 * Initialize the ONNX model
+	 */
+	private async initializeModel(): Promise<void> {
+		if (this.session) return;
+
+		if (this.config.USE_LOCAL_AI !== 'true') {
+			throw new Error('Local AI is not enabled. Set USE_LOCAL_AI=true in your environment.');
+		}
+
+		if (!existsSync(this.modelPath)) {
+			throw new Error(`AI model not found at ${this.modelPath}. Run 'npm run download-model' first.`);
+		}
+
+		try {
+			log.info('Loading ONNX model', { path: this.modelPath });
+			this.session = await InferenceSession.create(this.modelPath);
+			log.info('ONNX model loaded successfully');
+		} catch (error) {
+			log.error('Failed to load ONNX model', { error });
+			throw new Error('Failed to initialize AI model');
+		}
+	}
+
+	/**
 	 * Generate a tweet based on user prompt and preferences
 	 */
 	async generateTweet(options: GenerateTweetOptions): Promise<string> {
-		const { prompt, tone = 'casual', length = 'medium', context, userId } = options;
-		
-		if (!userId) {
-			throw new Error('User ID is required for AI generation');
-		}
+		const { prompt, tone = 'casual', length = 'medium', context } = options;
 
-		// Get OpenRouter settings from database
-		const settings = await this.db.getOpenRouterSettings(userId);
-		
-		if (!settings || !settings.enabled) {
-			throw new Error('OpenRouter AI is not configured. Please add your API key in settings.');
-		}
-
-		if (!settings.apiKey) {
-			throw new Error('OpenRouter API key is missing. Please configure it in settings.');
-		}
+		await this.initializeModel();
 
 		const systemPrompt = this.buildSystemPrompt(tone, length);
-		const userPrompt = context ? `${prompt}\n\nContext: ${context}` : prompt;
+		const fullPrompt = context 
+			? `${systemPrompt}\n\nContext: ${context}\n\nPrompt: ${prompt}\n\nTweet:`
+			: `${systemPrompt}\n\nPrompt: ${prompt}\n\nTweet:`;
 
-		log.info('Generating tweet with OpenRouter', {
+		log.info('Generating tweet with local AI', {
 			tone,
 			length,
 			hasContext: !!context,
-			promptLength: prompt.length,
-			model: settings.defaultModel
+			promptLength: prompt.length
 		});
 
 		try {
-			const generatedText = await this.callOpenRouter(
-				settings.apiKey,
-				settings.defaultModel,
-				systemPrompt,
-				userPrompt
-			);
+			const generatedText = await this.runInference(fullPrompt);
 			const cleanedTweet = this.cleanAndValidateTweet(generatedText, length);
 			
-			log.info('Tweet generated successfully with OpenRouter', {
-				outputLength: cleanedTweet.length,
-				model: settings.defaultModel
+			log.info('Tweet generated successfully with local AI', {
+				outputLength: cleanedTweet.length
 			});
 
 			return cleanedTweet;
 		} catch (error) {
-			log.error('Failed to generate tweet with OpenRouter', {
+			log.error('Failed to generate tweet with local AI', {
 				error: error instanceof Error ? error.message : String(error)
 			});
 			throw new Error(error instanceof Error ? error.message : 'Failed to generate tweet. Please try again.');
@@ -127,68 +128,43 @@ Rules:
 	}
 
 	/**
-	 * Call OpenRouter API
+	 * Run inference with the ONNX model
 	 */
-	private async callOpenRouter(
-		apiKey: string,
-		model: string,
-		systemPrompt: string,
-		userPrompt: string
-	): Promise<string> {
-		const response = await fetch(this.openRouterUrl, {
-			method: 'POST',
-			headers: {
-				'Authorization': `Bearer ${apiKey}`,
-				'Content-Type': 'application/json',
-				'HTTP-Referer': 'https://schedx.app',
-				'X-Title': 'SchedX'
-			},
-			body: JSON.stringify({
-				model,
-				messages: [
-					{
-						role: 'system',
-						content: systemPrompt
-					},
-					{
-						role: 'user',
-						content: userPrompt
-					}
-				],
-				temperature: 0.7,
-				max_tokens: 150
-			})
-		});
-
-		if (!response.ok) {
-			const errorText = await response.text();
-			log.error('OpenRouter API error', {
-				status: response.status,
-				error: errorText
-			});
-			
-			if (response.status === 401) {
-				throw new Error('Invalid OpenRouter API key. Please check your settings.');
-			}
-			
-			if (response.status === 429) {
-				throw new Error('Rate limit exceeded. Please try again later.');
-			}
-			
-			throw new Error(`AI service error: ${response.status}`);
+	private async runInference(prompt: string): Promise<string> {
+		if (!this.session) {
+			throw new Error('Model not initialized');
 		}
 
-		const data = await response.json() as OpenRouterResponse;
-		
-		if (data.choices && data.choices.length > 0 && data.choices[0].message?.content) {
-			return data.choices[0].message.content;
+		try {
+			// Get configuration parameters
+			const temperature = parseFloat(this.config.LOCAL_AI_TEMPERATURE || '0.8');
+			const maxTokens = parseInt(this.config.LOCAL_AI_MAX_TOKENS || '120', 10);
+
+			// Create input tensor
+			const inputTensor = new Tensor('string', [prompt], [1]);
+			
+			// Run inference
+			const feeds = { input: inputTensor };
+			const results = await this.session.run(feeds);
+			
+			// Extract output
+			const output = results.output;
+			if (!output || !output.data || output.data.length === 0) {
+				throw new Error('No output from model');
+			}
+
+			// Convert output to string
+			const generatedText = String(output.data[0]).trim();
+			
+			if (!generatedText) {
+				throw new Error('Model generated empty output');
+			}
+
+			return generatedText;
+		} catch (error) {
+			log.error('Inference failed', { error });
+			throw new Error('Failed to generate text with AI model');
 		}
-		
-		if (data.error) {
-			throw new Error(data.error.message || 'Unknown API error');
-		}
-		
-		throw new Error('Unexpected response format from OpenRouter API');
 	}
 
 	/**
@@ -235,15 +211,14 @@ Rules:
 	}
 
 	/**
-	 * Check if OpenRouter is configured for a user
+	 * Check if local AI is configured and available
 	 */
-	async isConfigured(userId?: string): Promise<boolean> {
-		if (!userId) {
-			return false;
-		}
+	async isConfigured(): Promise<boolean> {
 		try {
-			const settings = await this.db.getOpenRouterSettings(userId);
-			return !!(settings && settings.enabled && settings.apiKey);
+			if (this.config.USE_LOCAL_AI !== 'true') {
+				return false;
+			}
+			return existsSync(this.modelPath);
 		} catch {
 			return false;
 		}
