@@ -616,3 +616,43 @@
 [data-theme='lightsout'] *[class*='border-gray-300'] {
 	border-color: #333 !important;
 }
+
+/* Filerobot Image Editor Styles */
+.FIE_root {
+	font-family: 'Roboto', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+}
+
+.FIE_root input,
+.FIE_root textarea,
+.FIE_root select {
+	font-family: 'Roboto', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+	font-size: 14px !important;
+	line-height: 1.5 !important;
+}
+
+.FIE_root .SfxInput-root input {
+	font-family: 'Roboto', Arial, sans-serif !important;
+	font-size: 14px !important;
+	padding: 8px 12px !important;
+	line-height: 1.5 !important;
+}
+
+.FIE_root .SfxInput-root {
+	font-family: 'Roboto', Arial, sans-serif !important;
+}
+
+.FIE_root .SfxLabel-root {
+	font-family: 'Roboto', Arial, sans-serif !important;
+	font-size: 12px !important;
+	line-height: 1.5 !important;
+}
+
+/* Fix text tool input rendering */
+.FIE_root .konvajs-content {
+	font-family: 'Roboto', Arial, sans-serif !important;
+}
+
+/* Ensure proper z-index for editor modal */
+.FIE_root {
+	z-index: 99999 !important;
+}
