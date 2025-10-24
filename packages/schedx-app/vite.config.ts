@@ -36,28 +36,8 @@ export default defineConfig(({ mode }) => {
 		},
 		build: {
 			rollupOptions: {
-				external: ['bcryptjs'],
-				output: {
-					manualChunks(id) {
-						// Only apply to client build, not SSR
-						if (id.includes('node_modules')) {
-							// Separate emoji picker into its own chunk
-							if (id.includes('emoji-picker-element')) {
-								return 'emoji-picker';
-							}
-							// Separate flatpickr into its own chunk
-							if (id.includes('flatpickr')) {
-								return 'flatpickr-vendor';
-							}
-							// Separate React ecosystem (for image editor)
-							if (id.includes('react') || id.includes('react-dom') || id.includes('react-filerobot')) {
-								return 'react-vendor';
-							}
-						}
-					}
-				}
-			},
-			chunkSizeWarningLimit: 600 // Increase warning threshold slightly
+				external: ['bcryptjs']
+			}
 		}
 	};
 });
