@@ -417,12 +417,6 @@ docker exec schedx-app-1 du -h /data/schedx.db
 3. Access drafts later from **Drafts** page
 4. Edit and schedule when ready
 
-#### **Create Template**
-1. Write reusable tweet content
-2. Add template name and category
-3. Click **Save as Template**
-4. Reuse from **Templates** page
-
 #### **Add to Queue**
 1. Configure queue settings first (see Queue Management)
 2. Write tweet content
@@ -456,7 +450,6 @@ docker exec schedx-app-1 du -h /data/schedx.db
 2. View all uploaded media
 3. Filter by account
 4. Delete unused media
-5. Click media to copy URL for reuse
 
 ---
 
@@ -574,7 +567,6 @@ docker-compose down             # Stop all services
 - `ORIGIN` - App origin URL
 - `MAX_UPLOAD_SIZE` - Max file size in bytes (default: 52428800 = 50MB)
 - `CRON_SCHEDULE` - Scheduler cron pattern (default: `* * * * *`)
-- `LOG_LEVEL` - Logging level (default: info)
 
 ### **Database Schema**
 
@@ -619,7 +611,7 @@ For full license terms, see [LICENSE](LICENSE) file.
 
 ---
 
-## 🙏 Acknowledgments
+## 🙏 Stack Acknowledgments
 
 - **SvelteKit** - Modern web framework
 - **Twitter API** - Tweet posting and management

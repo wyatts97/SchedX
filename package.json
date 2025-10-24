@@ -58,7 +58,7 @@
     "schedx"
   ],
   "author": "wyatts97",
-  "license": "MIT",
+  "license": "Elastic-2.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/wyatts97/schedx"
@@ -73,5 +73,8 @@
     "preline": "^3.1.0",
     "socks": "^2.8.6",
     "twitter-api-v2": "^1.24.0"
+  },
+  "overrides": {
+    "react-konva": "^18.2.10"
   }
 }
