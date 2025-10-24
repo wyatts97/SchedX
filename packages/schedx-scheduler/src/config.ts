@@ -41,6 +41,3 @@ export const PORT = process.env.PORT || '5173';
 export const ORIGIN = process.env.ORIGIN || (process.env.NODE_ENV === 'production'
   ? (() => { throw new Error('ORIGIN must be set in production'); })()
   : `http://localhost:${PORT}`);
-
-// Note: Email notification settings and Twitter API credentials are now managed through the database
-// and will be retrieved dynamically for each user/account
