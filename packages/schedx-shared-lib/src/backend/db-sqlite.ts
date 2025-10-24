@@ -198,10 +198,11 @@ export class DatabaseClient {
     const now = this.db.now();
     
     this.db.execute(
-      `INSERT INTO users (id, email, password, displayName, role, createdAt, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO users (id, username, email, password, displayName, role, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
+        user.username,
         user.email || user.username,
         user.passwordHash,
         user.displayName || user.username,
