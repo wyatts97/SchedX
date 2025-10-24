@@ -42,6 +42,8 @@
     "dotenv": "^17.2.3",
     "emoji-picker-element": "^1.26.3",
     "flatpickr": "^4.6.13",
+    "@pqina/pintura": "^8.0.0",
+    "@pqina/svelte-pintura": "^8.0.0",
     "konva": "^9.3.14",
     "lodash": "^4.17.21",
     "lucide-svelte": "^0.344.0",
@@ -49,9 +51,6 @@
     "pino-pretty": "^13.0.0",
     "postcss": "^8.5.6",
     "preline": "^3.1.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-filerobot-image-editor": "^4.9.0",
     "react-konva": "^18.2.10",
     "socks": "^2.8.6",
     "twitter-api-v2": "^1.24.0",
@@ -61,11 +60,7 @@
   "overrides": {
     "cookie": "^0.7.0",
     "konva": "9.3.14",
-    "react-konva": "18.2.10",
-    "react-filerobot-image-editor": {
-      "konva": "9.3.14",
-      "react-konva": "18.2.10"
-    }
+    "react-konva": "18.2.10"
   },
   "resolutions": {
     "konva": "9.3.14",

@@ -86,5 +86,13 @@
     "uploadedAt": "2025-10-11T19:31:37.715Z",
     "fileSize": 4642672,
     "accountId": "1142654a-18ad-4859-a0f1-fd4c8ee60ddf"
+  },
+  "1761294035763-ri9thvvdnrg.jpg": {
+    "url": "/uploads/1761294035763-ri9thvvdnrg.jpg",
+    "type": "photo",
+    "filename": "7241661c75f984ee289d45b605b1d9d25577cab893c814f50e3626969ee3f498.jpg",
+    "uploadedAt": "2025-10-24T08:20:35.767Z",
+    "fileSize": 50008,
+    "accountId": null
   }
 }
