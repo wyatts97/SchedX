@@ -37,27 +37,29 @@ if (-not (Test-Path ".env")) {
     Write-Host "ERROR: .env file not found. Creating from template..." -ForegroundColor Red
     
     $envContent = @"
+# Development Environment Variables
+# This file is for local development when running with dev.ps1 (outside Docker)
+# For Docker deployment, use .env.docker
+
 # Authentication
 # Generate a secure random key: openssl rand -base64 32
 AUTH_SECRET=19T80r0DzwbN1xlYWVRmXuAgckkGazr2
 
-# Database - SQLite
+# Database - SQLite for local development
 # Generate a secure random key: openssl rand -base64 32
 DB_ENCRYPTION_KEY=CA6FLUXuu9cACwfLYwoyHr02B4UBbXwO
 DATABASE_PATH=./data/schedx.db
 
-# Host setting
+# Host setting - localhost for local development
 HOST=0.0.0.0
 ORIGIN=http://localhost:5173
 PORT=5173
-# Node environment
+
+# Node environment - development for local dev
 NODE_ENV=development
 
 # Max upload size for individual files (50MB in bytes)
 MAX_UPLOAD_SIZE=52428800
-
-# Cron schedule for scheduler (every minute for development)
-CRON_SCHEDULE=* * * * *
 "@
     
     $envContent | Out-File -FilePath ".env" -Encoding UTF8
@@ -93,14 +95,24 @@ if (-not (Test-Path "data")) {
     Write-Host "SUCCESS: Data directory already exists" -ForegroundColor Green
 }
 
+# Load environment variables from .env file
+Write-Host "`nLoading Environment Variables..." -ForegroundColor Yellow
+if (Test-Path ".env") {
+    Get-Content ".env" | ForEach-Object {
+        if ($_ -match '^([^#][^=]+)=(.*)$') {
+            $key = $matches[1].Trim()
+            $value = $matches[2].Trim()
+            [Environment]::SetEnvironmentVariable($key, $value, "Process")
+        }
+    }
+    Write-Host "SUCCESS: Environment variables loaded" -ForegroundColor Green
+} else {
+    Write-Host "WARNING: .env file not found, using defaults" -ForegroundColor Yellow
+}
+
 # Test scheduler configuration
 Write-Host "`nTesting Scheduler Configuration..." -ForegroundColor Yellow
-$env:AUTH_SECRET = "19T80r0DzwbN1xlYWVRmXuAgckkGazr2"
-$env:DB_ENCRYPTION_KEY = "CA6FLUXuu9cACwfLYwoyHr02B4UBbXwO"
-$env:DATABASE_PATH = "./data/schedx.db"
-
-cd packages/schedx-scheduler
-$schedulerOutput = npm run dev:once 2>&1
+$schedulerOutput = npm run dev:scheduler -- runOnce 2>&1
 $schedulerExitCode = $LASTEXITCODE
 
 # Check if the scheduler ran successfully
@@ -110,15 +122,11 @@ if ($schedulerExitCode -eq 0) {
     Write-Host "WARNING: Scheduler test failed (this may be normal on first run)" -ForegroundColor Yellow
     Write-Host "The scheduler will initialize the database on first actual run." -ForegroundColor Yellow
 }
-cd ../..
 
 # Test app configuration
 Write-Host "`nTesting App Configuration..." -ForegroundColor Yellow
-cd packages/schedx-app
-
-# Simple test - just check if package.json has the dev script
-if (Test-Path "package.json") {
-    $packageJson = Get-Content "package.json" | ConvertFrom-Json
+if (Test-Path "packages/schedx-app/package.json") {
+    $packageJson = Get-Content "packages/schedx-app/package.json" | ConvertFrom-Json
     if ($packageJson.scripts.dev) {
         Write-Host "SUCCESS: App configuration test passed" -ForegroundColor Green
     } else {
@@ -128,13 +136,9 @@ if (Test-Path "package.json") {
     Write-Host "ERROR: package.json not found" -ForegroundColor Red
 }
 
-cd ../..
-
 Write-Host "`nSUCCESS: Development Environment Setup Complete!" -ForegroundColor Green
 Write-Host "`nNext Steps:" -ForegroundColor Cyan
 Write-Host "1. Run: .\dev.ps1" -ForegroundColor White
-Write-Host "2. Or run manually:" -ForegroundColor White
-Write-Host "   - Terminal 1: cd packages/schedx-scheduler; npm run dev" -ForegroundColor White
-Write-Host "   - Terminal 2: cd packages/schedx-app; npm run dev" -ForegroundColor White
+Write-Host "2. Or run manually: npm run dev" -ForegroundColor White
 Write-Host "`nAccess the app at: http://localhost:5173" -ForegroundColor Cyan
 Write-Host "`nNote: SQLite database will be created at ./data/schedx.db on first run" -ForegroundColor Yellow 

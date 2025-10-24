@@ -1,16 +1,22 @@
 # Development script for SchedX
 Write-Host "Starting SchedX Development Environment..." -ForegroundColor Green
 
-# Set environment variables
-$env:AUTH_SECRET = "19T80r0DzwbN1xlYWVRmXuAgckkGazr2"
-$env:DB_ENCRYPTION_KEY = "CA6FLUXuu9cACwfLYwoyHr02B4UBbXwO"
-$env:DATABASE_PATH = "./data/schedx.db"
-$env:NODE_ENV = "development"
-$env:PORT = "5173"
-$env:HOST = "0.0.0.0"
-$env:ORIGIN = "http://localhost:5173"
-$env:MAX_UPLOAD_SIZE = "52428800"
-$env:CRON_SCHEDULE = "* * * * *"
+# Load environment variables from .env file
+Write-Host "Loading environment variables from .env..." -ForegroundColor Yellow
+if (Test-Path ".env") {
+    Get-Content ".env" | ForEach-Object {
+        if ($_ -match '^([^#][^=]+)=(.*)$') {
+            $key = $matches[1].Trim()
+            $value = $matches[2].Trim()
+            [Environment]::SetEnvironmentVariable($key, $value, "Process")
+            Write-Host "  Set $key" -ForegroundColor Gray
+        }
+    }
+    Write-Host "SUCCESS: Environment variables loaded" -ForegroundColor Green
+} else {
+    Write-Host "ERROR: .env file not found. Run .\dev-setup.ps1 first" -ForegroundColor Red
+    exit 1
+}
 
 # Create data directory for SQLite if it doesn't exist
 if (-not (Test-Path "data")) {
@@ -19,25 +25,20 @@ if (-not (Test-Path "data")) {
 }
 
 # Build shared library first
-Write-Host "Building shared library..." -ForegroundColor Yellow
+Write-Host "`nBuilding shared library..." -ForegroundColor Yellow
 npm run build:shared
 if ($LASTEXITCODE -ne 0) {
     Write-Host "ERROR: Failed to build shared library" -ForegroundColor Red
     exit 1
 }
+Write-Host "SUCCESS: Shared library built" -ForegroundColor Green
 
-# Start the scheduler in background
-Write-Host "Starting scheduler..." -ForegroundColor Yellow
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd packages/schedx-scheduler; npm run dev"
-
-# Wait a moment for scheduler to start
-Start-Sleep -Seconds 3
-
-# Start the SvelteKit app in background
-Write-Host "Starting SvelteKit app..." -ForegroundColor Yellow
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd packages/schedx-app; npm run dev"
-
-Write-Host "`nSUCCESS: Development environment started!" -ForegroundColor Green
-Write-Host "App: http://localhost:5173" -ForegroundColor Cyan
+# Start both app and scheduler using concurrently
+Write-Host "`nStarting app and scheduler..." -ForegroundColor Yellow
+Write-Host "App will be available at: http://localhost:5173" -ForegroundColor Cyan
 Write-Host "Database: ./data/schedx.db (SQLite)" -ForegroundColor Cyan
-Write-Host "Press Ctrl+C to stop all services" -ForegroundColor Yellow 
+Write-Host "`nPress Ctrl+C to stop all services" -ForegroundColor Yellow
+Write-Host "" # Empty line for better readability
+
+# Run the dev command which uses concurrently to start both services
+npm run dev 
