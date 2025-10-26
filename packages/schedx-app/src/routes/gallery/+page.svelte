@@ -120,7 +120,8 @@
 	// Open image editor
 	function openImageEditor(url: string, filename: string) {
 		editorImageUrl = url;
-		editorFilename = filename;
+		// Use the stored filename from the URL so the server can overwrite the correct file
+		editorFilename = url.includes('/') ? url.split('/').pop() || filename : filename;
 		showImageEditor = true;
 	}
 

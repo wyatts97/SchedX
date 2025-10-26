@@ -15,12 +15,12 @@ const UPLOADS_DIR =
 const MEDIA_METADATA_FILE = path.join(UPLOADS_DIR, 'media-metadata.json');
 
 // Load media metadata
-function loadMediaMetadata(): Record<string, any> {
+async function loadMediaMetadata(): Promise<Record<string, any>> {
 	if (!existsSync(MEDIA_METADATA_FILE)) {
 		return {};
 	}
 	try {
-		const data = readFile(MEDIA_METADATA_FILE, 'utf8');
+		const data = await readFile(MEDIA_METADATA_FILE, 'utf8');
 		return JSON.parse(data.toString());
 	} catch (error) {
 		logger.error('Error loading media metadata');
@@ -68,7 +68,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		await writeFile(originalFilePath, buffer);
 
 		// Update metadata (preserve existing metadata, just update fileSize)
-		const metadata = loadMediaMetadata();
+		const metadata = await loadMediaMetadata();
 		if (metadata[originalFilename]) {
 			metadata[originalFilename].fileSize = buffer.length;
 			metadata[originalFilename].updatedAt = new Date().toISOString();
