@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => {
 	return {
 		plugins: [sveltekit()],
 		ssr: {
-			external: ['react-filerobot-image-editor', 'react', 'react-dom']
+			external: ['react', 'react-dom']
 		},
 		resolve: {
 			dedupe: ['react', 'react-dom'],
@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => {
 			}
 		},
 		optimizeDeps: {
-			include: ['react', 'react-dom', 'react-filerobot-image-editor']
+			include: ['react', 'react-dom']
 		},
 		server: {
 			host,

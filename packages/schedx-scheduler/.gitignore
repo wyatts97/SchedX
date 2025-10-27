@@ -18,3 +18,5 @@ npm-debug.log*
 *.njsproj
 *.sln
 *.sw? 
+.jpg
+.jpeg
