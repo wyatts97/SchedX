@@ -19,7 +19,6 @@
     let fittedOnceForSrc = '';
     let resizeObserver: ResizeObserver | null = null;
     let lastImageSize: { oldWidth: number; oldHeight: number; newWidth: number; newHeight: number } | null = null;
-    let isInteractingWithCanvas = false;
 
     function measureContainer() {
         if (!editorContainer) return { w: 0, h: 0 };
@@ -29,7 +28,8 @@
 
     function updateUiSize() {
         if (!editor) return;
-        const { w, h } = measureContainer();
+        const w = window.innerWidth;
+        const h = window.innerHeight;
         if (!w || !h) return;
         try {
             const resizeOptions: any = { uiSize: { width: `${w}px`, height: `${h}px` } };
@@ -112,13 +112,17 @@
         saving = false;
         fittedOnceForSrc = ''; // Reset to allow proper fitting on next open
         lastImageSize = null; // Reset image size state
-        isInteractingWithCanvas = false;
         destroyEditor();
         if (browser) {
             document.documentElement.style.overflow = '';
             document.body.style.overflow = '';
             document.documentElement.classList.remove('image-editor-open');
         }
+    }
+
+    function handleCancel() {
+        if (saving) return;
+        closeEditor();
     }
 
     function destroyEditor() {
@@ -148,7 +152,9 @@
 
         const { default: TuiImageEditor } = await import('tui-image-editor');
 
-        const { w, h } = measureContainer();
+        // Use full window dimensions
+        const w = window.innerWidth;
+        const h = window.innerHeight;
 
         editor = new TuiImageEditor(editorContainer, {
             includeUI: {
@@ -162,7 +168,9 @@
                 uiSize: { width: `${w}px`, height: `${h}px` },
                 menuBarPosition: 'left'
             },
-            // Don't set cssMaxWidth/cssMaxHeight - they limit the canvas incorrectly
+            // Set max dimensions for zoom to work properly
+            cssMaxWidth: w,
+            cssMaxHeight: h,
             selectionStyle: {
                 cornerSize: 20,
                 rotatingPointOffset: 70
@@ -206,12 +214,20 @@
             checkInitialLoad();
         });
 
-        // Observe container size changes to keep UI fitted (do not re-fit canvas to avoid crop distortions)
-        if (resizeObserver) resizeObserver.disconnect();
-        resizeObserver = new ResizeObserver(() => {
+        // Listen to window resize to keep UI fitted
+        const handleWindowResize = () => {
             updateUiSize();
-        });
-        resizeObserver.observe(editorContainer);
+        };
+        window.addEventListener('resize', handleWindowResize);
+        
+        // Clean up on destroy
+        const cleanup = () => {
+            window.removeEventListener('resize', handleWindowResize);
+        };
+        
+        // Store cleanup function for later
+        if (resizeObserver) resizeObserver.disconnect();
+        resizeObserver = { disconnect: cleanup } as any;
     }
 
     onMount(() => {
@@ -307,58 +323,37 @@
 
     function handleKeydown(e: KeyboardEvent) {
         if (e.key === 'Escape' && !saving) {
-            closeEditor();
+            handleCancel();
         }
-    }
-
-    function handleBackdropClick(e: MouseEvent) {
-        // Don't close if user is interacting with the canvas/editor
-        if (isInteractingWithCanvas || saving) {
-            return;
-        }
-        closeEditor();
-    }
-
-    function handleEditorMouseDown() {
-        isInteractingWithCanvas = true;
-    }
-
-    function handleEditorMouseUp() {
-        // Delay reset to allow click events to complete
-        setTimeout(() => {
-            isInteractingWithCanvas = false;
-        }, 100);
     }
 </script>
 
 {#if open}
-    <div id="image-editor-modal-root"
-        class="fixed inset-0 z-[99999] flex items-center justify-center bg-black/100"
-        on:click={handleBackdropClick}
-        role="button"
-        tabindex="0"
-        on:keydown={(e) => e.key === 'Enter' && !isInteractingWithCanvas && closeEditor()}
+    <div id="image-editor-window-root"
+        class="fixed inset-0 z-[99999]"
+        class:bg-white={currentTheme === 'light'}
+        class:bg-gray-900={currentTheme === 'dark'}
+        class:bg-black={currentTheme === 'lightsout'}
+        role="dialog"
+        tabindex="-1"
+        on:keydown={handleKeydown}
     >
-        <div
-            class="relative h-[90vh] w-[90vw] overflow-hidden rounded-lg shadow-2xl outline-0 ring-0"
-            class:bg-white={currentTheme === 'light'}
-            class:bg-gray-900={currentTheme === 'dark'}
-            class:bg-black={currentTheme === 'lightsout'}
-            on:click|stopPropagation
-            on:mousedown={handleEditorMouseDown}
-            on:mouseup={handleEditorMouseUp}
-            role="dialog"
-            tabindex="-1"
-            on:keydown={handleKeydown}
-        >
+        <div class="relative h-full w-full overflow-hidden">
             <div class="h-full w-full">
                 <div bind:this={editorContainer} class="h-full w-full"></div>
             </div>
 
-            <div class="pointer-events-none absolute inset-x-0 top-0 flex justify-end p-3">
+            <div class="pointer-events-none absolute inset-x-0 top-0 flex justify-end gap-2 p-3">
+                <button
+                    class="pointer-events-auto rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white shadow hover:bg-red-700 disabled:opacity-50"
+                    on:click={handleCancel}
+                    disabled={saving}
+                >
+                    Cancel
+                </button>
                 <button
                     class="pointer-events-auto rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white shadow hover:bg-blue-700 disabled:opacity-50"
-                    on:click|stopPropagation={handleSave}
+                    on:click={handleSave}
                     disabled={saving}
                 >
                     {saving ? 'Saving...' : 'Save'}
@@ -366,7 +361,7 @@
             </div>
 
             {#if saving}
-                <div class="absolute inset-0 z-[100001] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                <div class="absolute inset-0 z-[100001] flex items-center justify-center bg-black/70">
                     <div
                         class="rounded-lg p-6 shadow-xl"
                         class:bg-white={currentTheme === 'light'}
@@ -399,8 +394,8 @@
         height: 100%;
         width: 100%;
     }
-    /* Hide everything except the modal while open */
-    :global(body.image-editor-open > *:not(#image-editor-modal-root)) {
+    /* Hide everything except the editor window while open */
+    :global(body.image-editor-open > *:not(#image-editor-window-root)) {
         visibility: hidden !important;
     }
     /* Remove white border/grid lines around canvas */
@@ -432,10 +427,6 @@
         max-width: 100% !important;
         max-height: 100% !important;
     }
-    /* Remove inner scrollbars inside editor area */
-    :global(.tui-image-editor-container .tui-image-editor-wrap) {
-        overflow: hidden !important;
-    }
     /* Ensure modal container itself doesn't show scrollbars */
     :global(.tui-image-editor-container) {
         overflow: hidden !important;
@@ -448,8 +439,13 @@
     :global(.tui-image-editor-header-buttons) {
         display: none !important;
     }
-    /* Hide zoom in/out and hand tool buttons (they don't work properly in modal) */
-    :global(.tui-image-editor-header .tui-image-editor-controls) {
+    /* Hide zoom/hand controls - they don't work in full-window mode and push other icons off */
+    :global(.tui-image-editor-header .tui-image-editor-controls),
+    :global(.tui-image-editor-header .tui-image-editor-controls-buttons),
+    :global(.tui-image-editor-header-logo),
+    :global(.tie-btn-zoomIn),
+    :global(.tie-btn-zoomOut),
+    :global(.tie-btn-hand) {
         display: none !important;
     }
     /* Fix white line at bottom - ensure no borders or gaps */
@@ -459,9 +455,5 @@
     :global(.tui-image-editor-wrap),
     :global(.tui-image-editor-main) {
         background-color: transparent !important;
-    }
-    /* Ensure no white gaps around canvas */
-    :global(.tui-image-editor) canvas {
-        display: block !important;
     }
 </style>
