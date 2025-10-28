@@ -67,24 +67,6 @@ export interface FormState<T = any> {
 	isDirty: boolean;
 }
 
-export interface ToastAction {
-	label: string;
-	url: string;
-	target?: '_blank' | '_self';
-	variant?: 'primary' | 'secondary';
-}
-
-export interface ToastMessage {
-	id: string;
-	type: 'success' | 'error' | 'warning' | 'info';
-	title: string;
-	message?: string;
-	duration?: number;
-	dismissible?: boolean;
-	actions?: ToastAction[];
-	correlationId?: string;
-}
-
 export interface ComponentProps {
 	class?: string;
 	'data-testid'?: string;

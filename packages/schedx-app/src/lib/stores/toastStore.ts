@@ -1,86 +1,89 @@
-import { writable } from 'svelte/store';
-import type { ToastMessage, ToastAction } from '$lib/types';
+import { toast } from 'svelte-sonner';
 
-function createToastStore() {
-	const { subscribe, set, update } = writable<ToastMessage[]>([]);
-
-	const addToast = (toast: Omit<ToastMessage, 'id'>) => {
-		const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-		const newToast: ToastMessage = {
-			id,
-			duration: 5000, // Default 5 seconds
-			dismissible: true,
-			...toast
-		};
-
-		update((toasts) => [...toasts, newToast]);
-		return id;
-	};
-
-	const removeToast = (id: string) => {
-		update((toasts) => toasts.filter((toast) => toast.id !== id));
-	};
-
-	const clearAll = () => {
-		set([]);
-	};
-
-	// Convenience methods for different toast types
-	const success = (title: string, message?: string, options?: Partial<ToastMessage>) => {
-		return addToast({ type: 'success', title, message, ...options });
-	};
-
-	const error = (title: string, message?: string, options?: Partial<ToastMessage>) => {
-		return addToast({ type: 'error', title, message, duration: 7000, ...options });
-	};
-
-	const warning = (title: string, message?: string, options?: Partial<ToastMessage>) => {
-		return addToast({ type: 'warning', title, message, ...options });
-	};
-
-	const info = (title: string, message?: string, options?: Partial<ToastMessage>) => {
-		return addToast({ type: 'info', title, message, ...options });
-	};
-
-	// Error handling with correlation ID
-	const apiError = (
-		message: string,
-		correlationId?: string,
-		options?: Partial<ToastMessage>
-	) => {
-		return addToast({
-			type: 'error',
-			title: 'Request Failed',
-			message,
-			correlationId,
-			duration: 7000,
-			...options
-		});
-	};
-
-	// Network error
-	const networkError = (options?: Partial<ToastMessage>) => {
-		return addToast({
-			type: 'error',
-			title: 'Network Error',
-			message: 'Unable to connect to the server. Please check your internet connection.',
-			duration: 7000,
-			...options
-		});
-	};
-
-	return {
-		subscribe,
-		add: addToast,
-		remove: removeToast,
-		clearAll,
-		success,
-		error,
-		warning,
-		info,
-		apiError,
-		networkError
-	};
+interface ToastOptions {
+    actions?: Array<{
+        label: string;
+        url: string;
+        target?: '_blank' | '_self';
+        variant?: 'primary' | 'secondary';
+    }>;
+    duration?: number;
 }
 
-export const toastStore = createToastStore();
+// Map existing toastStore API to svelte-sonner so callers don't need to change
+export const toastStore = {
+    // Basic types with optional third parameter for legacy compatibility
+    success: (title: string, message?: string, options?: ToastOptions) => {
+        const sonnerOptions: any = {
+            description: message || undefined,
+            duration: options?.duration
+        };
+        
+        // Map actions to sonner's action format
+        if (options?.actions && options.actions.length > 0) {
+            const firstAction = options.actions[0];
+            sonnerOptions.action = {
+                label: firstAction.label,
+                onClick: () => window.open(firstAction.url, firstAction.target || '_blank')
+            };
+        }
+        
+        return toast.success(title, sonnerOptions);
+    },
+    error: (title: string, message?: string, options?: ToastOptions) => {
+        const sonnerOptions: any = {
+            description: message || undefined,
+            duration: options?.duration
+        };
+        
+        if (options?.actions && options.actions.length > 0) {
+            const firstAction = options.actions[0];
+            sonnerOptions.action = {
+                label: firstAction.label,
+                onClick: () => window.open(firstAction.url, firstAction.target || '_blank')
+            };
+        }
+        
+        return toast.error(title, sonnerOptions);
+    },
+    warning: (title: string, message?: string, options?: ToastOptions) => {
+        const sonnerOptions: any = {
+            description: message || undefined,
+            duration: options?.duration
+        };
+        
+        if (options?.actions && options.actions.length > 0) {
+            const firstAction = options.actions[0];
+            sonnerOptions.action = {
+                label: firstAction.label,
+                onClick: () => window.open(firstAction.url, firstAction.target || '_blank')
+            };
+        }
+        
+        return toast.warning ? toast.warning(title, sonnerOptions) : toast(title, sonnerOptions);
+    },
+    info: (title: string, message?: string, options?: ToastOptions) => {
+        const sonnerOptions: any = {
+            description: message || undefined,
+            duration: options?.duration
+        };
+        
+        if (options?.actions && options.actions.length > 0) {
+            const firstAction = options.actions[0];
+            sonnerOptions.action = {
+                label: firstAction.label,
+                onClick: () => window.open(firstAction.url, firstAction.target || '_blank')
+            };
+        }
+        
+        return toast.info ? toast.info(title, sonnerOptions) : toast(title, sonnerOptions);
+    },
+
+    // Convenience helpers preserving prior semantics
+    apiError: (message: string, _correlationId?: string) =>
+        toast.error('Request Failed', { description: message }),
+    networkError: () =>
+        toast.error('Network Error', {
+            description: 'Unable to connect to the server. Please check your internet connection.'
+        })
+};

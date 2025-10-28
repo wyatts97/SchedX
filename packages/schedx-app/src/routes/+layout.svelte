@@ -7,29 +7,13 @@
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import MobileNavbar from '$lib/components/MobileNavbar.svelte';
 	import Footer from '$lib/components/Footer.svelte';
-	import { toastStore } from '$lib/stores/toastStore';
-	import ToastContainer from '$lib/components/ui/ToastContainer.svelte';
+	import { Toaster } from 'svelte-sonner';
 	import logger from '$lib/logger';
 
 	let theme: string = 'light';
 
 	onMount(() => {
 		if (browser) {
-			// Initialize React globally for image editor
-			const initReact = async () => {
-				try {
-					if (!(window as any).React) {
-						const React = await import('react');
-						const ReactDOM = await import('react-dom/client');
-						(window as any).React = React.default || React;
-						(window as any).ReactDOM = ReactDOM.default || ReactDOM;
-					}
-				} catch (error) {
-					logger.error('Error initializing React globally', error);
-				}
-			};
-			initReact();
-
 			// Initialize Preline v3
 			const initPreline = async () => {
 				try {
@@ -155,8 +139,8 @@
 		</main>
 	{/if}
 
-	<!-- Toast Container - Global notifications -->
-	<ToastContainer />
+	<!-- Global Toaster (svelte-sonner) -->
+	<Toaster richColors position="top-right" />
 </div>
 
 <!-- Global styles for mobile responsiveness -->

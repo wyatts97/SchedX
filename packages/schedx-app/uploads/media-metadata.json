@@ -86,14 +86,5 @@
     "uploadedAt": "2025-10-11T19:31:37.715Z",
     "fileSize": 4642672,
     "accountId": "1142654a-18ad-4859-a0f1-fd4c8ee60ddf"
-  },
-  "1761520918985-qhiljm0f2p8.jpg": {
-    "url": "/uploads/1761520918985-qhiljm0f2p8.jpg",
-    "type": "photo",
-    "filename": "7241661c75f984ee289d45b605b1d9d25577cab893c814f50e3626969ee3f498.jpg",
-    "uploadedAt": "2025-10-26T23:21:58.992Z",
-    "fileSize": 41232,
-    "accountId": null,
-    "updatedAt": "2025-10-27T06:39:08.959Z"
   }
 }
