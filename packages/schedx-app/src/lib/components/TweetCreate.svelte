@@ -11,6 +11,7 @@
 	import { createEventDispatcher, onMount, onDestroy, afterUpdate } from 'svelte';
 	import FileUpload from '$lib/components/FileUpload.svelte';
 	import AIGenerator from '$lib/components/AIGenerator.svelte';
+	import DateTimePicker from '$lib/components/DateTimePicker.svelte';
 	import { CheckCircle, XCircle, Loader2, Save, FileText, ListPlus, Calendar, Send, Sparkles } from 'lucide-svelte';
 	import logger from '$lib/logger';
 	import { toastStore } from '$lib/stores/toastStore';
@@ -39,7 +40,6 @@
 	let showEmojiPicker = false;
 	let emojiPickerElement: HTMLElement;
 	let textareaEl: HTMLTextAreaElement;
-	let dateInputEl: HTMLInputElement;
 	let fileUploadComponent: any;
 	let tweetMedia: { url: string; type: string }[] = [];
 	
@@ -101,16 +101,8 @@
 			waitForPrelineInit(() => window.HSStaticMethods.autoInit());
 
 			// Set initial date if provided
-			if (initialDate && dateInputEl) {
-				const date = new Date(initialDate);
-				// Format to datetime-local format: YYYY-MM-DDTHH:mm
-				const year = date.getFullYear();
-				const month = String(date.getMonth() + 1).padStart(2, '0');
-				const day = String(date.getDate()).padStart(2, '0');
-				const hours = String(date.getHours()).padStart(2, '0');
-				const minutes = String(date.getMinutes()).padStart(2, '0');
-				dateInputEl.value = `${year}-${month}-${day}T${hours}:${minutes}`;
-				scheduledDate = date.toISOString();
+			if (initialDate) {
+				scheduledDate = new Date(initialDate).toISOString();
 			}
 		}
 
@@ -281,12 +273,6 @@
 			scheduledDate = '';
 			recurrence = '';
 		
-			// Clear date picker
-			if (dateInputEl) {
-				dateInputEl.value = '';
-				scheduledDate = '';
-			}
-		
 			// Clear file upload component
 			if (fileUploadComponent && typeof fileUploadComponent.clearFiles === 'function') {
 				fileUploadComponent.clearFiles();
@@ -432,26 +418,15 @@
 <!-- Calendar  -->
 <div class="mb-4 flex flex-col gap-4 sm:flex-row">
 	<!-- Schedule Date -->
-	<div class="flex-1">
-		<label for="schedule-date" class="mb-2 block text-sm font-medium dark:text-white"
-			>Schedule Date</label
-		>
-		<input
-			id="schedule-date"
-			type="datetime-local"
-			class="block w-full rounded-lg border-2 border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:pointer-events-none disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:[color-scheme:dark]"
-			bind:this={dateInputEl}
-			on:change={(e) => {
-				const value = (e.target as HTMLInputElement).value;
-				if (value) {
-					scheduledDate = new Date(value).toISOString();
-				} else {
-					scheduledDate = '';
-				}
-			}}
-			disabled={submitting}
-		/>
-	</div>
+	<DateTimePicker
+		label="Schedule Date"
+		placeholder="Choose date and time"
+		bind:value={scheduledDate}
+		disabled={submitting}
+		on:change={(e) => {
+			scheduledDate = e.detail;
+		}}
+	/>
 	<!-- Recurrence -->
 	<div class="flex-1">
 		<label for="recurrence" class="mb-2 block text-sm font-medium dark:text-white">Recurrence</label

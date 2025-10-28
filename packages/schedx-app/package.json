@@ -41,6 +41,7 @@
     "@schedule-x/svelte": "^3.0.0",
     "@schedule-x/theme-default": "^3.3.0",
     "@schedx/shared-lib": "*",
+    "air-datepicker": "^3.5.3",
     "autoprefixer": "^10.4.21",
     "bcrypt": "^5.1.1",
     "date-fns": "^4.1.0",

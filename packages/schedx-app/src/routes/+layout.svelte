@@ -9,6 +9,7 @@
 	import Footer from '$lib/components/Footer.svelte';
 	import { Toaster } from 'svelte-sonner';
 	import logger from '$lib/logger';
+	
 
 	let theme: string = 'light';
 

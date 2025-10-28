@@ -129,24 +129,26 @@
 	<div class="mb-6 rounded-lg bg-white p-4 shadow dark:bg-gray-800">
 		<label
 			for="schedule-date"
-			class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+			class="mb-2 block text-sm font-medium text-gray-900 dark:text-white"
 		>
 			Schedule Date (Optional)
 		</label>
-		<input
-			id="schedule-date"
-			type="datetime-local"
-			bind:this={dateInputEl}
-			on:change={(e) => {
-				const value = (e.target as HTMLInputElement).value;
-				if (value) {
-					scheduledDate = new Date(value).toISOString();
-				} else {
-					scheduledDate = '';
-				}
-			}}
-			class="block w-full rounded-lg border-2 border-gray-300 bg-white px-3 py-2 shadow-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:pointer-events-none disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:[color-scheme:dark] sm:text-sm"
-		/>
+		<div class="relative">
+			<input
+				id="schedule-date"
+				type="datetime-local"
+				bind:this={dateInputEl}
+				on:change={(e) => {
+					const value = (e.target as HTMLInputElement).value;
+					if (value) {
+						scheduledDate = new Date(value).toISOString();
+					} else {
+						scheduledDate = '';
+					}
+				}}
+				class="block w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 shadow-sm transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500 disabled:pointer-events-none disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:focus:border-blue-500 dark:[color-scheme:dark]"
+			/>
+		</div>
 	</div>
 
 	<!-- Action Buttons -->
