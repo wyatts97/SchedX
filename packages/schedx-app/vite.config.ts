@@ -1,5 +1,10 @@
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig, loadEnv } from 'vite';
+import { config } from 'dotenv';
+import { resolve } from 'path';
+
+// Load .env from monorepo root
+config({ path: resolve(process.cwd(), '../../.env') });
 
 export default defineConfig(({ mode }) => {
 	const env = loadEnv(mode, process.cwd(), '');
@@ -12,14 +17,16 @@ export default defineConfig(({ mode }) => {
 			external: ['react', 'react-dom']
 		},
 		resolve: {
-			dedupe: ['react', 'react-dom'],
+			dedupe: ['react', 'react-dom', 'styled-components', 'konva', 'react-konva'],
 			alias: {
 				react: 'react',
-				'react-dom': 'react-dom'
+				'react-dom': 'react-dom',
+				'styled-components': 'styled-components'
 			}
 		},
 		optimizeDeps: {
-			include: ['react', 'react-dom']
+			include: ['react', 'react-dom', 'styled-components', 'filerobot-image-editor'],
+			exclude: []
 		},
 		server: {
 			host,

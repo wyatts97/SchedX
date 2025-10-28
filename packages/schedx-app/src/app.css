@@ -438,17 +438,17 @@
 	color: #fff !important;
 }
 
-/* Lightsout mode: Inputs, selects, textareas */
-[data-theme='lightsout'] input,
-[data-theme='lightsout'] select,
-[data-theme='lightsout'] textarea {
+/* Lightsout mode: Inputs, selects, textareas (exclude Filerobot Image Editor) */
+[data-theme='lightsout'] input:not(#image-editor-window-root input),
+[data-theme='lightsout'] select:not(#image-editor-window-root select),
+[data-theme='lightsout'] textarea:not(#image-editor-window-root textarea) {
 	background-color: #18191a !important;
 	color: #fff !important;
 	border-color: #222 !important;
 	caret-color: #fff !important;
 }
-[data-theme='lightsout'] input::placeholder,
-[data-theme='lightsout'] textarea::placeholder {
+[data-theme='lightsout'] input:not(#image-editor-window-root input)::placeholder,
+[data-theme='lightsout'] textarea:not(#image-editor-window-root textarea)::placeholder {
 	color: #b0b0b0 !important;
 	opacity: 1 !important;
 }
@@ -617,42 +617,4 @@
 	border-color: #333 !important;
 }
 
-/* Filerobot Image Editor Styles */
-.FIE_root {
-	font-family: 'Roboto', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
-}
-
-.FIE_root input,
-.FIE_root textarea,
-.FIE_root select {
-	font-family: 'Roboto', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
-	font-size: 14px !important;
-	line-height: 1.5 !important;
-}
-
-.FIE_root .SfxInput-root input {
-	font-family: 'Roboto', Arial, sans-serif !important;
-	font-size: 14px !important;
-	padding: 8px 12px !important;
-	line-height: 1.5 !important;
-}
-
-.FIE_root .SfxInput-root {
-	font-family: 'Roboto', Arial, sans-serif !important;
-}
-
-.FIE_root .SfxLabel-root {
-	font-family: 'Roboto', Arial, sans-serif !important;
-	font-size: 12px !important;
-	line-height: 1.5 !important;
-}
-
-/* Fix text tool input rendering */
-.FIE_root .konvajs-content {
-	font-family: 'Roboto', Arial, sans-serif !important;
-}
-
-/* Ensure proper z-index for editor modal */
-.FIE_root {
-	z-index: 99999 !important;
-}
+/* Filerobot Image Editor - Let CDN styles work, only block theme overrides */

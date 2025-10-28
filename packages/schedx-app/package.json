@@ -52,30 +52,18 @@
     "date-fns-tz": "^3.2.0",
     "dotenv": "^17.2.3",
     "emoji-picker-element": "^1.26.3",
-    "fabric": "^3.6.0",
     "flatpickr": "^4.6.13",
-    "konva": "^9.3.14",
     "lodash": "^4.17.21",
     "lucide-svelte": "^0.344.0",
     "pino": "^9.7.0",
     "pino-pretty": "^13.0.0",
     "postcss": "^8.5.6",
     "preline": "^3.1.0",
-    "react-konva": "^18.2.10",
     "socks": "^2.8.6",
-    "tui-color-picker": "^2.2.8",
-    "tui-image-editor": "^3.15.3",
     "twitter-api-v2": "^1.24.0",
-    "use-image": "^1.1.4",
     "zod": "^3.22.4"
   },
   "overrides": {
-    "cookie": "^0.7.0",
-    "konva": "9.3.14",
-    "react-konva": "18.2.10"
-  },
-  "resolutions": {
-    "konva": "9.3.14",
-    "react-konva": "18.2.10"
+    "cookie": "^0.7.0"
   }
 }

@@ -1,10 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
-	import { Search, X, Trash2, Loader2, CheckCircle, Upload as UploadIcon, Edit } from 'lucide-svelte';
+	import { Search, X, Trash2, Loader2, CheckCircle, Upload as UploadIcon } from 'lucide-svelte';
 	import VideoModal from '$lib/components/VideoModal.svelte';
 	import FileUpload from '$lib/components/FileUpload.svelte';
-	import ImageEditor from '$lib/components/ImageEditor.svelte';
 	import logger from '$lib/logger';
 
 	interface MediaItem {
@@ -35,11 +34,6 @@
 	let showVideoModal = false;
 	let modalImageUrl = '';
 	let modalVideoUrl = '';
-
-	// Image editor state
-	let showImageEditor = false;
-	let editorImageUrl = '';
-	let editorFilename = '';
 
 	// Delete media function
 	let deletingMediaId: string | null = null;
@@ -117,54 +111,6 @@
 		modalVideoUrl = '';
 	}
 
-	// Open image editor
-	function openImageEditor(url: string, filename: string) {
-		editorImageUrl = url;
-		// Use the stored filename from the URL so the server can overwrite the correct file
-		editorFilename = url.includes('/') ? url.split('/').pop() || filename : filename;
-		showImageEditor = true;
-	}
-
-	// Handle save edited image
-	async function handleSaveEditedImage(blob: Blob, filename: string) {
-		try {
-			// Extract just the filename from the URL if needed
-			const actualFilename = filename.includes('/') ? filename.split('/').pop() : filename;
-			if (!actualFilename) throw new Error('Invalid filename');
-
-			const formData = new FormData();
-			formData.append('file', blob, actualFilename);
-			formData.append('filename', actualFilename);
-
-			const response = await fetch('/api/media/update', {
-				method: 'POST',
-				body: formData
-			});
-
-			if (!response.ok) {
-				const result = await response.json();
-				throw new Error(result.error || 'Failed to save edited image');
-			}
-
-			deleteSuccess = 'Image updated successfully';
-
-			// Refresh the gallery to show the updated image
-			await fetchMedia();
-
-			// Clear success message after 3 seconds
-			setTimeout(() => {
-				deleteSuccess = '';
-			}, 3000);
-		} catch (err) {
-			deleteError = err instanceof Error ? err.message : 'Failed to save edited image';
-
-			// Clear error message after 5 seconds
-			setTimeout(() => {
-				deleteError = '';
-			}, 5000);
-			throw err;
-		}
-	}
 
 	// Delete media function
 	function openDeleteConfirm(media: MediaItem) {
@@ -672,18 +618,6 @@
 										<span>View</span>
 									</button>
 
-									{#if media.type !== 'video'}
-										<button
-											class="flex items-center gap-1 rounded-lg bg-blue-500/90 px-2 py-1 text-xs font-medium text-white shadow-lg backdrop-blur-sm transition hover:bg-blue-600 dark:bg-blue-600/90 dark:hover:bg-blue-700"
-											on:click={() => openImageEditor(media.url, media.filename)}
-											disabled={isSelectMode}
-											aria-label="Edit {media.filename}"
-										>
-											<Edit class="h-3 w-3" />
-											<span>Edit</span>
-										</button>
-									{/if}
-
 									<button
 										class="flex items-center gap-1 rounded-lg bg-red-500/90 px-2 py-1 text-xs font-medium text-white shadow-lg backdrop-blur-sm transition hover:bg-red-600 dark:bg-red-600/90 dark:hover:bg-red-700"
 										on:click={() => openDeleteConfirm(media)}
@@ -771,12 +705,6 @@
 <VideoModal videoUrl={modalVideoUrl} bind:open={showVideoModal} on:close={closeVideoModal} />
 
 <!-- Image Editor Modal -->
-<ImageEditor
-	bind:open={showImageEditor}
-	imageUrl={editorImageUrl}
-	filename={editorFilename}
-	onSave={handleSaveEditedImage}
-/>
 
 <!-- Delete Confirmation Modal -->
 {#if showDeleteConfirm && mediaToDelete}
