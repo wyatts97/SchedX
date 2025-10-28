@@ -14,10 +14,11 @@ export default defineConfig(({ mode }) => {
 	return {
 		plugins: [sveltekit()],
 		ssr: {
-			external: ['react', 'react-dom']
+			external: ['react', 'react-dom'],
+			noExternal: ['@schedule-x/calendar', '@schedule-x/svelte', '@schedule-x/drag-and-drop']
 		},
 		resolve: {
-			dedupe: ['react', 'react-dom', 'styled-components', 'konva', 'react-konva'],
+			dedupe: ['react', 'react-dom', 'styled-components', 'preact'],
 			alias: {
 				react: 'react',
 				'react-dom': 'react-dom',
@@ -25,7 +26,18 @@ export default defineConfig(({ mode }) => {
 			}
 		},
 		optimizeDeps: {
-			include: ['react', 'react-dom', 'styled-components', 'filerobot-image-editor'],
+			include: [
+				'react', 
+				'react-dom', 
+				'styled-components',
+				'@schedule-x/calendar',
+				'@schedule-x/svelte',
+				'@schedule-x/drag-and-drop',
+				'@preact/signals',
+				'preact',
+				'date-fns',
+				'date-fns-tz'
+			],
 			exclude: []
 		},
 		server: {

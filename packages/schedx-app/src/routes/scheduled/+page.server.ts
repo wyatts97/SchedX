@@ -186,39 +186,62 @@ export const actions: Actions = {
 			return fail(500, { error: 'Failed to save tweet. Please try again.' });
 		}
 	},
-	rescheduleTweet: async ({ request, locals }) => {
-		const session = await locals.auth();
-		if (!session?.user?.id) {
-			return fail(401, { error: 'Unauthorized' });
+	rescheduleTweet: async ({ request, locals, cookies }) => {
+		// Check for admin session first
+		const adminSession = cookies.get('admin_session');
+		let userId = null;
+		let isAdmin = false;
+
+		if (adminSession && adminSession.trim() !== '') {
+			try {
+				const db = getDbInstance();
+				const session = await db.getSession(adminSession);
+				if (session && session.data.user.username === 'admin') {
+					const user = await (db as any).getAdminUserByUsername('admin');
+					if (user) {
+						userId = user.id;
+						isAdmin = true;
+					}
+				}
+			} catch (error) {
+				logger.error('Error validating admin session');
+			}
 		}
-		const userId = session.user.id;
+
+		// If not admin, check OAuth session
+		if (!userId) {
+			const session = await locals.auth();
+			if (!session?.user?.id) {
+				return fail(401, { error: 'Unauthorized' });
+			}
+			userId = session.user.id;
+		}
+
 		const formData = await request.formData();
 		const tweetId = formData.get('tweetId') as string;
-		const newDate = formData.get('newDate') as string; // YYYY-MM-DD
-		if (!tweetId || !newDate) {
+		const newDateStr = formData.get('newDate') as string; // ISO string
+		
+		if (!tweetId || !newDateStr) {
 			return fail(400, { error: 'Tweet ID and new date are required.' });
 		}
+		
 		try {
 			const db = getDbInstance();
-			// Find the tweet
-			const tweets = await db.getTweets(userId, 1, 1, undefined, undefined, undefined);
-			const tweet = tweets.find((t) => t.id === tweetId);
-			if (!tweet) {
-				return fail(404, { error: 'Tweet not found.' });
+			const newDate = new Date(newDateStr);
+			
+			if (isNaN(newDate.getTime())) {
+				return fail(400, { error: 'Invalid date format.' });
 			}
-			// Preserve the original time, update the date
-			const oldDate = new Date(tweet.scheduledDate);
-			const [year, month, day] = newDate.split('-').map(Number);
-			const updatedDate = new Date(oldDate);
-			updatedDate.setFullYear(year, month - 1, day);
+			
 			// Update in DB
 			await db.updateTweet(tweetId, {
-				scheduledDate: updatedDate,
+				scheduledDate: newDate,
 				updatedAt: new Date()
 			});
+			
 			return { success: true };
 		} catch (error) {
-			log.error('Failed to reschedule tweet:', { userId, tweetId, newDate, error });
+			log.error('Failed to reschedule tweet:', { userId, tweetId, newDate: newDateStr, error });
 			return fail(500, { error: 'Failed to reschedule tweet. Please try again.' });
 		}
 	}
