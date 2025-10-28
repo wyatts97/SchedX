@@ -6,8 +6,6 @@
 	import { toastStore } from '$lib/stores/toastStore';
 	import { Calendar, Save, Send, ListPlus } from 'lucide-svelte';
 	import logger from '$lib/logger';
-	import flatpickr from 'flatpickr';
-	import 'flatpickr/dist/flatpickr.css';
 
 	export let data: PageData;
 
@@ -28,16 +26,6 @@
 			};
 			setTimeout(initPreline, 100);
 			setTimeout(initPreline, 500);
-
-			if (dateInputEl) {
-				flatpickr(dateInputEl, {
-					enableTime: true,
-					dateFormat: 'Y-m-d H:i',
-					onChange: (selectedDates) => {
-						scheduledDate = selectedDates[0]?.toISOString() ?? '';
-					}
-				});
-			}
 		}
 	});
 
@@ -147,10 +135,17 @@
 		</label>
 		<input
 			id="schedule-date"
-			type="text"
+			type="datetime-local"
 			bind:this={dateInputEl}
-			placeholder="Select date and time"
-			class="block w-full rounded-lg border-2 border-gray-300 bg-white px-3 py-2 shadow-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
+			on:change={(e) => {
+				const value = (e.target as HTMLInputElement).value;
+				if (value) {
+					scheduledDate = new Date(value).toISOString();
+				} else {
+					scheduledDate = '';
+				}
+			}}
+			class="block w-full rounded-lg border-2 border-gray-300 bg-white px-3 py-2 shadow-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:pointer-events-none disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:[color-scheme:dark] sm:text-sm"
 		/>
 	</div>
 

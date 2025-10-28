@@ -9,8 +9,6 @@
 
 <script lang="ts">
 	import { createEventDispatcher, onMount, onDestroy, afterUpdate } from 'svelte';
-	import flatpickr from 'flatpickr';
-	import 'flatpickr/dist/flatpickr.css';
 	import FileUpload from '$lib/components/FileUpload.svelte';
 	import AIGenerator from '$lib/components/AIGenerator.svelte';
 	import { CheckCircle, XCircle, Loader2, Save, FileText, ListPlus, Calendar, Send, Sparkles } from 'lucide-svelte';
@@ -43,7 +41,6 @@
 	let textareaEl: HTMLTextAreaElement;
 	let dateInputEl: HTMLInputElement;
 	let fileUploadComponent: any;
-	let flatpickrInstance: any = null;
 	let tweetMedia: { url: string; type: string }[] = [];
 	
 	// AI Generator state
@@ -103,19 +100,17 @@
 			// Wait for Preline to be ready, then initialize
 			waitForPrelineInit(() => window.HSStaticMethods.autoInit());
 
-			if (dateInputEl) {
-				flatpickrInstance = flatpickr(dateInputEl, {
-					enableTime: true,
-					dateFormat: 'M j, Y h:i K',
-					defaultDate: initialDate,
-					disableMobile: true,
-					allowInput: false,
-					clickOpens: true,
-					static: false,
-					onChange: (selectedDates) => {
-						scheduledDate = selectedDates[0]?.toISOString() ?? '';
-					}
-				});
+			// Set initial date if provided
+			if (initialDate && dateInputEl) {
+				const date = new Date(initialDate);
+				// Format to datetime-local format: YYYY-MM-DDTHH:mm
+				const year = date.getFullYear();
+				const month = String(date.getMonth() + 1).padStart(2, '0');
+				const day = String(date.getDate()).padStart(2, '0');
+				const hours = String(date.getHours()).padStart(2, '0');
+				const minutes = String(date.getMinutes()).padStart(2, '0');
+				dateInputEl.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+				scheduledDate = date.toISOString();
 			}
 		}
 
@@ -285,17 +280,18 @@
 			tweetMedia = [];
 			scheduledDate = '';
 			recurrence = '';
-			
-			// Clear flatpickr date picker
-			if (flatpickrInstance) {
-				flatpickrInstance.clear();
+		
+			// Clear date picker
+			if (dateInputEl) {
+				dateInputEl.value = '';
+				scheduledDate = '';
 			}
-			
+		
 			// Clear file upload component
 			if (fileUploadComponent && typeof fileUploadComponent.clearFiles === 'function') {
 				fileUploadComponent.clearFiles();
 			}
-			
+		
 			// Dispatch empty content to clear preview
 			dispatch('contentInput', '');
 			dispatch('changeMedia', []);
@@ -442,11 +438,17 @@
 		>
 		<input
 			id="schedule-date"
-			type="text"
-			class="block w-full rounded-lg border-2 border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+			type="datetime-local"
+			class="block w-full rounded-lg border-2 border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:pointer-events-none disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:[color-scheme:dark]"
 			bind:this={dateInputEl}
-			placeholder="Select date and time"
-			readonly
+			on:change={(e) => {
+				const value = (e.target as HTMLInputElement).value;
+				if (value) {
+					scheduledDate = new Date(value).toISOString();
+				} else {
+					scheduledDate = '';
+				}
+			}}
 			disabled={submitting}
 		/>
 	</div>
@@ -555,41 +557,6 @@
 		</button>
 	{/if}
 </div>
-
-<style>
-	/* Ensure flatpickr input doesn't overflow */
-	:global(.flatpickr-input) {
-		width: 100% !important;
-		max-width: 100% !important;
-		box-sizing: border-box !important;
-	}
-
-	/* Ensure flatpickr calendar is properly positioned */
-	:global(.flatpickr-calendar) {
-		max-width: calc(100vw - 2rem) !important;
-		z-index: 9999 !important;
-	}
-
-	/* Mobile-specific flatpickr adjustments */
-	@media (max-width: 640px) {
-		:global(.flatpickr-calendar) {
-			left: 50% !important;
-			transform: translateX(-50%) !important;
-			width: calc(100vw - 2rem) !important;
-		}
-		
-		/* Ensure input shows placeholder when empty */
-		:global(.flatpickr-input:not([value]):not(:focus)) {
-			color: transparent !important;
-		}
-		
-		:global(.flatpickr-input:not([value]):not(:focus))::before {
-			content: attr(placeholder);
-			color: #9ca3af;
-			position: absolute;
-		}
-	}
-</style>
 
 <!-- AI Generator Modal -->
 <AIGenerator 

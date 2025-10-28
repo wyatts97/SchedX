@@ -1,5 +1,4 @@
 @import '../../../node_modules/preline/variants.css';
-@import '../../../node_modules/flatpickr/dist/flatpickr.css';
 
 @tailwind base;
 @tailwind components;

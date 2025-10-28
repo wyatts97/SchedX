@@ -7,17 +7,18 @@
 	import { adminProfile, fetchAdminProfile } from '$lib/components/adminProfile';
 	import { dashboardStore } from '$lib/stores/dashboardStore';
 	import StatsOverview from '$lib/components/dashboard/StatsOverview.svelte';
-	import RecentActivity from '$lib/components/dashboard/RecentActivity.svelte';
-	import QuickActions from '$lib/components/dashboard/QuickActions.svelte';
-	import TwitterAppsTable from '$lib/components/dashboard/TwitterAppsTable.svelte';
+	import TweetsTab from '$lib/components/dashboard/tabs/TweetsTab.svelte';
+	import OverviewTab from '$lib/components/dashboard/tabs/OverviewTab.svelte';
+	import AccountsTab from '$lib/components/dashboard/tabs/AccountsTab.svelte';
 	import AppFormModal from '$lib/components/dashboard/AppFormModal.svelte';
 	import TweetCreate from '$lib/components/TweetCreate.svelte';
 	import TweetPreview from '$lib/components/TweetPreview.svelte';
 	import ErrorBoundary from '$lib/components/ErrorBoundary.svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
+	import { MessageSquare, LayoutDashboard, Users } from 'lucide-svelte';
 	import logger from '$lib/logger';
 
-	let activeTab = 'overview';
+	let activeTab = 'tweets';
 	let dashboardError: Error | null = null;
 	let isInitializing = true;
 	let showEditTweetModal = false;
@@ -27,6 +28,14 @@
 
 	$: isAdmin = $page.data.isAdmin;
 	$: isAuthenticated = $page.data.isAuthenticated;
+
+	// Check for tab parameter in URL
+	$: if (browser && $page.url.searchParams.has('tab')) {
+		const tabParam = $page.url.searchParams.get('tab');
+		if (tabParam === 'tweets' || tabParam === 'overview' || tabParam === 'accounts') {
+			activeTab = tabParam;
+		}
+	}
 
 	// Load dashboard data from page server data (no API call needed)
 	const loadDashboardData = async () => {
@@ -316,64 +325,91 @@
 			{#if $dashboardStore.isLoading}
 				<LoadingSpinner message="Loading dashboard data..." size="lg" />
 			{:else}
-				<!-- Stats Overview -->
-				<ErrorBoundary errorId="stats-overview">
-					<StatsOverview
-						analytics={$dashboardStore.data.analytics}
-						apps={$dashboardStore.data.apps}
-					/>
-				</ErrorBoundary>
-
-				<!-- Tab Navigation -->
+				<!-- Tab Navigation with Preline Style -->
 				<div class="border-b border-gray-200 dark:border-gray-700">
-					<nav class="-mb-px flex space-x-8" aria-label="Dashboard sections">
+					<nav class="-mb-px flex space-x-8" aria-label="Dashboard sections" role="tablist">
 						<button
-							class="border-b-2 px-1 py-3 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 {activeTab ===
-							'overview'
-								? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-400'
-								: 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:text-gray-300'}"
-							on:click={() => handleTabChange('overview')}
-							aria-current={activeTab === 'overview' ? 'page' : undefined}
+							type="button"
+							class="inline-flex items-center gap-x-2 border-b-2 px-1 py-4 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50 {activeTab ===
+							'tweets'
+								? 'border-blue-600 text-blue-600 dark:border-blue-500 dark:text-blue-500'
+								: 'border-transparent text-gray-500 hover:text-blue-600 dark:text-neutral-400 dark:hover:text-blue-500'}"
+							on:click={() => handleTabChange('tweets')}
+							role="tab"
+							aria-selected={activeTab === 'tweets'}
+							aria-controls="tweets-tab-panel"
 						>
+							<MessageSquare class="h-4 w-4 flex-shrink-0" />
+							Tweets
+						</button>
+						<button
+							type="button"
+							class="inline-flex items-center gap-x-2 border-b-2 px-1 py-4 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50 {activeTab ===
+							'overview'
+								? 'border-blue-600 text-blue-600 dark:border-blue-500 dark:text-blue-500'
+								: 'border-transparent text-gray-500 hover:text-blue-600 dark:text-neutral-400 dark:hover:text-blue-500'}"
+							on:click={() => handleTabChange('overview')}
+							role="tab"
+							aria-selected={activeTab === 'overview'}
+							aria-controls="overview-tab-panel"
+						>
+							<LayoutDashboard class="h-4 w-4 flex-shrink-0" />
 							Overview
 						</button>
 						<button
-							class="border-b-2 px-1 py-3 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 {activeTab ===
-							'twitter'
-								? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-400'
-								: 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:text-gray-300'}"
-							on:click={() => handleTabChange('twitter')}
-							aria-current={activeTab === 'twitter' ? 'page' : undefined}
+							type="button"
+							class="inline-flex items-center gap-x-2 border-b-2 px-1 py-4 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50 {activeTab ===
+							'accounts'
+								? 'border-blue-600 text-blue-600 dark:border-blue-500 dark:text-blue-500'
+								: 'border-transparent text-gray-500 hover:text-blue-600 dark:text-neutral-400 dark:hover:text-blue-500'}"
+							on:click={() => handleTabChange('accounts')}
+							role="tab"
+							aria-selected={activeTab === 'accounts'}
+							aria-controls="accounts-tab-panel"
 						>
-							Twitter Apps
+							<Users class="h-4 w-4 flex-shrink-0" />
+							Accounts
 						</button>
 					</nav>
 				</div>
 
 				<!-- Tab Content -->
 				<div class="mt-6">
-					{#if activeTab === 'overview'}
-						<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-							<ErrorBoundary errorId="recent-activity">
-								<RecentActivity 
-									tweets={$dashboardStore.data.tweets} 
+					{#if activeTab === 'tweets'}
+						<div id="tweets-tab-panel" role="tabpanel" aria-labelledby="tweets-tab">
+							<ErrorBoundary errorId="tweets-tab">
+								<TweetsTab
+									tweets={$dashboardStore.data.tweets}
 									accounts={$dashboardStore.data.accounts}
 									on:editTweet={handleEditTweet}
 									on:deleteTweet={handleDeleteTweet}
 								/>
 							</ErrorBoundary>
-							<ErrorBoundary errorId="quick-actions">
-								<QuickActions 
-									accounts={$dashboardStore.data.accounts}
+						</div>
+					{:else if activeTab === 'overview'}
+						<div id="overview-tab-panel" role="tabpanel" aria-labelledby="overview-tab">
+							<ErrorBoundary errorId="overview-tab">
+								<OverviewTab
+									analytics={$dashboardStore.data.analytics}
+									apps={$dashboardStore.data.apps}
 									tweets={$dashboardStore.data.tweets}
+									accounts={$dashboardStore.data.accounts}
+									on:editTweet={handleEditTweet}
+									on:deleteTweet={handleDeleteTweet}
 								/>
 							</ErrorBoundary>
 						</div>
-					{:else if activeTab === 'twitter'}
-					<ErrorBoundary errorId="twitter-apps-table">
-						<TwitterAppsTable apps={$dashboardStore.data.apps} />
-					</ErrorBoundary>
-				{/if}
+					{:else if activeTab === 'accounts'}
+						<div id="accounts-tab-panel" role="tabpanel" aria-labelledby="accounts-tab">
+							<ErrorBoundary errorId="accounts-tab">
+								<AccountsTab
+									accounts={$dashboardStore.data.accounts}
+									tweets={$dashboardStore.data.tweets}
+									apps={$dashboardStore.data.apps}
+								/>
+							</ErrorBoundary>
+						</div>
+					{/if}
 				</div>
 			{/if}
 
