@@ -22,13 +22,17 @@
 					import('air-datepicker/locale/en')
 				]);
 
+				// Detect if mobile device
+				const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
 				// Create datepicker instance
 				datepickerInstance = new AirDatepicker.default(inputEl, {
 					locale: localeEn.default,
 					timepicker: true,
 					dateFormat: 'MMM dd, yyyy',
 					timeFormat: 'hh:mm AA',
-					position: 'bottom left',
+					position: isMobile ? undefined : 'bottom left',
+					isMobile: isMobile,
 					autoClose: true,
 					onSelect: ({ date }) => {
 						if (date) {
