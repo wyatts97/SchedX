@@ -81,7 +81,22 @@
 		if (!tweet.twitterAccountId || !tweet.twitterTweetId) return null;
 		const account = accountByProviderId[tweet.twitterAccountId];
 		if (!account) return null;
-		return `${account.username}/status/${tweet.twitterTweetId}`;
+		
+		// Clean username - remove any URL prefix if present
+		let username = account.username;
+		if (username.startsWith('https://twitter.com/')) {
+			username = username.replace('https://twitter.com/', '');
+		}
+		if (username.startsWith('http://twitter.com/')) {
+			username = username.replace('http://twitter.com/', '');
+		}
+		if (username.startsWith('@')) {
+			username = username.substring(1);
+		}
+		
+		const tweetLink = `${username}/status/${tweet.twitterTweetId}`;
+		console.log('Generated tweetLink:', tweetLink, 'from username:', account.username);
+		return tweetLink;
 	}
 
 	function handlePageChange(page: number) {
