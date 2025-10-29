@@ -99,7 +99,12 @@ export async function calculateActivitySummary(userId: string): Promise<Activity
 			queueHealth
 		};
 	} catch (error) {
-		logger.error({ error, userId }, 'Failed to calculate activity summary');
+		logger.error({ 
+			error, 
+			userId,
+			errorMessage: error instanceof Error ? error.message : 'Unknown error',
+			errorStack: error instanceof Error ? error.stack : undefined
+		}, 'Failed to calculate activity summary');
 		throw error;
 	}
 }
@@ -708,18 +713,18 @@ export async function getSystemStatus(userId: string): Promise<SystemStatus> {
 		// Get all accounts with their status
 		const accounts = (db as any)['db'].query(
 			`SELECT 
-				a.id, a.username, a.expires_at,
+				a.id, a.username, a.expiresAt,
 				MAX(t.createdAt) as last_post_time
 			FROM accounts a
 			LEFT JOIN tweets t ON a.providerAccountId = t.twitterAccountId AND t.status = 'published'
 			WHERE a.userId = ?
-			GROUP BY a.id, a.username, a.expires_at`,
+			GROUP BY a.id, a.username, a.expiresAt`,
 			[userId]
 		);
 		
 		const accountStatuses: AccountStatus[] = accounts.map((account: any) => {
 			const now = Date.now();
-			const expiresAt = account.expires_at ? new Date(account.expires_at * 1000) : null;
+			const expiresAt = account.expiresAt ? new Date(account.expiresAt * 1000) : null;
 			const lastPostTime = account.last_post_time ? new Date(account.last_post_time) : null;
 			
 			let connectionStatus: 'active' | 'expired' | 'error' = 'active';
@@ -768,7 +773,12 @@ export async function getSystemStatus(userId: string): Promise<SystemStatus> {
 			lastSyncTime: lastSync?.time ? new Date(lastSync.time) : null
 		};
 	} catch (error) {
-		logger.error({ error, userId }, 'Failed to get system status');
+		logger.error({ 
+			error, 
+			userId,
+			errorMessage: error instanceof Error ? error.message : 'Unknown error',
+			errorStack: error instanceof Error ? error.stack : undefined
+		}, 'Failed to get system status');
 		throw error;
 	}
 }
