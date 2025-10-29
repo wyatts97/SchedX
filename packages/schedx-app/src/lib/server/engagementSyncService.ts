@@ -62,9 +62,9 @@ export class EngagementSyncService {
 	/**
 	 * Sync engagement metrics for all posted tweets across all users
 	 * @param userId - Optional: sync only for specific user
-	 * @param maxTweets - Optional: limit number of tweets to sync (default: 50)
+	 * @param maxTweets - Optional: limit number of tweets to sync (default: 10)
 	 */
-	public async syncAllEngagement(userId?: string, maxTweets: number = 50): Promise<{
+	public async syncAllEngagement(userId?: string, maxTweets: number = 10): Promise<{
 		synced: number;
 		failed: number;
 		skipped: number;
@@ -173,18 +173,12 @@ export class EngagementSyncService {
 					'tweet.fields': ['public_metrics']
 				});
 
-				if (!twitterTweet.data) {
-					log.warn('No data returned from Twitter API', { tweetId: tweet.id });
+				if (!twitterTweet.data || !twitterTweet.data.public_metrics) {
 					stats.skipped++;
 					continue;
 				}
 
 				const metrics = twitterTweet.data.public_metrics;
-				if (!metrics) {
-					log.warn('No metrics available for tweet', { tweetId: tweet.id });
-					stats.skipped++;
-					continue;
-				}
 
 				// Update tweet in database
 				// Note: impression_count is NOT available in Twitter Free tier
@@ -195,22 +189,11 @@ export class EngagementSyncService {
 					updatedAt: new Date()
 				});
 
-				log.debug('Engagement synced for tweet', {
-					tweetId: tweet.id,
-					likes: metrics.like_count,
-					retweets: metrics.retweet_count,
-					replies: metrics.reply_count
-				});
-
 				stats.synced++;
 
-				// Rate limit protection: small delay between requests
-				await new Promise(resolve => setTimeout(resolve, 100));
+				// Rate limit protection: delay between requests
+				await new Promise(resolve => setTimeout(resolve, 200));
 			} catch (error) {
-				log.error('Failed to sync engagement for tweet', {
-					tweetId: tweet.id,
-					error: error instanceof Error ? error.message : 'Unknown error'
-				});
 				stats.failed++;
 			}
 		}
@@ -248,15 +231,12 @@ export class EngagementSyncService {
 						twitterApp
 					);
 					
-					// Fetch user data from Twitter API
+					// Fetch authenticated user's own data (v2.me works with user context)
 					const user = await twitterClient.v2.me({
 						'user.fields': ['public_metrics']
 					});
 					
 					if (!user.data || !user.data.public_metrics) {
-						log.warn('No user data returned from Twitter API', {
-							accountId: account.providerAccountId
-						});
 						continue;
 					}
 					
@@ -297,19 +277,10 @@ export class EngagementSyncService {
 						);
 					}
 					
-					log.debug('Follower count synced for account', {
-						accountId: account.providerAccountId,
-						username: account.username,
-						followers: followerCount
-					});
-					
 					// Rate limit protection
-					await new Promise(resolve => setTimeout(resolve, 100));
+					await new Promise(resolve => setTimeout(resolve, 150));
 				} catch (error) {
-					log.error('Failed to sync follower count for account', {
-						accountId: account.providerAccountId,
-						error: error instanceof Error ? error.message : 'Unknown error'
-					});
+					// Silently continue on error
 				}
 			}
 		} catch (error) {
@@ -320,9 +291,9 @@ export class EngagementSyncService {
 	/**
 	 * Sync engagement for a specific user (manual trigger from UI)
 	 * @param userId - User ID to sync engagement for
-	 * @param maxTweets - Maximum number of tweets to sync (default: 25 for manual refresh)
+	 * @param maxTweets - Maximum number of tweets to sync (default: 10 for manual sync)
 	 */
-	public async syncUserEngagement(userId: string, maxTweets: number = 25): Promise<{
+	public async syncUserEngagement(userId: string, maxTweets: number = 10): Promise<{
 		synced: number;
 		failed: number;
 		skipped: number;

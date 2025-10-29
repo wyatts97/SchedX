@@ -105,12 +105,12 @@
 
 				if (followerSeries.length === 0) {
 					// Show empty state
-					followerChartEl.innerHTML = '<div class="flex h-[220px] items-center justify-center text-sm text-gray-500 dark:text-gray-400">No follower data available for this period</div>';
+					followerChartEl.innerHTML = '<div class="flex h-[240px] items-center justify-center text-sm text-gray-500 dark:text-gray-400">No follower data available for this period</div>';
 				} else {
 					followerChart = new ApexCharts(followerChartEl, {
 				chart: {
 					type: 'line',
-					height: 220,
+					height: 240,
 					fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, sans-serif',
 					toolbar: { show: false },
 					zoom: { enabled: false }
@@ -129,10 +129,15 @@
 					}
 				},
 				yaxis: {
+					forceNiceScale: true,
 					labels: {
 						show: true,
 						style: { fontSize: '10px' },
-						formatter: (val: number) => Math.round(val).toString()
+						formatter: (val: number) => {
+							if (val >= 1000000) return (val / 1000000).toFixed(1) + 'M';
+							if (val >= 1000) return (val / 1000).toFixed(1) + 'K';
+							return Math.round(val).toString();
+						}
 					}
 				},
 				legend: {
@@ -150,7 +155,7 @@
 					enabled: true,
 					x: { format: 'MMM dd' },
 					y: {
-						formatter: (val: number) => val.toLocaleString()
+						formatter: (val: number) => val.toLocaleString() + ' followers'
 					}
 				},
 					theme: { mode: isDark ? 'dark' : 'light' }
@@ -164,13 +169,17 @@
 			}
 		} else {
 			// Show empty state when no accounts
-			followerChartEl.innerHTML = '<div class="flex h-[220px] items-center justify-center text-sm text-gray-500 dark:text-gray-400">Connect a Twitter account to see follower growth</div>';
+			followerChartEl.innerHTML = '<div class="flex h-[240px] items-center justify-center text-sm text-gray-500 dark:text-gray-400">Connect a Twitter account to see follower growth</div>';
 		}
 
 			// Engagement Trend Sparkline
 			if (trends.engagementTrend && trends.engagementTrend.length > 0) {
 				engagementChart = new ApexCharts(engagementChartEl, {
 					...sparklineOptions,
+					chart: {
+						...sparklineOptions.chart,
+						height: 180
+					},
 					series: [
 						{
 							name: 'Engagement Rate',
@@ -181,13 +190,17 @@
 				});
 				engagementChart.render();
 			} else {
-				engagementChartEl.innerHTML = '<div class="flex h-[80px] items-center justify-center text-xs text-gray-500 dark:text-gray-400">No data</div>';
+				engagementChartEl.innerHTML = '<div class="flex h-[180px] items-center justify-center text-xs text-gray-500 dark:text-gray-400">No data</div>';
 			}
 
 			// Posts Per Day Sparkline
 			if (trends.postsPerDay && trends.postsPerDay.length > 0) {
 				postsChart = new ApexCharts(postsChartEl, {
 					...sparklineOptions,
+					chart: {
+						...sparklineOptions.chart,
+						height: 180
+					},
 					series: [
 						{
 							name: 'Posts',
@@ -198,7 +211,7 @@
 				});
 				postsChart.render();
 			} else {
-				postsChartEl.innerHTML = '<div class="flex h-[80px] items-center justify-center text-xs text-gray-500 dark:text-gray-400">No data</div>';
+				postsChartEl.innerHTML = '<div class="flex h-[180px] items-center justify-center text-xs text-gray-500 dark:text-gray-400">No data</div>';
 			}
 
 			// Listen for theme changes

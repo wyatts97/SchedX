@@ -17,7 +17,7 @@ export const POST = async (event: RequestEvent) => {
 		logger.info({ userId }, 'Manual engagement sync requested');
 
 		const syncService = EngagementSyncService.getInstance();
-		const result = await syncService.syncUserEngagement(userId, 25); // Limit to 25 tweets for manual sync
+		const result = await syncService.syncUserEngagement(userId, 10); // Limit to 10 tweets for free tier
 
 		logger.info({
 			userId,
