@@ -6,6 +6,12 @@
 
 	export let tweets: TweetType[] = [];
 	export let accounts: UserAccount[] = [];
+	
+	// Debug: Log when component receives data
+	$: if (tweets.length > 0) {
+		console.log('PublishedTweets component - tweets:', tweets);
+		console.log('PublishedTweets component - accounts:', accounts);
+	}
 
 	// Filter and sort state
 	let selectedAccount = 'all';
@@ -29,6 +35,10 @@
 
 	// Filter published tweets only
 	$: publishedTweets = tweets.filter(t => t.status === 'posted' && t.twitterTweetId);
+	$: if (publishedTweets.length > 0) {
+		console.log('Filtered published tweets:', publishedTweets);
+		console.log('Account lookup map:', accountByProviderId);
+	}
 
 	// Apply filters
 	$: filteredTweets = publishedTweets.filter(tweet => {
@@ -58,6 +68,13 @@
 		(currentPage - 1) * itemsPerPage,
 		currentPage * itemsPerPage
 	);
+	$: if (paginatedTweets.length > 0) {
+		console.log('Paginated tweets to display:', paginatedTweets);
+		paginatedTweets.forEach(tweet => {
+			const link = getTweetLink(tweet);
+			console.log(`Tweet ${tweet.id}: link = ${link}`);
+		});
+	}
 
 	// Build tweet link for embed
 	function getTweetLink(tweet: TweetType): string | null {
@@ -138,13 +155,16 @@
 					{@const tweetLink = getTweetLink(tweet)}
 					{#if tweetLink}
 						<div class="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-							<Tweet tweetLink={tweetLink} theme={theme} />
+							<div data-tweet-link={tweetLink} data-theme={theme}>
+								<Tweet tweetLink={tweetLink} theme={theme} />
+							</div>
 						</div>
 					{:else}
 						<div class="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
 							<div class="flex items-center gap-2 text-red-700 dark:text-red-400">
 								<AlertCircle class="h-5 w-5" />
 								<p class="text-sm">Unable to load tweet embed (missing data)</p>
+								<p class="text-xs">Tweet ID: {tweet.id}, Account: {tweet.twitterAccountId}, TweetID: {tweet.twitterTweetId}</p>
 							</div>
 						</div>
 					{/if}
