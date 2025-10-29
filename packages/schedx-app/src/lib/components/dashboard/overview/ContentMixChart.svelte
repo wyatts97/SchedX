@@ -27,6 +27,12 @@
 
 		// Dynamically import ApexCharts and initialize charts
 		(async () => {
+			// Wait for post type chart element to be available
+			if (!postTypeChartEl) {
+				console.warn('Post type chart element not found, skipping chart initialization');
+				return;
+			}
+			
 			const ApexCharts = (await import('apexcharts')).default;
 
 			// Post Type Distribution Chart (Donut)
@@ -50,9 +56,19 @@
 			colors: ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'],
 			legend: {
 				position: 'bottom',
-				fontSize: '14px',
+				fontSize: '12px',
+				fontWeight: 400,
+				markers: {
+					width: 8,
+					height: 8,
+					radius: 2
+				},
+				itemMargin: {
+					horizontal: 8,
+					vertical: 4
+				},
 				labels: {
-					colors: undefined,
+					colors: document.documentElement.classList.contains('dark') ? '#d1d5db' : '#374151',
 					useSeriesColors: false
 				}
 			},
@@ -133,8 +149,11 @@
 			}
 		};
 
-		hashtagChart = new ApexCharts(hashtagChartEl, hashtagOptions);
-		hashtagChart.render();
+		// Only create hashtag chart if element exists (when there are hashtags)
+		if (hashtagChartEl) {
+			hashtagChart = new ApexCharts(hashtagChartEl, hashtagOptions);
+			hashtagChart.render();
+		}
 
 		// Listen for theme changes
 		const observer = new MutationObserver(() => {
