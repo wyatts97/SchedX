@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { browser } from '$app/environment';
 
 	export let tweetLink: string = '';
@@ -10,13 +10,17 @@
 	let hasError = false;
 	let isReady = false;
 
-	onMount(() => {
+	onMount(async () => {
 		if (!browser || !tweetLink) {
 			console.error('[TweetEmbed] Browser or tweetLink not available', { browser, tweetLink });
 			hasError = true;
 			isLoading = false;
 			return;
 		}
+
+		// Add small random delay to stagger multiple simultaneous loads
+		const delay = Math.random() * 500; // 0-500ms random delay
+		await new Promise(resolve => setTimeout(resolve, delay));
 
 		console.log('[TweetEmbed] Starting to load tweet:', tweetLink);
 
@@ -90,35 +94,48 @@
 				isReady = true;
 				isLoading = false;
 
-				// Wait for container to be in DOM
-				await new Promise(resolve => setTimeout(resolve, 50));
+				// Wait for Svelte to update the DOM
+				await tick();
+				console.log('[TweetEmbed] After tick, checking container...');
 
 				if (!containerEl) {
-					console.error('[TweetEmbed] Container element not available');
+					console.error('[TweetEmbed] Container element not available after tick');
 					throw new Error('Container element not available');
 				}
 
-				// Clear container and create tweet
+				console.log('[TweetEmbed] Container available, calling createTweet...');
+
+				// Clear container
 				containerEl.innerHTML = '';
 				
-				const result = await (window as any).twttr.widgets.createTweet(
-					tweetId,
-					containerEl,
-					{
-						theme: theme,
-						conversation: 'none',
-						cards: 'visible',
-						align: 'center',
-						dnt: true
-					}
-				);
+				// Create tweet with timeout
+				const createTweetWithTimeout = async (timeoutMs: number) => {
+					return Promise.race([
+						(window as any).twttr.widgets.createTweet(
+							tweetId,
+							containerEl,
+							{
+								theme: theme,
+								conversation: 'none',
+								cards: 'visible',
+								align: 'center',
+								dnt: true
+							}
+						),
+						new Promise((_, reject) => 
+							setTimeout(() => reject(new Error('Tweet embed timeout')), timeoutMs)
+						)
+					]);
+				};
+
+				const result = await createTweetWithTimeout(10000); // 10 second timeout
 
 				console.log('[TweetEmbed] createTweet result:', result);
 
 				if (!result) {
-					console.error('[TweetEmbed] createTweet returned null/undefined');
+					console.error('[TweetEmbed] createTweet returned null - tweet may not exist, be deleted, or from suspended account');
 					isReady = false;
-					throw new Error('Failed to create tweet embed - tweet may not exist or be private');
+					throw new Error('Tweet not found or unavailable');
 				}
 
 				console.log('[TweetEmbed] Tweet embed created successfully');
