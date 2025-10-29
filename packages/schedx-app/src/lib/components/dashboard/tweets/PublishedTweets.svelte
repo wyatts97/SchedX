@@ -61,19 +61,10 @@
 
 	// Build tweet link for embed
 	function getTweetLink(tweet: TweetType): string | null {
-		if (!tweet.twitterAccountId || !tweet.twitterTweetId) {
-			console.log('Missing twitterAccountId or twitterTweetId:', tweet);
-			return null;
-		}
+		if (!tweet.twitterAccountId || !tweet.twitterTweetId) return null;
 		const account = accountByProviderId[tweet.twitterAccountId];
-		if (!account) {
-			console.log('Account not found for providerAccountId:', tweet.twitterAccountId);
-			console.log('Available accounts:', accountByProviderId);
-			return null;
-		}
-		const tweetLink = `${account.username}/status/${tweet.twitterTweetId}`;
-		console.log('Generated tweet link:', tweetLink);
-		return tweetLink;
+		if (!account) return null;
+		return `${account.username}/status/${tweet.twitterTweetId}`;
 	}
 
 	function handlePageChange(page: number) {
