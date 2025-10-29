@@ -1,7 +1,5 @@
 <script lang="ts">
 	import { Tweet } from 'sveltekit-embed';
-	// @ts-ignore - svelte-lazy doesn't have TypeScript definitions
-	import Lazy from 'svelte-lazy';
 	import { FileText, Loader2, AlertCircle, Filter, Search } from 'lucide-svelte';
 	import type { Tweet as TweetType } from '$lib/stores/dashboardStore';
 	import type { UserAccount } from '$lib/types';
@@ -19,7 +17,8 @@
 	// Get theme for embedded tweets
 	let theme: 'light' | 'dark' = 'light';
 	$: if (typeof document !== 'undefined') {
-		theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+		const isDark = document.documentElement.classList.contains('dark');
+		theme = isDark ? 'dark' : 'light';
 	}
 
 	// Create account lookup map
@@ -62,10 +61,19 @@
 
 	// Build tweet link for embed
 	function getTweetLink(tweet: TweetType): string | null {
-		if (!tweet.twitterAccountId || !tweet.twitterTweetId) return null;
+		if (!tweet.twitterAccountId || !tweet.twitterTweetId) {
+			console.log('Missing twitterAccountId or twitterTweetId:', tweet);
+			return null;
+		}
 		const account = accountByProviderId[tweet.twitterAccountId];
-		if (!account) return null;
-		return `https://twitter.com/${account.username}/status/${tweet.twitterTweetId}`;
+		if (!account) {
+			console.log('Account not found for providerAccountId:', tweet.twitterAccountId);
+			console.log('Available accounts:', accountByProviderId);
+			return null;
+		}
+		const tweetLink = `${account.username}/status/${tweet.twitterTweetId}`;
+		console.log('Generated tweet link:', tweetLink);
+		return tweetLink;
 	}
 
 	function handlePageChange(page: number) {
@@ -138,11 +146,9 @@
 				{#each paginatedTweets as tweet}
 					{@const tweetLink = getTweetLink(tweet)}
 					{#if tweetLink}
-						<Lazy height={400} fadeOption={{ delay: 0, duration: 400 }} placeholder="Loading tweet...">
-							<div class="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-								<Tweet tweetLink={tweetLink} theme={theme} />
-							</div>
-						</Lazy>
+						<div class="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+							<Tweet tweetLink={tweetLink} theme={theme} />
+						</div>
 					{:else}
 						<div class="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
 							<div class="flex items-center gap-2 text-red-700 dark:text-red-400">
