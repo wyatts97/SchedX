@@ -1,0 +1,195 @@
+<!--
+  @component ContentMixChart
+  
+  Displays content type distribution and hashtag frequency using ApexCharts.
+  Follows Preline UI chart styling.
+  
+  @prop {ContentMixData} contentMix - Content mix data from API
+  
+  @example
+  <ContentMixChart {contentMix} />
+-->
+
+<script lang="ts">
+	import { onMount } from 'svelte';
+	import { browser } from '$app/environment';
+	import type { ContentMixData } from '$lib/types/analytics';
+
+	export let contentMix: ContentMixData;
+
+	let postTypeChartEl: HTMLElement;
+	let hashtagChartEl: HTMLElement;
+	let postTypeChart: any;
+	let hashtagChart: any;
+
+	onMount(() => {
+		if (!browser) return;
+
+		// Dynamically import ApexCharts and initialize charts
+		(async () => {
+			const ApexCharts = (await import('apexcharts')).default;
+
+			// Post Type Distribution Chart (Donut)
+			const postTypeData = [
+			contentMix.postTypeDistribution.text,
+			contentMix.postTypeDistribution.image,
+			contentMix.postTypeDistribution.video,
+			contentMix.postTypeDistribution.gif,
+				contentMix.postTypeDistribution.link
+			];
+
+			const postTypeOptions = {
+			chart: {
+				type: 'donut',
+				height: 300,
+				fontFamily: 'Inter, ui-sans-serif',
+				toolbar: { show: false }
+			},
+			series: postTypeData,
+			labels: ['Text Only', 'Image', 'Video', 'GIF', 'Link'],
+			colors: ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'],
+			legend: {
+				position: 'bottom',
+				fontSize: '14px',
+				labels: {
+					colors: undefined,
+					useSeriesColors: false
+				}
+			},
+			dataLabels: {
+				enabled: true,
+				formatter: function (val: number) {
+					return Math.round(val) + '%';
+				}
+			},
+			plotOptions: {
+				pie: {
+					donut: {
+						size: '70%',
+						labels: {
+							show: true,
+							name: { show: true, fontSize: '14px' },
+							value: { show: true, fontSize: '24px', fontWeight: 600 },
+							total: {
+								show: true,
+								label: 'Total Posts',
+								fontSize: '14px',
+								formatter: function (w: any) {
+									return w.globals.seriesTotals.reduce((a: number, b: number) => a + b, 0);
+								}
+							}
+						}
+					}
+				}
+			},
+			theme: {
+				mode: document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+			}
+		};
+
+		postTypeChart = new ApexCharts(postTypeChartEl, postTypeOptions);
+		postTypeChart.render();
+
+		// Top Hashtags Chart (Bar)
+		const hashtagData = contentMix.topHashtags.slice(0, 10);
+		
+		const hashtagOptions = {
+			chart: {
+				type: 'bar',
+				height: 300,
+				fontFamily: 'Inter, ui-sans-serif',
+				toolbar: { show: false }
+			},
+			series: [
+				{
+					name: 'Uses',
+					data: hashtagData.map(h => h.count)
+				}
+			],
+			xaxis: {
+				categories: hashtagData.map(h => '#' + h.hashtag),
+				labels: {
+					style: { fontSize: '12px' }
+				}
+			},
+			yaxis: {
+				title: { text: 'Number of Uses' }
+			},
+			colors: ['#3b82f6'],
+			plotOptions: {
+				bar: {
+					borderRadius: 4,
+					horizontal: true,
+					dataLabels: { position: 'top' }
+				}
+			},
+			dataLabels: {
+				enabled: true,
+				offsetX: 30,
+				style: { fontSize: '12px', colors: ['#334155'] }
+			},
+			theme: {
+				mode: document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+			}
+		};
+
+		hashtagChart = new ApexCharts(hashtagChartEl, hashtagOptions);
+		hashtagChart.render();
+
+		// Listen for theme changes
+		const observer = new MutationObserver(() => {
+			const isDark = document.documentElement.classList.contains('dark');
+			if (postTypeChart) {
+				postTypeChart.updateOptions({ theme: { mode: isDark ? 'dark' : 'light' } });
+			}
+			if (hashtagChart) {
+				hashtagChart.updateOptions({ theme: { mode: isDark ? 'dark' : 'light' } });
+			}
+		});
+
+			observer.observe(document.documentElement, {
+				attributes: true,
+				attributeFilter: ['class']
+			});
+		})();
+
+		return () => {
+			if (postTypeChart) postTypeChart.destroy();
+			if (hashtagChart) hashtagChart.destroy();
+		};
+	});
+</script>
+
+<div class="mb-6">
+	<h2 class="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Content Mix</h2>
+
+	<div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+		<!-- Post Type Distribution -->
+		<div
+			class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800"
+		>
+			<h3 class="mb-4 text-sm font-medium text-gray-700 dark:text-gray-300">
+				Post Type Distribution
+			</h3>
+			<div bind:this={postTypeChartEl}></div>
+		</div>
+
+		<!-- Top Hashtags -->
+		<div
+			class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800"
+		>
+			<h3 class="mb-4 text-sm font-medium text-gray-700 dark:text-gray-300">
+				Top Hashtags
+			</h3>
+			{#if contentMix.topHashtags.length > 0}
+				<div bind:this={hashtagChartEl}></div>
+			{:else}
+				<div class="flex h-[300px] items-center justify-center">
+					<p class="text-sm text-gray-500 dark:text-gray-400">
+						No hashtags used yet
+					</p>
+				</div>
+			{/if}
+		</div>
+	</div>
+</div>

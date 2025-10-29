@@ -196,10 +196,10 @@
 											href={`https://twitter.com/${account.username}/status/${tweet.twitterTweetId}`}
 											target="_blank"
 											rel="noopener noreferrer"
-											class="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30"
+											class="inline-flex items-center justify-center gap-1 rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30"
 											title="View on Twitter/X"
 										>
-											<ExternalLink class="h-3 w-3" />
+											<ExternalLink class="h-3.5 w-3.5" />
 										</a>
 									{/if}
 								</svelte:fragment>

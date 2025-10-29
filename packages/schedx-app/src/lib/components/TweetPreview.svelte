@@ -17,7 +17,7 @@
 	export let bookmarks: number = 0;
 	export let views: number = 0;
 	export let hideActions: boolean = false; // Hide interaction buttons
-	export let showXLogo: boolean = true; // Show X logo (hide when action badges are present)
+	export let showXLogo: boolean = false; // Show X logo (hide when action badges are present)
 
 	let lightbox: MediaLightbox;
 
@@ -150,20 +150,17 @@
 		<div class="mt-2 flex flex-col gap-2">
 			{#each validMediaItems as m, index}
 				{#if m.type === 'image' || m.type === 'photo' || m.type === 'gif'}
-					<img
-						class="theme-dark:border-gray-700 max-h-96 rounded-2xl border border-gray-100 object-contain dark:border-gray-700 cursor-pointer"
-						src={m.url}
-						alt="Tweet media"
+					<button
+						type="button"
+						class="w-full cursor-pointer border-0 bg-transparent p-0"
 						on:click={() => openLightbox(index)}
-						on:keydown={(e) => {
-							if (e.key === 'Enter' || e.key === ' ') {
-								e.preventDefault();
-								openLightbox(index);
-							}
-						}}
-						role="button"
-						tabindex="0"
-					/>
+					>
+						<img
+							class="theme-dark:border-gray-700 max-h-96 w-full rounded-2xl border border-gray-100 object-contain dark:border-gray-700"
+							src={m.url}
+							alt="Tweet media"
+						/>
+					</button>
 				{:else if m.type === 'video'}
 					<div
 						class="group relative cursor-pointer"

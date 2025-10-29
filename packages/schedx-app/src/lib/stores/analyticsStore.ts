@@ -1,0 +1,175 @@
+/**
+ * Analytics Store
+ * 
+ * Manages analytics data state for the Overview Tab.
+ * Handles fetching, caching, and auto-refresh of analytics data.
+ */
+
+import { writable, derived } from 'svelte/store';
+import type { OverviewAnalytics, DateRange } from '$lib/types/analytics';
+import logger from '$lib/logger';
+
+interface AnalyticsState {
+	data: OverviewAnalytics | null;
+	loading: boolean;
+	error: string | null;
+	lastUpdated: Date | null;
+	dateRange: DateRange;
+}
+
+const initialState: AnalyticsState = {
+	data: null,
+	loading: false,
+	error: null,
+	lastUpdated: null,
+	dateRange: '7d'
+};
+
+// Create the writable store
+const analyticsStore = writable<AnalyticsState>(initialState);
+
+// Auto-refresh interval (5 minutes)
+const AUTO_REFRESH_INTERVAL = 5 * 60 * 1000;
+let refreshInterval: NodeJS.Timeout | null = null;
+
+/**
+ * Fetch analytics data from API
+ */
+async function fetchAnalytics(dateRange: DateRange = '7d'): Promise<void> {
+	analyticsStore.update(state => ({ ...state, loading: true, error: null }));
+
+	try {
+		const response = await fetch(`/api/analytics/overview?dateRange=${dateRange}`);
+		
+		if (!response.ok) {
+			throw new Error(`Failed to fetch analytics: ${response.statusText}`);
+		}
+
+		const data: OverviewAnalytics = await response.json();
+
+		analyticsStore.update(state => ({
+			...state,
+			data,
+			loading: false,
+			error: null,
+			lastUpdated: new Date(),
+			dateRange
+		}));
+
+		logger.info('Analytics data fetched successfully', { dateRange });
+	} catch (error) {
+		const errorMessage = error instanceof Error ? error.message : 'Failed to fetch analytics';
+		
+		analyticsStore.update(state => ({
+			...state,
+			loading: false,
+			error: errorMessage
+		}));
+
+		logger.error('Failed to fetch analytics', { error, dateRange });
+	}
+}
+
+/**
+ * Initialize auto-refresh
+ */
+function startAutoRefresh(): void {
+	if (refreshInterval) {
+		clearInterval(refreshInterval);
+	}
+
+	refreshInterval = setInterval(() => {
+		analyticsStore.update(state => {
+			if (state.data) {
+				fetchAnalytics(state.dateRange);
+			}
+			return state;
+		});
+	}, AUTO_REFRESH_INTERVAL);
+}
+
+/**
+ * Stop auto-refresh
+ */
+function stopAutoRefresh(): void {
+	if (refreshInterval) {
+		clearInterval(refreshInterval);
+		refreshInterval = null;
+	}
+}
+
+/**
+ * Change date range and refetch data
+ */
+function setDateRange(dateRange: DateRange): void {
+	fetchAnalytics(dateRange);
+}
+
+/**
+ * Manual refresh
+ */
+function refresh(): void {
+	analyticsStore.update(state => {
+		fetchAnalytics(state.dateRange);
+		return state;
+	});
+}
+
+/**
+ * Dismiss an insight
+ */
+async function dismissInsight(insightId: string): Promise<void> {
+	try {
+		const response = await fetch('/api/analytics/insights', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ insightId })
+		});
+
+		if (!response.ok) {
+			throw new Error('Failed to dismiss insight');
+		}
+
+		// Remove insight from local state
+		analyticsStore.update(state => {
+			if (state.data) {
+				return {
+					...state,
+					data: {
+						...state.data,
+						insights: state.data.insights.filter(i => i.id !== insightId)
+					}
+				};
+			}
+			return state;
+		});
+
+		logger.info('Insight dismissed', { insightId });
+	} catch (error) {
+		logger.error('Failed to dismiss insight', { error, insightId });
+		throw error;
+	}
+}
+
+// Derived stores for easy access
+export const analytics = {
+	subscribe: analyticsStore.subscribe,
+	fetch: fetchAnalytics,
+	refresh,
+	setDateRange,
+	dismissInsight,
+	startAutoRefresh,
+	stopAutoRefresh
+};
+
+// Derived store for loading state
+export const isLoading = derived(analyticsStore, $store => $store.loading);
+
+// Derived store for error state
+export const error = derived(analyticsStore, $store => $store.error);
+
+// Derived store for last updated time
+export const lastUpdated = derived(analyticsStore, $store => $store.lastUpdated);
+
+// Derived store for current date range
+export const currentDateRange = derived(analyticsStore, $store => $store.dateRange);
