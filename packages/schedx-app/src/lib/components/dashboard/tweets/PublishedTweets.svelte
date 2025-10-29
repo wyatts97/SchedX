@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
     import { Tweet } from 'sveltekit-embed';
     import { FileText, Loader2, AlertCircle, Filter, Search } from 'lucide-svelte';
     import type { Tweet as TweetType } from '$lib/stores/dashboardStore';
@@ -27,19 +26,6 @@
         const isDark = document.documentElement.classList.contains('dark');
         theme = isDark ? 'dark' : 'light';
     }
-
-    onMount(() => {
-        if (typeof window === 'undefined') return;
-        if (!document.querySelector('script[src="https://platform.twitter.com/widgets.js"]')) {
-            const s = document.createElement('script');
-            s.async = true;
-            s.src = 'https://platform.twitter.com/widgets.js';
-            s.charset = 'utf-8';
-            document.head.appendChild(s);
-        } else if ((window as any).twttr?.widgets) {
-            (window as any).twttr.widgets.load();
-        }
-    });
 
     // Create account lookup map
     $: accountByProviderId = accounts.reduce((acc: any, account: any) => {
@@ -190,9 +176,7 @@
 					{@const tweetLink = getTweetLink(tweet)}
 					{#if tweetLink}
 						<div class="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-							<div data-tweet-link={tweetLink} data-theme={theme}>
-								<Tweet tweetLink={tweetLink} />
-							</div>
+							<Tweet tweetLink={tweetLink} theme={theme} />
 						</div>
 					{:else}
 						<div class="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
