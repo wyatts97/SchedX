@@ -279,11 +279,11 @@ async function getMostEngagedPost(userId: string, startDate: string, endDate: st
 		`SELECT 
 			t.id, t.content, t.likeCount, t.retweetCount, t.replyCount, 
 			t.createdAt, t.twitterAccountId,
-			a.username,
+			a.username, a.profileImage,
 			(t.likeCount + t.retweetCount + t.replyCount) as engagement_score
 		FROM tweets t
 		LEFT JOIN accounts a ON t.twitterAccountId = a.providerAccountId
-		WHERE t.userId = ? AND UPPER(t.status) = 'POSTED' 
+		WHERE t.userId = ? AND LOWER(t.status) = 'posted' 
 		AND DATE(t.createdAt / 1000, 'unixepoch') BETWEEN ? AND ?
 		ORDER BY engagement_score DESC
 		LIMIT 1`,
@@ -300,7 +300,8 @@ async function getMostEngagedPost(userId: string, startDate: string, endDate: st
 		retweetCount: post.retweetCount || 0,
 		replyCount: post.replyCount || 0,
 		postedAt: new Date(post.createdAt),
-		accountUsername: post.username || 'Unknown'
+		accountUsername: post.username || 'Unknown',
+		accountProfileImage: post.profileImage
 	};
 }
 
@@ -583,9 +584,9 @@ export async function calculateTrends(userId: string, dateRange: DateRange = '30
 	const { startDate, endDate } = getDateRangeTimestamps(dateRange);
 	
 	try {
-		// Get accounts for this user with their usernames
+		// Get accounts for this user with their usernames and profile images
 		const accounts = (db as any)['db'].query(
-			'SELECT id, providerAccountId, username FROM accounts WHERE userId = ?',
+			'SELECT id, providerAccountId, username, profileImage FROM accounts WHERE userId = ?',
 			[userId]
 		);
 		
@@ -628,6 +629,7 @@ export async function calculateTrends(userId: string, dateRange: DateRange = '30
 			followerGrowthByAccount.push({
 				accountId: account.providerAccountId,
 				username: account.username,
+				profileImage: account.profileImage,
 				data: accountFollowerData.map((r: any) => ({ date: r.date, value: r.followers }))
 			});
 		}

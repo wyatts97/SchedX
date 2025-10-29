@@ -74,10 +74,10 @@ export class EngagementSyncService {
 		try {
 			const db = getDbInstance();
 
-			// Get posted tweets that have Twitter IDs
+			// Get posted tweets that have Twitter IDs (status is lowercase in DB)
 			const query = userId
-				? `SELECT * FROM tweets WHERE userId = ? AND status = 'POSTED' AND twitterTweetId IS NOT NULL ORDER BY createdAt DESC LIMIT ?`
-				: `SELECT * FROM tweets WHERE status = 'POSTED' AND twitterTweetId IS NOT NULL ORDER BY createdAt DESC LIMIT ?`;
+				? `SELECT * FROM tweets WHERE userId = ? AND LOWER(status) = 'posted' AND twitterTweetId IS NOT NULL ORDER BY createdAt DESC LIMIT ?`
+				: `SELECT * FROM tweets WHERE LOWER(status) = 'posted' AND twitterTweetId IS NOT NULL ORDER BY createdAt DESC LIMIT ?`;
 			
 			const params = userId ? [userId, maxTweets] : [maxTweets];
 			const tweets = (db as any)['db'].query(query, params);

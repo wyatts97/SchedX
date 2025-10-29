@@ -135,6 +135,7 @@ export interface TopPost {
 	replyCount: number;
 	postedAt: Date;
 	accountUsername: string;
+	accountProfileImage?: string;
 }
 
 export interface TopAccount {
@@ -189,6 +190,7 @@ export interface TrendPoint {
 export interface AccountFollowerTrend {
 	accountId: string;
 	username: string;
+	profileImage?: string;
 	data: TrendPoint[];
 }
 

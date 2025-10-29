@@ -99,15 +99,23 @@
 						<span>💬 {snapshot.mostEngagedPost.replyCount}</span>
 					</div>
 					<div class="mt-2 flex items-center gap-2">
+					{#if snapshot.mostEngagedPost.accountProfileImage}
+						<img 
+							src={snapshot.mostEngagedPost.accountProfileImage} 
+							alt={snapshot.mostEngagedPost.accountUsername}
+							class="h-5 w-5 rounded-full border border-gray-200 object-cover dark:border-gray-700"
+						/>
+					{:else}
 						<span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/30">
 							<span class="text-[10px] font-medium text-purple-600 dark:text-purple-400">
 								{snapshot.mostEngagedPost.accountUsername.charAt(0).toUpperCase()}
 							</span>
 						</span>
-						<p class="text-xs text-gray-500 dark:text-gray-400">
-							@{snapshot.mostEngagedPost.accountUsername}
-						</p>
-					</div>
+					{/if}
+					<p class="text-xs text-gray-500 dark:text-gray-400">
+						@{snapshot.mostEngagedPost.accountUsername}
+					</p>
+				</div>
 				</div>
 			{:else}
 				<div class="flex flex-1 items-center justify-center">

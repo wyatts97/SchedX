@@ -28,8 +28,7 @@ const initialState: AnalyticsState = {
 // Create the writable store
 const analyticsStore = writable<AnalyticsState>(initialState);
 
-// Auto-refresh interval (5 minutes)
-const AUTO_REFRESH_INTERVAL = 5 * 60 * 1000;
+// Auto-refresh disabled - data only updates at 3AM UTC via cron or manual sync button
 let refreshInterval: NodeJS.Timeout | null = null;
 
 /**
@@ -71,21 +70,17 @@ async function fetchAnalytics(dateRange: DateRange = '7d'): Promise<void> {
 }
 
 /**
- * Initialize auto-refresh
+ * Initialize auto-refresh (DISABLED - data only updates at 3AM UTC or via manual sync)
  */
 function startAutoRefresh(): void {
+	// Auto-refresh disabled - engagement data updates only via:
+	// 1. Daily cron at 3AM UTC
+	// 2. Manual sync button click
+	// This prevents unnecessary API calls and ensures data freshness is controlled
 	if (refreshInterval) {
 		clearInterval(refreshInterval);
+		refreshInterval = null;
 	}
-
-	refreshInterval = setInterval(() => {
-		analyticsStore.update(state => {
-			if (state.data) {
-				fetchAnalytics(state.dateRange);
-			}
-			return state;
-		});
-	}, AUTO_REFRESH_INTERVAL);
 }
 
 /**

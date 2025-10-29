@@ -265,12 +265,22 @@
 					<div class="absolute right-0 top-0 flex h-full flex-col justify-around pr-2">
 						{#each trends.followerGrowth.filter(a => a.data && a.data.length > 0) as account, i}
 							{@const percentChange = calculatePercentChange(account.data)}
-							{@const colors = ['bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400', 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400', 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400', 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400', 'bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400', 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400']}
 							<div class="hs-tooltip [--placement:left]">
-								<button type="button" class="hs-tooltip-toggle inline-flex h-6 w-6 items-center justify-center rounded-full {colors[i % colors.length]}">
-									<span class="text-[10px] font-medium">
-										{account.username.charAt(0).toUpperCase()}
-									</span>
+								<button type="button" class="hs-tooltip-toggle">
+									{#if account.profileImage}
+										<img 
+											src={account.profileImage} 
+											alt={account.username}
+											class="h-5 w-5 rounded-full border border-gray-200 object-cover dark:border-gray-700"
+										/>
+									{:else}
+										{@const colors = ['bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400', 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400', 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400', 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400', 'bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400', 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400']}
+										<span class="inline-flex h-5 w-5 items-center justify-center rounded-full {colors[i % colors.length]}">
+											<span class="text-[10px] font-medium">
+												{account.username.charAt(0).toUpperCase()}
+											</span>
+										</span>
+									{/if}
 									<span
 										class="hs-tooltip-content invisible absolute z-10 inline-block rounded-lg bg-gray-900 px-3 py-2 text-xs text-white opacity-0 shadow-sm transition-opacity hs-tooltip-shown:visible hs-tooltip-shown:opacity-100 dark:bg-gray-700"
 										role="tooltip"
