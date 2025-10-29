@@ -65,7 +65,7 @@
 		if (!tweet.twitterAccountId || !tweet.twitterTweetId) return null;
 		const account = accountByProviderId[tweet.twitterAccountId];
 		if (!account) return null;
-		return `${account.username}/status/${tweet.twitterTweetId}`;
+		return `https://twitter.com/${account.username}/status/${tweet.twitterTweetId}`;
 	}
 
 	function handlePageChange(page: number) {

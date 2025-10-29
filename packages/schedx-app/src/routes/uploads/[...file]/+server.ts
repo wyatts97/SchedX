@@ -24,9 +24,11 @@ export const GET: RequestHandler = async ({ params }) => {
 		const staticFilePath = path.join(staticUploadsDir, file);
 		const uploadsFilePath = path.join(uploadsDir, file);
 
-		logger.debug(`Attempting to serve file: ${file}`);
-		logger.debug(`Checking static path: ${staticFilePath}`);
-		logger.debug(`Checking uploads path: ${uploadsFilePath}`);
+		logger.info(`Attempting to serve file: ${file}`);
+		logger.info(`Checking static path: ${staticFilePath}`);
+		logger.info(`Static path exists: ${existsSync(staticFilePath)}`);
+		logger.info(`Checking uploads path: ${uploadsFilePath}`);
+		logger.info(`Uploads path exists: ${existsSync(uploadsFilePath)}`);
 
 		// Determine which file path to use
 		let filePath: string;
@@ -35,11 +37,15 @@ export const GET: RequestHandler = async ({ params }) => {
 		if (existsSync(staticFilePath)) {
 			filePath = staticFilePath;
 			baseDir = staticUploadsDir;
+			logger.info(`Using static path: ${filePath}`);
 		} else if (existsSync(uploadsFilePath)) {
 			filePath = uploadsFilePath;
 			baseDir = uploadsDir;
+			logger.info(`Using uploads path: ${filePath}`);
 		} else {
-			logger.debug(`File not found in either location`);
+			logger.error(`File not found in either location: ${file}`);
+			logger.error(`Static dir: ${staticUploadsDir}`);
+			logger.error(`Uploads dir: ${uploadsDir}`);
 			throw error(404, 'File not found');
 		}
 

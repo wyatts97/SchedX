@@ -10,8 +10,8 @@ const MAX_SIZE = 2 * 1024 * 1024; // 2MB
 
 function getAvatarUploadDir(): string {
 	return process.env.DOCKER === 'true'
-		? '/app/packages/schedx-app/static/uploads/avatars'
-		: path.join(process.cwd(), 'static/uploads/avatars');
+		? '/app/packages/schedx-app/uploads/avatars'
+		: path.join(process.cwd(), 'uploads/avatars');
 }
 
 async function ensureUploadDir(dir: string): Promise<void> {
