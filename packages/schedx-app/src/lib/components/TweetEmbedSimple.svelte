@@ -8,31 +8,52 @@
 	let scriptLoaded = false;
 
 	onMount(() => {
-		if (!browser) return;
+		if (!browser) {
+			console.error('[TweetEmbedSimple] Not in browser environment');
+			return;
+		}
+
+		console.log('[TweetEmbedSimple] Component mounted for tweet:', tweetLink);
 
 		// Load Twitter widgets script if not already loaded
-		if (!document.querySelector('script[src="https://platform.twitter.com/widgets.js"]')) {
+		const existingScript = document.querySelector('script[src="https://platform.twitter.com/widgets.js"]');
+		
+		if (!existingScript) {
+			console.log('[TweetEmbedSimple] Creating new widgets.js script tag');
 			const script = document.createElement('script');
 			script.src = 'https://platform.twitter.com/widgets.js';
 			script.async = true;
 			script.charset = 'utf-8';
 			script.onload = () => {
-				console.log('[TweetEmbedSimple] Twitter widgets loaded');
+				console.log('[TweetEmbedSimple] Twitter widgets loaded successfully');
 				scriptLoaded = true;
-				// Force widgets to process any tweets on the page
-				if ((window as any).twttr?.widgets) {
-					(window as any).twttr.widgets.load();
-				}
+				// Wait a bit then force widgets to process any tweets on the page
+				setTimeout(() => {
+					if ((window as any).twttr?.widgets) {
+						console.log('[TweetEmbedSimple] Calling twttr.widgets.load()');
+						(window as any).twttr.widgets.load();
+					} else {
+						console.error('[TweetEmbedSimple] twttr.widgets not available after load');
+					}
+				}, 500);
+			};
+			script.onerror = (error) => {
+				console.error('[TweetEmbedSimple] Failed to load Twitter widgets script:', error);
 			};
 			document.head.appendChild(script);
+			console.log('[TweetEmbedSimple] Script tag appended to head');
 		} else {
+			console.log('[TweetEmbedSimple] Widgets script already exists');
 			scriptLoaded = true;
 			// If script already exists, force it to process tweets
-			if ((window as any).twttr?.widgets) {
-				setTimeout(() => {
+			setTimeout(() => {
+				if ((window as any).twttr?.widgets) {
+					console.log('[TweetEmbedSimple] Calling twttr.widgets.load() on existing script');
 					(window as any).twttr.widgets.load();
-				}, 100);
-			}
+				} else {
+					console.error('[TweetEmbedSimple] twttr.widgets not available on existing script');
+				}
+			}, 500);
 		}
 	});
 </script>
