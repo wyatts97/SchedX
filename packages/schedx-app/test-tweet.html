@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Tweet Embed</title>
+</head>
+<body>
+    <h1>Testing Tweet Embed</h1>
+    
+    <!-- Test with blockquote (Twitter's standard method) -->
+    <blockquote class="twitter-tweet" data-theme="light">
+        <a href="https://twitter.com/wedgiegifs/status/1981042888629735575"></a>
+    </blockquote>
+    
+    <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+    
+    <hr>
+    
+    <!-- Test with JavaScript createTweet -->
+    <div id="test-container" style="margin-top: 20px;"></div>
+    
+    <script>
+        window.addEventListener('load', function() {
+            console.log('Page loaded, waiting for twttr...');
+            
+            // Wait for twttr to be available
+            const checkTwitter = setInterval(function() {
+                if (window.twttr && window.twttr.widgets) {
+                    clearInterval(checkTwitter);
+                    console.log('Twitter widgets API available');
+                    
+                    // Try to create tweet
+                    console.log('Calling createTweet...');
+                    window.twttr.widgets.createTweet(
+                        '1981042888629735575', // Tweet ID
+                        document.getElementById('test-container'),
+                        {
+                            theme: 'light',
+                            conversation: 'none'
+                        }
+                    ).then(function(el) {
+                        console.log('SUCCESS! Tweet created:', el);
+                    }).catch(function(err) {
+                        console.error('ERROR creating tweet:', err);
+                    });
+                }
+            }, 100);
+            
+            // Timeout after 15 seconds
+            setTimeout(function() {
+                clearInterval(checkTwitter);
+                if (!window.twttr || !window.twttr.widgets) {
+                    console.error('Twitter widgets never loaded');
+                }
+            }, 15000);
+        });
+    </script>
+</body>
+</html>
