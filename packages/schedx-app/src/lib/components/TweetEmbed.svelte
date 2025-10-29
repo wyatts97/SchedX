@@ -10,144 +10,65 @@
 	let hasError = false;
 	let isReady = false;
 
-	onMount(async () => {
+	onMount(() => {
 		if (!browser || !tweetLink) {
-			console.error('[TweetEmbed] Browser or tweetLink not available', { browser, tweetLink });
 			hasError = true;
 			isLoading = false;
 			return;
 		}
 
-		// Add small random delay to stagger multiple simultaneous loads
-		const delay = Math.random() * 500; // 0-500ms random delay
-		await new Promise(resolve => setTimeout(resolve, delay));
+		const loadScript = () => {
+			const existingScript = document.querySelector(
+				'script[src*="platform.twitter.com/widgets.js"]'
+			);
 
-		console.log('[TweetEmbed] Starting to load tweet:', tweetLink);
+			if (existingScript) {
+				processWidgets();
+				return;
+			}
 
-		const loadAndRenderTweet = async () => {
-			try {
-				// Load Twitter widgets script if not already loaded
-				if (!(window as any).twttr) {
-					console.log('[TweetEmbed] Twitter widgets not loaded, loading script...');
-					await new Promise<void>((resolve, reject) => {
-						const existingScript = document.querySelector(
-							'script[src="https://platform.twitter.com/widgets.js"]'
-						);
+			const script = document.createElement('script');
+			script.src = 'https://platform.twitter.com/widgets.js';
+			script.async = true;
+			script.charset = 'utf-8';
+			
+			script.onload = () => {
+				processWidgets();
+			};
 
-						if (existingScript) {
-							console.log('[TweetEmbed] Script already exists, waiting for load...');
-							existingScript.addEventListener('load', () => {
-								console.log('[TweetEmbed] Existing script loaded');
-								resolve();
-							});
-							existingScript.addEventListener('error', () => {
-								console.error('[TweetEmbed] Existing script failed to load');
-								reject();
-							});
-							return;
-						}
-
-						console.log('[TweetEmbed] Creating new script tag...');
-						const script = document.createElement('script');
-						script.src = 'https://platform.twitter.com/widgets.js';
-						script.async = true;
-						script.charset = 'utf-8';
-						script.onload = () => {
-							console.log('[TweetEmbed] New script loaded successfully');
-							resolve();
-						};
-						script.onerror = () => {
-							console.error('[TweetEmbed] Failed to load Twitter widgets script');
-							reject(new Error('Failed to load Twitter widgets'));
-						};
-						document.head.appendChild(script);
-					});
-				} else {
-					console.log('[TweetEmbed] Twitter widgets already available');
-				}
-
-				// Wait for twttr.widgets to be available
-				console.log('[TweetEmbed] Waiting for twttr.widgets API...');
-				let attempts = 0;
-				while (!(window as any).twttr?.widgets && attempts < 100) {
-					await new Promise(resolve => setTimeout(resolve, 50));
-					attempts++;
-				}
-
-				if (!(window as any).twttr?.widgets) {
-					console.error('[TweetEmbed] Twitter widgets API not available after waiting');
-					throw new Error('Twitter widgets API not available');
-				}
-
-				console.log('[TweetEmbed] Twitter widgets API available');
-
-				// Extract tweet ID from link
-				const tweetId = tweetLink.split('/status/')[1];
-				if (!tweetId) {
-					console.error('[TweetEmbed] Invalid tweet link format:', tweetLink);
-					throw new Error('Invalid tweet link format');
-				}
-
-				console.log('[TweetEmbed] Creating tweet embed for ID:', tweetId);
-
-				// Mark as ready so container renders
-				isReady = true;
-				isLoading = false;
-
-				// Wait for Svelte to update the DOM
-				await tick();
-				console.log('[TweetEmbed] After tick, checking container...');
-
-				if (!containerEl) {
-					console.error('[TweetEmbed] Container element not available after tick');
-					throw new Error('Container element not available');
-				}
-
-				console.log('[TweetEmbed] Container available, calling createTweet...');
-
-				// Clear container
-				containerEl.innerHTML = '';
-				
-				// Create tweet with timeout
-				const createTweetWithTimeout = async (timeoutMs: number) => {
-					return Promise.race([
-						(window as any).twttr.widgets.createTweet(
-							tweetId,
-							containerEl,
-							{
-								theme: theme,
-								conversation: 'none',
-								cards: 'visible',
-								align: 'center',
-								dnt: true
-							}
-						),
-						new Promise((_, reject) => 
-							setTimeout(() => reject(new Error('Tweet embed timeout')), timeoutMs)
-						)
-					]);
-				};
-
-				const result = await createTweetWithTimeout(10000); // 10 second timeout
-
-				console.log('[TweetEmbed] createTweet result:', result);
-
-				if (!result) {
-					console.error('[TweetEmbed] createTweet returned null - tweet may not exist, be deleted, or from suspended account');
-					isReady = false;
-					throw new Error('Tweet not found or unavailable');
-				}
-
-				console.log('[TweetEmbed] Tweet embed created successfully');
-			} catch (error) {
-				console.error('[TweetEmbed] Error loading tweet embed:', error, 'Link:', tweetLink);
+			script.onerror = () => {
 				hasError = true;
 				isLoading = false;
-				isReady = false;
-			}
+			};
+
+			document.head.appendChild(script);
 		};
 
-		loadAndRenderTweet();
+		const processWidgets = () => {
+			isReady = true;
+			
+			const check = setInterval(() => {
+				if ((window as any).twttr?.widgets && containerEl) {
+					clearInterval(check);
+					(window as any).twttr.widgets.load(containerEl);
+					
+					// Hide loading after a delay
+					setTimeout(() => {
+						isLoading = false;
+					}, 2000);
+				}
+			}, 100);
+			
+			setTimeout(() => {
+				clearInterval(check);
+				if (isLoading) {
+					hasError = true;
+					isLoading = false;
+				}
+			}, 5000);
+		};
+
+		loadScript();
 	});
 </script>
 
@@ -181,7 +102,11 @@
 		</div>
 	{/if}
 	{#if isReady}
-		<div bind:this={containerEl} class="tweet-container"></div>
+		<div bind:this={containerEl} class="tweet-container">
+			<blockquote class="twitter-tweet" data-theme={theme}>
+				<a href={`https://twitter.com/${tweetLink}`}>Loading Tweet...</a>
+			</blockquote>
+		</div>
 	{/if}
 </div>
 
