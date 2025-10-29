@@ -1,138 +1,158 @@
 <script lang="ts">
-	import { Tweet } from 'sveltekit-embed';
-	import { FileText, Loader2, AlertCircle, Filter, Search } from 'lucide-svelte';
-	import type { Tweet as TweetType } from '$lib/stores/dashboardStore';
-	import type { UserAccount } from '$lib/types';
+    import { onMount } from 'svelte';
+    import { Tweet } from 'sveltekit-embed';
+    import { FileText, Loader2, AlertCircle, Filter, Search } from 'lucide-svelte';
+    import type { Tweet as TweetType } from '$lib/stores/dashboardStore';
+    import type { UserAccount } from '$lib/types';
 
-	export let tweets: TweetType[] = [];
-	export let accounts: UserAccount[] = [];
-	
-	// Debug: Log when component receives data
-	$: if (tweets.length > 0) {
-		console.log('PublishedTweets component - tweets:', tweets);
-		console.log('PublishedTweets component - accounts:', accounts);
-	}
+    export let tweets: TweetType[] = [];
+    export let accounts: UserAccount[] = [];
 
-	// Filter and sort state
-	let selectedAccount = 'all';
-	let sortBy: 'date' | 'engagement' = 'date';
-	let searchQuery = '';
-	let currentPage = 1;
-	let itemsPerPage = 10;
+    // Debug: Log when component receives data
+    $: if (tweets.length > 0) {
+        console.log('PublishedTweets component - tweets:', tweets);
+        console.log('PublishedTweets component - accounts:', accounts);
+    }
 
-	// Get theme for embedded tweets
-	let theme: 'light' | 'dark' = 'light';
-	$: if (typeof document !== 'undefined') {
-		const isDark = document.documentElement.classList.contains('dark');
-		theme = isDark ? 'dark' : 'light';
-	}
+    // Filter and sort state
+    let selectedAccount = 'all';
+    let sortBy: 'date' | 'engagement' = 'date';
+    let searchQuery = '';
+    let currentPage = 1;
+    let itemsPerPage = 10;
 
-	// Create account lookup map
-	$: accountByProviderId = accounts.reduce((acc: any, account: any) => {
-		acc[account.providerAccountId] = account;
-		return acc;
-	}, {});
+    // Get theme for embedded tweets
+    let theme: 'light' | 'dark' = 'light';
+    $: if (typeof document !== 'undefined') {
+        const isDark = document.documentElement.classList.contains('dark');
+        theme = isDark ? 'dark' : 'light';
+    }
 
-	// Filter published tweets only
-	$: publishedTweets = tweets.filter(t => t.status === 'posted' && t.twitterTweetId);
-	$: if (publishedTweets.length > 0) {
-		console.log('Filtered published tweets:', publishedTweets);
-		console.log('Account lookup map:', accountByProviderId);
-	}
+    onMount(() => {
+        if (typeof window === 'undefined') return;
+        if (!document.querySelector('script[src="https://platform.twitter.com/widgets.js"]')) {
+            const s = document.createElement('script');
+            s.async = true;
+            s.src = 'https://platform.twitter.com/widgets.js';
+            s.charset = 'utf-8';
+            document.head.appendChild(s);
+        } else if ((window as any).twttr?.widgets) {
+            (window as any).twttr.widgets.load();
+        }
+    });
 
-	// Apply filters
-	$: filteredTweets = publishedTweets.filter(tweet => {
-		// Account filter
-		if (selectedAccount !== 'all' && tweet.twitterAccountId !== selectedAccount) {
-			return false;
-		}
-		// Search filter
-		if (searchQuery && !tweet.content.toLowerCase().includes(searchQuery.toLowerCase())) {
-			return false;
-		}
-		return true;
-	});
+    // Create account lookup map
+    $: accountByProviderId = accounts.reduce((acc: any, account: any) => {
+        acc[account.providerAccountId] = account;
+        return acc;
+    }, {});
 
-	// Sort tweets
-	$: sortedTweets = [...filteredTweets].sort((a, b) => {
-		if (sortBy === 'date') {
-			return new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime();
-		}
-		// For engagement, we'd need actual metrics from Twitter API
-		return 0;
-	});
+    // Filter published tweets only
+    $: publishedTweets = tweets.filter(t => t.status === 'posted' && t.twitterTweetId);
+    $: if (publishedTweets.length > 0) {
+        console.log('Filtered published tweets:', publishedTweets);
+        console.log('Account lookup map:', accountByProviderId);
+    }
 
-	// Pagination
-	$: totalPages = Math.ceil(sortedTweets.length / itemsPerPage);
-	$: paginatedTweets = sortedTweets.slice(
-		(currentPage - 1) * itemsPerPage,
-		currentPage * itemsPerPage
-	);
-	$: if (paginatedTweets.length > 0) {
-		console.log('Paginated tweets to display:', paginatedTweets);
-		paginatedTweets.forEach(tweet => {
-			const link = getTweetLink(tweet);
-			console.log(`Tweet ${tweet.id}: link = ${link}`);
-		});
-	}
+    // Apply filters
+    $: filteredTweets = publishedTweets.filter(tweet => {
+        // Account filter
+        if (selectedAccount !== 'all' && tweet.twitterAccountId !== selectedAccount) {
+            return false;
+        }
+        // Search filter
+        if (searchQuery && !tweet.content.toLowerCase().includes(searchQuery.toLowerCase())) {
+            return false;
+        }
+        return true;
+    });
 
-	// Build tweet link for embed
-	function getTweetLink(tweet: TweetType): string | null {
-		if (!tweet.twitterAccountId || !tweet.twitterTweetId) return null;
-		const account = accountByProviderId[tweet.twitterAccountId];
-		if (!account) return null;
-		
-		// Clean username - remove any URL prefix if present
-		let username = account.username;
-		if (username.startsWith('https://twitter.com/')) {
-			username = username.replace('https://twitter.com/', '');
-		}
-		if (username.startsWith('http://twitter.com/')) {
-			username = username.replace('http://twitter.com/', '');
-		}
-		if (username.startsWith('@')) {
-			username = username.substring(1);
-		}
-		
-		const tweetLink = `${username}/status/${tweet.twitterTweetId}`;
-		console.log('Generated tweetLink:', tweetLink, 'from username:', account.username);
-		return tweetLink;
-	}
+    // Sort tweets
+    $: sortedTweets = [...filteredTweets].sort((a, b) => {
+        if (sortBy === 'date') {
+            return new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime();
+        }
+        // For engagement, we'd need actual metrics from Twitter API
+        return 0;
+    });
 
-	function handlePageChange(page: number) {
-		currentPage = page;
-	}
+    // Pagination
+    $: totalPages = Math.ceil(sortedTweets.length / itemsPerPage);
+    $: paginatedTweets = sortedTweets.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
+    $: if (paginatedTweets.length > 0) {
+        console.log('Paginated tweets to display:', paginatedTweets);
+        paginatedTweets.forEach(tweet => {
+            const link = getTweetLink(tweet);
+            console.log(`Tweet ${tweet.id}: link = ${link}`);
+        });
+    }
+
+    // Build tweet link for embed
+    function getTweetLink(tweet: TweetType): string | null {
+        if (!tweet.twitterAccountId || !tweet.twitterTweetId) return null;
+        const account = accountByProviderId[tweet.twitterAccountId];
+        if (!account) return null;
+
+        // Clean username - remove any URL prefix if present
+        let username = account.username;
+        if (username.startsWith('https://twitter.com/')) {
+            username = username.replace('https://twitter.com/', '');
+        }
+        if (username.startsWith('http://twitter.com/')) {
+            username = username.replace('http://twitter.com/', '');
+        }
+        if (username.startsWith('https://x.com/')) {
+            username = username.replace('https://x.com/', '');
+        }
+        if (username.startsWith('http://x.com/')) {
+            username = username.replace('http://x.com/', '');
+        }
+        if (username.startsWith('@')) {
+            username = username.substring(1);
+        }
+
+        const tweetLink = `${username}/status/${tweet.twitterTweetId}`;
+        console.log('Generated tweetLink:', tweetLink, 'from username:', account.username);
+        return tweetLink;
+    }
+
+    function handlePageChange(page: number) {
+        currentPage = page;
+    }
 </script>
 
 <div class="rounded-lg bg-white shadow dark:bg-gray-800">
-	<div class="px-4 py-5 sm:p-6">
-		<div class="mb-4 flex items-center justify-between">
-			<h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">
-				Published Tweets
-			</h3>
-			<span class="text-sm text-gray-500 dark:text-gray-400">
-				{filteredTweets.length} tweet{filteredTweets.length !== 1 ? 's' : ''}
-			</span>
-		</div>
+    <div class="px-4 py-5 sm:p-6">
+        <div class="mb-4 flex items-center justify-between">
+            <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">
+                Published Tweets
+            </h3>
+            <span class="text-sm text-gray-500 dark:text-gray-400">
+                {filteredTweets.length} tweet{filteredTweets.length !== 1 ? 's' : ''}
+            </span>
+        </div>
 
-		<!-- Filters -->
-		<div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-			<!-- Account Filter -->
-			<div class="flex-1">
-				<label for="account-filter" class="sr-only">Filter by account</label>
-				<select
-					id="account-filter"
-					bind:value={selectedAccount}
-					class="block w-full rounded-lg border-gray-300 bg-gray-50 px-3 py-2 text-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-				>
-					<option value="all">All Accounts</option>
-					{#each accounts as account}
-						<option value={account.providerAccountId}>
-							@{account.username}
-						</option>
-					{/each}
-				</select>
-			</div>
+        <!-- Filters -->
+        <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <!-- Account Filter -->
+            <div class="flex-1">
+                <label for="account-filter" class="sr-only">Filter by account</label>
+                <select
+                    id="account-filter"
+                    bind:value={selectedAccount}
+                    class="block w-full rounded-lg border-gray-300 bg-gray-50 px-3 py-2 text-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                >
+                    <option value="all">All Accounts</option>
+                    {#each accounts as account}
+                        <option value={account.providerAccountId}>
+                            @{account.username}
+                        </option>
+                    {/each}
+                </select>
+            </div>
 
 			<!-- Search -->
 			<div class="flex-1">
@@ -171,7 +191,7 @@
 					{#if tweetLink}
 						<div class="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
 							<div data-tweet-link={tweetLink} data-theme={theme}>
-								<Tweet tweetLink={tweetLink} theme={theme} />
+								<Tweet tweetLink={tweetLink} />
 							</div>
 						</div>
 					{:else}
