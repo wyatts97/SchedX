@@ -8,39 +8,62 @@
 	let containerEl: HTMLDivElement;
 	let isLoading = true;
 	let hasError = false;
+	let isReady = false;
 
 	onMount(() => {
 		if (!browser || !tweetLink) {
+			console.error('[TweetEmbed] Browser or tweetLink not available', { browser, tweetLink });
 			hasError = true;
+			isLoading = false;
 			return;
 		}
+
+		console.log('[TweetEmbed] Starting to load tweet:', tweetLink);
 
 		const loadAndRenderTweet = async () => {
 			try {
 				// Load Twitter widgets script if not already loaded
 				if (!(window as any).twttr) {
+					console.log('[TweetEmbed] Twitter widgets not loaded, loading script...');
 					await new Promise<void>((resolve, reject) => {
 						const existingScript = document.querySelector(
 							'script[src="https://platform.twitter.com/widgets.js"]'
 						);
 
 						if (existingScript) {
-							existingScript.addEventListener('load', () => resolve());
-							existingScript.addEventListener('error', () => reject());
+							console.log('[TweetEmbed] Script already exists, waiting for load...');
+							existingScript.addEventListener('load', () => {
+								console.log('[TweetEmbed] Existing script loaded');
+								resolve();
+							});
+							existingScript.addEventListener('error', () => {
+								console.error('[TweetEmbed] Existing script failed to load');
+								reject();
+							});
 							return;
 						}
 
+						console.log('[TweetEmbed] Creating new script tag...');
 						const script = document.createElement('script');
 						script.src = 'https://platform.twitter.com/widgets.js';
 						script.async = true;
 						script.charset = 'utf-8';
-						script.onload = () => resolve();
-						script.onerror = () => reject(new Error('Failed to load Twitter widgets'));
+						script.onload = () => {
+							console.log('[TweetEmbed] New script loaded successfully');
+							resolve();
+						};
+						script.onerror = () => {
+							console.error('[TweetEmbed] Failed to load Twitter widgets script');
+							reject(new Error('Failed to load Twitter widgets'));
+						};
 						document.head.appendChild(script);
 					});
+				} else {
+					console.log('[TweetEmbed] Twitter widgets already available');
 				}
 
 				// Wait for twttr.widgets to be available
+				console.log('[TweetEmbed] Waiting for twttr.widgets API...');
 				let attempts = 0;
 				while (!(window as any).twttr?.widgets && attempts < 100) {
 					await new Promise(resolve => setTimeout(resolve, 50));
@@ -48,13 +71,31 @@
 				}
 
 				if (!(window as any).twttr?.widgets) {
+					console.error('[TweetEmbed] Twitter widgets API not available after waiting');
 					throw new Error('Twitter widgets API not available');
 				}
+
+				console.log('[TweetEmbed] Twitter widgets API available');
 
 				// Extract tweet ID from link
 				const tweetId = tweetLink.split('/status/')[1];
 				if (!tweetId) {
+					console.error('[TweetEmbed] Invalid tweet link format:', tweetLink);
 					throw new Error('Invalid tweet link format');
+				}
+
+				console.log('[TweetEmbed] Creating tweet embed for ID:', tweetId);
+
+				// Mark as ready so container renders
+				isReady = true;
+				isLoading = false;
+
+				// Wait for container to be in DOM
+				await new Promise(resolve => setTimeout(resolve, 50));
+
+				if (!containerEl) {
+					console.error('[TweetEmbed] Container element not available');
+					throw new Error('Container element not available');
 				}
 
 				// Clear container and create tweet
@@ -72,15 +113,20 @@
 					}
 				);
 
+				console.log('[TweetEmbed] createTweet result:', result);
+
 				if (!result) {
-					throw new Error('Failed to create tweet embed');
+					console.error('[TweetEmbed] createTweet returned null/undefined');
+					isReady = false;
+					throw new Error('Failed to create tweet embed - tweet may not exist or be private');
 				}
 
-				isLoading = false;
+				console.log('[TweetEmbed] Tweet embed created successfully');
 			} catch (error) {
-				console.error('Error loading tweet embed:', error, 'Link:', tweetLink);
+				console.error('[TweetEmbed] Error loading tweet embed:', error, 'Link:', tweetLink);
 				hasError = true;
 				isLoading = false;
+				isReady = false;
 			}
 		};
 
@@ -117,7 +163,9 @@
 			</a>
 		</div>
 	{/if}
-	<div bind:this={containerEl} class="tweet-container"></div>
+	{#if isReady}
+		<div bind:this={containerEl} class="tweet-container"></div>
+	{/if}
 </div>
 
 <style>
