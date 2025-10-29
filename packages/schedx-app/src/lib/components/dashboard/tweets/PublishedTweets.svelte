@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Tweet } from 'sveltekit-embed';
+    import TweetEmbed from '$lib/components/TweetEmbed.svelte';
     import { FileText, Loader2, AlertCircle, Filter, Search } from 'lucide-svelte';
     import type { Tweet as TweetType } from '$lib/stores/dashboardStore';
     import type { UserAccount } from '$lib/types';
@@ -176,7 +176,7 @@
 					{@const tweetLink = getTweetLink(tweet)}
 					{#if tweetLink}
 						<div class="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-							<Tweet tweetLink={tweetLink} theme={theme} />
+							<TweetEmbed tweetLink={tweetLink} theme={theme} />
 						</div>
 					{:else}
 						<div class="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
