@@ -26,6 +26,20 @@
 - **🔄 Recurring Tweets**: Schedule daily, weekly, or monthly recurring posts
 - **🎨 Modern UI**: Responsive design with dark/light themes and mobile support
 
+### **Analytics Dashboard**
+- **Overview tab** with activity summary, performance trends, content mix, and smart insights
+- **Follower Growth**: Multi-account line chart using ApexCharts with Preline avatars at the end of each line and tooltips that show `@username` and percent change for the selected range (7/30/90 days)
+- **Engagement Trend**: Average engagement per tweet over time (likes + retweets + replies)
+- **Posts Per Day**: Daily posting frequency
+- **Most Engaged Post**: Shows top post with counts; includes matching account avatar next to the handle
+- **Dark mode ready** and fully responsive
+
+### **Engagement & Follower Sync**
+- **Automatic sync**: Daily at 03:00 UTC the server synchronizes follower counts per account and recent engagement metrics for posted tweets
+- **Manual sync**: Trigger on the Overview tab via “Sync Engagement”; API: `POST /api/analytics/sync-engagement`
+- **Rate-limit safety**: Built-in throttling and a refresh button cooldown of 5 minutes with visible countdown
+- **Twitter Free tier compatible**: Collects likes, retweets, replies, and follower counts. Impressions are not requested on free tier.
+
 ### **Security & Authentication**
 - **🔐 OAuth 2.0 with PKCE**: Secure Twitter authentication
 - **🔑 OAuth 1.0a Support**: Full media upload capabilities
@@ -42,6 +56,11 @@
 - **🔄 Automatic Retries**: Exponential backoff for failed operations
 - **📊 Health Monitoring**: Built-in health check endpoints
 
+### **UI/UX**
+- **TailwindCSS + Preline UI** components for consistent styling and accessibility
+- **ApexCharts** for charts with theme-aware styling and mobile-first layouts
+- **Lightbox media viewer** in gallery using a lightweight library for images/videos
+
 ---
 
 ## 🏗️ Project Structure
@@ -57,6 +76,26 @@ schedx/
 ├── docker-compose.yml     # Docker Compose configuration
 └── README.md             # This file
 ```
+
+## 📈 Analytics & Sync
+
+### Automatic Sync
+- Runs daily at 03:00 UTC
+- Updates follower counts per connected account
+- Refreshes engagement metrics (likes, retweets, replies) for recent posted tweets
+
+### Manual Sync
+- UI: Overview → “Sync Engagement” button
+- API: `POST /api/analytics/sync-engagement`
+- Shows a result message with counts for synced/failed/skipped
+
+### Refresh & Rate Limit Safety
+- “Refresh” button on the Overview tab has a 5-minute cooldown with a live countdown
+- Manual sync and refresh use network/API resources; use sparingly to avoid hitting provider limits
+
+### Data Notes (Twitter Free Tier)
+- Available: follower counts, likes, retweets, replies
+- Not requested: impressions (not available on free tier)
 
 ## 🚀 Quick Start
 
@@ -162,6 +201,7 @@ Default admin credentials:
 - `tweet.write` - Post and delete tweets
 - `users.read` - Read user profile information
 - `offline.access` - Refresh access tokens
+> For follower count sync, `users.read` is required.
 
 ### **3. Get OAuth 1.0a Credentials (Required for Media)**
 In your app settings, navigate to **Keys and Tokens**:
@@ -495,9 +535,10 @@ SchedX/
 
 ### **Technology Stack**
 - **Frontend**: SvelteKit 2.x, TailwindCSS, Preline UI
+- **Charts**: ApexCharts (theme-aware)
 - **Backend**: SvelteKit API routes, Node.js
 - **Database**: SQLite with better-sqlite3 (synchronous)
-- **Scheduler**: Node-cron for tweet processing
+- **Scheduler**: Node-cron for scheduled jobs (tweet posting and analytics sync)
 - **Authentication**: OAuth 2.0 (PKCE) + OAuth 1.0a
 - **Encryption**: AES-256-GCM for token storage
 - **Logging**: Pino structured logging
