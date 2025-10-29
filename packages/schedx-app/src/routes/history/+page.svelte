@@ -10,7 +10,7 @@
 	// @ts-ignore
 	import { AlertTriangle } from 'lucide-svelte';
 	import { Search, X, CheckCircle } from 'lucide-svelte';
-	import VideoModal from '$lib/components/VideoModal.svelte';
+	import MediaLightbox from '$lib/components/MediaLightbox.svelte';
 	import { constructTweetUrl } from '$lib/utils/twitter';
 	import { ExternalLink } from 'lucide-svelte';
 	import logger from '$lib/logger';
@@ -47,38 +47,25 @@
 		window.location.href = url.toString();
 	};
 
-	// Lightbox state (reuse from gallery behavior)
-	let showImageModal = false;
-	let showVideoModal = false;
-	let modalImageUrl = '';
-	let modalVideoUrl = '';
+	// Lightbox
+	let lightbox: MediaLightbox;
 
-	const openImageModal = (url: string) => {
-		modalImageUrl = url;
-		showImageModal = true;
-	};
+	// Convert tweets with media to lightbox format
+	$: mediaItems = data.tweets
+		.filter(tweet => tweet.media && tweet.media.length > 0)
+		.map(tweet => ({
+			id: tweet.id,
+			url: tweet.media![0].url,
+			type: tweet.media![0].type as 'photo' | 'gif' | 'video',
+			filename: `Tweet ${tweet.id}`,
+		}));
 
-	const openVideoModal = (url: string) => {
-		modalVideoUrl = url;
-		showVideoModal = true;
-	};
-
-	const closeImageModal = () => {
-		showImageModal = false;
-		modalImageUrl = '';
-	};
-
-	const closeVideoModal = () => {
-		showVideoModal = false;
-		modalVideoUrl = '';
-	};
-
-	const handleKeydown = (e: KeyboardEvent) => {
-		if (e.key === 'Escape') {
-			closeImageModal();
-			closeVideoModal();
+	function openLightbox(tweetId: string) {
+		const index = mediaItems.findIndex(m => m.id === tweetId);
+		if (index !== -1 && lightbox) {
+			lightbox.open(index);
 		}
-	};
+	}
 
 	onMount(() => {
 		// Initialize Preline components
@@ -95,9 +82,7 @@
 			setTimeout(initPreline, 500);
 			setTimeout(initPreline, 1000);
 
-			window.addEventListener('keydown', handleKeydown);
 			return () => {
-				window.removeEventListener('keydown', handleKeydown);
 			};
 		}
 	});
@@ -203,18 +188,13 @@
 							>
 								<button
 									class="flex items-center gap-1 rounded-lg bg-white/90 px-2 py-1 text-xs font-medium text-gray-800 shadow-lg backdrop-blur-sm transition hover:bg-white dark:bg-gray-900/90 dark:text-gray-200 dark:hover:bg-gray-900"
-									on:click|stopPropagation|preventDefault={() =>
-										tweet.media && tweet.media[0]?.type === 'video'
-											? openVideoModal(tweet.media[0].url)
-											: openImageModal(tweet.media[0]?.url || '')}
+									on:click|stopPropagation|preventDefault={() => openLightbox(tweet.id)}
 									aria-label="View media"
 									tabindex="0"
 									on:keydown={(e) => {
 										if (e.key === 'Enter' || e.key === ' ') {
 											e.preventDefault();
-											tweet.media && tweet.media[0]?.type === 'video'
-												? openVideoModal(tweet.media[0].url)
-												: openImageModal(tweet.media[0]?.url || '');
+											openLightbox(tweet.id);
 										}
 									}}
 								>
@@ -285,33 +265,5 @@
 	{/if}
 </div>
 
-<!-- Image Modal -->
-{#if showImageModal}
-	<div role="button">
-		class="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 backdrop-blur-sm transition-opacity duration-200"
-		on:click={closeImageModal}
-	>
-		<div
-			class="relative max-h-[90vh] max-w-[90vw] overflow-hidden rounded-lg bg-white dark:bg-gray-900"
-		>
-			<!-- Close Button -->
-			<button
-				class="absolute right-4 top-4 z-10 rounded-full bg-white/90 p-2 shadow-lg backdrop-blur-sm transition hover:bg-white dark:bg-gray-900/90 dark:hover:bg-gray-900"
-				on:click={closeImageModal}
-				aria-label="Close image"
-			>
-				<X class="h-6 w-6 text-gray-700 dark:text-gray-200" />
-			</button>
-
-			<!-- Image -->
-			<img
-				src={modalImageUrl}
-				alt="Full size"
-				class="max-h-[90vh] max-w-[90vw] object-contain"
-			/>
-		</div>
-	</div>
-{/if}
-
-<!-- Video Modal -->
-<VideoModal videoUrl={modalVideoUrl} bind:open={showVideoModal} on:close={closeVideoModal} />
+<!-- MediaLightbox Component -->
+<MediaLightbox bind:this={lightbox} {mediaItems} />

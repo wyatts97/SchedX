@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Reply, Repeat2, Heart, BarChart2, Bookmark, Share2 } from 'lucide-svelte';
-	import VideoModal from './VideoModal.svelte';
+	import MediaLightbox from './MediaLightbox.svelte';
 	import { onMount } from 'svelte';
 	import logger from '$lib/logger';
 
@@ -19,8 +19,15 @@
 	export let hideActions: boolean = false; // Hide interaction buttons
 	export let showXLogo: boolean = true; // Show X logo (hide when action badges are present)
 
-	let showVideoModal = false;
-	let modalVideoUrl = '';
+	let lightbox: MediaLightbox;
+
+	// Convert media to lightbox format
+	$: lightboxMedia = validMediaItems.map((m, index) => ({
+		id: `${index}`,
+		url: m.url,
+		type: m.type as 'photo' | 'gif' | 'video',
+		filename: `Media ${index + 1}`,
+	}));
 	let theme: string = 'light';
 	
 	// Initialize validMediaItems before using it
@@ -74,13 +81,10 @@
 			return () => observer.disconnect();
 		}
 	});
-	function openVideoModal(url: string) {
-		modalVideoUrl = url;
-		showVideoModal = true;
-	}
-	function closeVideoModal() {
-		showVideoModal = false;
-		modalVideoUrl = '';
+	function openLightbox(index: number) {
+		if (lightbox) {
+			lightbox.open(index);
+		}
 	}
 	function formatDate(date: string | Date) {
 		const d = typeof date === 'string' ? new Date(date) : date;
@@ -144,21 +148,30 @@
 
 	{#if validMediaItems && validMediaItems.length > 0}
 		<div class="mt-2 flex flex-col gap-2">
-			{#each validMediaItems as m}
+			{#each validMediaItems as m, index}
 				{#if m.type === 'image' || m.type === 'photo' || m.type === 'gif'}
 					<img
-						class="theme-dark:border-gray-700 max-h-96 rounded-2xl border border-gray-100 object-contain dark:border-gray-700"
+						class="theme-dark:border-gray-700 max-h-96 rounded-2xl border border-gray-100 object-contain dark:border-gray-700 cursor-pointer"
 						src={m.url}
 						alt="Tweet media"
+						on:click={() => openLightbox(index)}
+						on:keydown={(e) => {
+							if (e.key === 'Enter' || e.key === ' ') {
+								e.preventDefault();
+								openLightbox(index);
+							}
+						}}
+						role="button"
+						tabindex="0"
 					/>
 				{:else if m.type === 'video'}
 					<div
 						class="group relative cursor-pointer"
-						on:click={() => openVideoModal(m.url)}
+						on:click={() => openLightbox(index)}
 						on:keydown={(e) => {
 							if (e.key === 'Enter' || e.key === ' ') {
 								e.preventDefault();
-								openVideoModal(m.url);
+								openLightbox(index);
 							}
 						}}
 						role="button"
@@ -188,7 +201,7 @@
 			{/each}
 		</div>
 	{/if}
-	<VideoModal videoUrl={modalVideoUrl} bind:open={showVideoModal} on:close={closeVideoModal} />
+	<MediaLightbox bind:this={lightbox} mediaItems={lightboxMedia} />
 	<p class="theme-dark:text-gray-400 my-0.5 py-1 text-base text-gray-500 dark:text-gray-400">
 		{formatDate(createdAt)}
 	</p>

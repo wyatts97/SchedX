@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import { Search, X, Trash2, Loader2, CheckCircle, Upload as UploadIcon } from 'lucide-svelte';
-	import VideoModal from '$lib/components/VideoModal.svelte';
+	import MediaLightbox from '$lib/components/MediaLightbox.svelte';
 	import FileUpload from '$lib/components/FileUpload.svelte';
 	import logger from '$lib/logger';
 
@@ -29,11 +29,8 @@
 	let loading = true;
 	let error = '';
 
-	// Modal state
-	let showImageModal = false;
-	let showVideoModal = false;
-	let modalImageUrl = '';
-	let modalVideoUrl = '';
+	// Lightbox
+	let lightbox: MediaLightbox;
 
 	// Delete media function
 	let deletingMediaId: string | null = null;
@@ -88,29 +85,12 @@
 		fetchMedia();
 	}
 
-	// Open image modal
-	function openImageModal(url: string) {
-		modalImageUrl = url;
-		showImageModal = true;
+	// Open lightbox at specific media item
+	function openLightbox(index: number, element?: HTMLElement) {
+		if (lightbox) {
+			lightbox.open(index, element);
+		}
 	}
-
-	// Open video modal
-	function openVideoModal(url: string) {
-		modalVideoUrl = url;
-		showVideoModal = true;
-	}
-
-	// Close modals
-	function closeImageModal() {
-		showImageModal = false;
-		modalImageUrl = '';
-	}
-
-	function closeVideoModal() {
-		showVideoModal = false;
-		modalVideoUrl = '';
-	}
-
 
 	// Delete media function
 	function openDeleteConfirm(media: MediaItem) {
@@ -121,7 +101,7 @@
 		};
 		showDeleteConfirm = true;
 	}
-	
+
 	function closeDeleteConfirm() {
 		showDeleteConfirm = false;
 		mediaToDelete = null;
@@ -280,10 +260,7 @@
 
 	// Handle keyboard events
 	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape') {
-			closeImageModal();
-			closeVideoModal();
-		}
+		// BiggerPicture handles Escape key automatically
 	}
 
 	onMount(() => {
@@ -541,7 +518,8 @@
 		<div class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
 			{#each Array.from({ length: 4 }, (_, colIndex) => colIndex) as colIndex}
 				<div class="space-y-2">
-					{#each mediaItems.filter((_, index) => index % 4 === colIndex) as media}
+					{#each mediaItems.filter((_, index) => index % 4 === colIndex) as media, colMediaIndex}
+						{@const mediaIndex = mediaItems.findIndex(m => m.id === media.id)}
 						<div
 							class="group relative overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800 {selectedMediaIds.has(
 								media.id
@@ -608,10 +586,7 @@
 								<div class="flex gap-2">
 									<button
 										class="flex items-center gap-1 rounded-lg bg-white/90 px-2 py-1 text-xs font-medium text-gray-800 shadow-lg backdrop-blur-sm transition hover:bg-white dark:bg-gray-900/90 dark:text-gray-200 dark:hover:bg-gray-900"
-										on:click={() =>
-											media.type === 'video'
-												? openVideoModal(media.url)
-												: openImageModal(media.url)}
+										on:click={(e) => openLightbox(mediaIndex)}
 										aria-label="View {media.filename}"
 									>
 										<Search class="h-3 w-3" />
@@ -666,43 +641,8 @@
 	{/if}
 </div>
 
-<!-- Image Modal -->
-{#if showImageModal}
-	<div
-		class="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 backdrop-blur-sm transition-opacity duration-200"
-		on:click={closeImageModal}
-		role="button"
-		tabindex="0"
-		on:keydown={(e) => e.key === 'Enter' && closeImageModal()}
-	>
-		<div
-			class="relative max-h-[90vh] max-w-[90vw] overflow-hidden rounded-lg bg-white dark:bg-gray-900"
-			on:click|stopPropagation
-			role="dialog"
-			tabindex="-1"
-			on:keydown={(e) => e.key === 'Escape' && closeImageModal()}
-		>
-			<!-- Close Button -->
-			<button
-				class="absolute right-4 top-4 z-10 rounded-full bg-white/90 p-2 shadow-lg backdrop-blur-sm transition hover:bg-white dark:bg-gray-900/90 dark:hover:bg-gray-900"
-				on:click={closeImageModal}
-				aria-label="Close image"
-			>
-				<X class="h-6 w-6 text-gray-700 dark:text-gray-200" />
-			</button>
-
-			<!-- Image -->
-			<img
-				src={modalImageUrl}
-				alt="Full size"
-				class="max-h-[90vh] max-w-[90vw] object-contain"
-			/>
-		</div>
-	</div>
-{/if}
-
-<!-- Video Modal -->
-<VideoModal videoUrl={modalVideoUrl} bind:open={showVideoModal} on:close={closeVideoModal} />
+<!-- MediaLightbox Component -->
+<MediaLightbox bind:this={lightbox} {mediaItems} />
 
 <!-- Image Editor Modal -->
 
