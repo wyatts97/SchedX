@@ -7,8 +7,16 @@
 	import QuickActions from '../overview/QuickActions.svelte';
 	import ContentMixChart from '../overview/ContentMixChart.svelte';
 	import PerformanceTrends from '../overview/PerformanceTrends.svelte';
-	import { RefreshCw, Loader2 } from 'lucide-svelte';
+	import { RefreshCw, Loader2, Download } from 'lucide-svelte';
 	import type { DateRange } from '$lib/types/analytics';
+	
+	let syncing = false;
+	let syncMessage = '';
+	let lastRefreshTime = 0;
+	let refreshCooldownSeconds = 0;
+	let cooldownInterval: NodeJS.Timeout | null = null;
+	
+	const REFRESH_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
 
 	// Fetch analytics on mount
 	onMount(() => {
@@ -19,6 +27,9 @@
 	// Cleanup on destroy
 	onDestroy(() => {
 		analytics.stopAutoRefresh();
+		if (cooldownInterval) {
+			clearInterval(cooldownInterval);
+		}
 	});
 
 	// Handle date range change
@@ -28,7 +39,60 @@
 
 	// Handle manual refresh
 	function handleRefresh() {
+		const now = Date.now();
+		const timeSinceLastRefresh = now - lastRefreshTime;
+		
+		// Check if still in cooldown
+		if (timeSinceLastRefresh < REFRESH_COOLDOWN_MS) {
+			return;
+		}
+		
 		analytics.refresh();
+		lastRefreshTime = now;
+		
+		// Start cooldown countdown
+		refreshCooldownSeconds = 300; // 5 minutes in seconds
+		
+		if (cooldownInterval) {
+			clearInterval(cooldownInterval);
+		}
+		
+		cooldownInterval = setInterval(() => {
+			refreshCooldownSeconds--;
+			if (refreshCooldownSeconds <= 0) {
+				refreshCooldownSeconds = 0;
+				if (cooldownInterval) {
+					clearInterval(cooldownInterval);
+					cooldownInterval = null;
+				}
+			}
+		}, 1000);
+	}
+	
+	// Format cooldown time as MM:SS
+	function formatCooldown(seconds: number): string {
+		const mins = Math.floor(seconds / 60);
+		const secs = seconds % 60;
+		return `${mins}:${secs.toString().padStart(2, '0')}`;
+	}
+	
+	// Check if refresh is on cooldown
+	$: isRefreshOnCooldown = refreshCooldownSeconds > 0;
+
+	// Handle engagement sync
+	async function handleSyncEngagement() {
+		syncing = true;
+		syncMessage = '';
+		
+		const result = await analytics.syncEngagement();
+		
+		syncing = false;
+		syncMessage = result.message;
+		
+		// Clear message after 5 seconds
+		setTimeout(() => {
+			syncMessage = '';
+		}, 5000);
 	}
 
 	// Format last updated time
@@ -65,18 +129,52 @@
 			<!-- Refresh Button -->
 			<button
 				on:click={handleRefresh}
-				disabled={$isLoading}
+				disabled={$isLoading || isRefreshOnCooldown}
 				class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-				title="Refresh analytics"
+				title={isRefreshOnCooldown ? `Cooldown: ${formatCooldown(refreshCooldownSeconds)}` : 'Refresh analytics'}
 			>
 				{#if $isLoading}
 					<Loader2 class="h-4 w-4 animate-spin" />
 				{:else}
 					<RefreshCw class="h-4 w-4" />
 				{/if}
-				<span class="hidden sm:inline">Refresh</span>
+				<span class="hidden sm:inline">
+					{#if isRefreshOnCooldown}
+						{formatCooldown(refreshCooldownSeconds)}
+					{:else}
+						Refresh
+					{/if}
+				</span>
+			</button>
+
+			<!-- Sync Engagement Button -->
+			<button
+				on:click={handleSyncEngagement}
+				disabled={syncing || $isLoading}
+				class="inline-flex items-center gap-2 rounded-lg border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 shadow-sm transition hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-blue-600 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50"
+				title="Sync engagement metrics from Twitter API"
+			>
+				{#if syncing}
+					<Loader2 class="h-4 w-4 animate-spin" />
+				{:else}
+					<Download class="h-4 w-4" />
+				{/if}
+				<span class="hidden sm:inline">Sync Engagement</span>
 			</button>
 		</div>
+	</div>
+
+	<!-- API Warning Message -->
+	<div class="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-900/20">
+		<p class="text-xs text-amber-800 dark:text-amber-200">
+			<strong>⚠️ Rate Limit Warning:</strong> Syncing engagement data uses Twitter API calls. 
+			Use sparingly to avoid exceeding your rate limits. The system automatically syncs once daily at 3 AM.
+		</p>
+		{#if syncMessage}
+			<p class="mt-1 text-xs font-medium text-amber-900 dark:text-amber-100">
+				{syncMessage}
+			</p>
+		{/if}
 	</div>
 
 	<!-- Error State -->

@@ -48,7 +48,7 @@
 			chart: {
 				type: 'donut',
 				height: 300,
-				fontFamily: 'Inter, ui-sans-serif',
+				fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, sans-serif',
 				toolbar: { show: false }
 			},
 			series: postTypeData,
@@ -113,7 +113,7 @@
 			chart: {
 				type: 'bar',
 				height: 300,
-				fontFamily: 'Inter, ui-sans-serif',
+				fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, sans-serif',
 				toolbar: { show: false }
 			},
 			series: [

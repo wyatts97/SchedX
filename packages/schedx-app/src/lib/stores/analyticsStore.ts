@@ -116,6 +116,44 @@ function refresh(): void {
 }
 
 /**
+ * Sync engagement data from Twitter API
+ * This uses API calls and should be used sparingly
+ */
+async function syncEngagement(): Promise<{ success: boolean; message: string }> {
+	try {
+		const response = await fetch('/api/analytics/sync-engagement', {
+			method: 'POST'
+		});
+
+		if (!response.ok) {
+			throw new Error(`Failed to sync engagement: ${response.statusText}`);
+		}
+
+		const result = await response.json();
+		
+		logger.info('Engagement synced successfully', result);
+		
+		// Refresh analytics data after sync
+		analyticsStore.update(state => {
+			fetchAnalytics(state.dateRange);
+			return state;
+		});
+
+		return {
+			success: true,
+			message: result.message || 'Engagement data synced successfully'
+		};
+	} catch (error) {
+		const errorMessage = error instanceof Error ? error.message : 'Failed to sync engagement';
+		logger.error('Failed to sync engagement', { error });
+		return {
+			success: false,
+			message: errorMessage
+		};
+	}
+}
+
+/**
  * Dismiss an insight
  */
 async function dismissInsight(insightId: string): Promise<void> {
@@ -156,6 +194,7 @@ export const analytics = {
 	subscribe: analyticsStore.subscribe,
 	fetch: fetchAnalytics,
 	refresh,
+	syncEngagement,
 	setDateRange,
 	dismissInsight,
 	startAutoRefresh,

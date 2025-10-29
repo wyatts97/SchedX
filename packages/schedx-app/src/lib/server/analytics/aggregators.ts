@@ -43,9 +43,9 @@ export async function calculateActivitySummary(userId: string): Promise<Activity
 		// Get tweet counts by status
 		const tweetsResult = (db as any)['db'].queryOne(
 			`SELECT 
-				COUNT(CASE WHEN status = 'POSTED' THEN 1 END) as published,
-				COUNT(CASE WHEN status = 'SCHEDULED' THEN 1 END) as scheduled,
-				COUNT(CASE WHEN status = 'FAILED' THEN 1 END) as failed
+				COUNT(CASE WHEN UPPER(status) = 'POSTED' THEN 1 END) as published,
+				COUNT(CASE WHEN UPPER(status) = 'SCHEDULED' THEN 1 END) as scheduled,
+				COUNT(CASE WHEN UPPER(status) = 'FAILED' THEN 1 END) as failed
 			FROM tweets WHERE userId = ?`,
 			[userId]
 		);
@@ -59,27 +59,27 @@ export async function calculateActivitySummary(userId: string): Promise<Activity
 			`SELECT 
 				COUNT(CASE WHEN scheduledDate BETWEEN ? AND ? THEN 1 END) as in24h,
 				COUNT(CASE WHEN scheduledDate BETWEEN ? AND ? THEN 1 END) as in7d
-			FROM tweets WHERE userId = ? AND status = 'SCHEDULED'`,
+			FROM tweets WHERE userId = ? AND UPPER(status) = 'SCHEDULED'`,
 			[now, in24h, now, in7d, userId]
 		);
 		
 		// Calculate average posts per day (last 30 days)
 		const thirtyDaysAgo = now - (30 * 24 * 60 * 60 * 1000);
 		const postsLast30Days = (db as any)['db'].queryOne(
-			"SELECT COUNT(*) as count FROM tweets WHERE userId = ? AND status = 'POSTED' AND createdAt >= ?",
+			"SELECT COUNT(*) as count FROM tweets WHERE userId = ? AND UPPER(status) = 'POSTED' AND createdAt >= ?",
 			[userId, thirtyDaysAgo]
 		);
 		const avgPostsPerDay = postsLast30Days.count / 30;
 		
 		// Get last post time
 		const lastPost = (db as any)['db'].queryOne(
-			"SELECT MAX(createdAt) as time FROM tweets WHERE userId = ? AND status = 'POSTED'",
+			"SELECT MAX(createdAt) as time FROM tweets WHERE userId = ? AND UPPER(status) = 'POSTED'",
 			[userId]
 		);
 		
 		// Get next scheduled post
 		const nextPost = (db as any)['db'].queryOne(
-			"SELECT MIN(scheduledDate) as time FROM tweets WHERE userId = ? AND status = 'SCHEDULED'",
+			"SELECT MIN(scheduledDate) as time FROM tweets WHERE userId = ? AND UPPER(status) = 'SCHEDULED'",
 			[userId]
 		);
 		
@@ -120,7 +120,7 @@ function calculateQueueHealth(userId: string, scheduledCount: number, nextPostTi
 	
 	const db = getDbInstance();
 	const lastScheduled = (db as any)['db'].queryOne(
-		"SELECT MAX(scheduledDate) as time FROM tweets WHERE userId = ? AND status = 'SCHEDULED'",
+		"SELECT MAX(scheduledDate) as time FROM tweets WHERE userId = ? AND UPPER(status) = 'SCHEDULED'",
 		[userId]
 	);
 	
@@ -196,20 +196,20 @@ export async function calculateEngagementSnapshot(
 		);
 		
 		// Fallback: Calculate from tweets table if daily_stats is empty
+		// Note: impression_count not available in Free tier, so we calculate based on raw engagement
 		if (!currentStats || currentStats.avg_rate === null) {
 			const tweetsStats = (db as any)['db'].queryOne(
 				`SELECT 
-					SUM(likeCount + retweetCount + replyCount) as total_engagement,
-					SUM(impressionCount) as total_impressions
+					COUNT(*) as tweet_count,
+					AVG(likeCount + retweetCount + replyCount) as avg_engagement
 				FROM tweets
 				WHERE userId = ? AND UPPER(status) = 'POSTED'
 				AND DATE(createdAt / 1000, 'unixepoch') BETWEEN ? AND ?`,
 				[userId, startDate, endDate]
 			);
 			
-			const engagementRate = (tweetsStats?.total_impressions || 0) > 0
-				? ((tweetsStats?.total_engagement || 0) / (tweetsStats?.total_impressions || 1)) * 100
-				: 0;
+			// Use average engagement per tweet as a proxy for engagement rate
+			const engagementRate = tweetsStats?.avg_engagement || 0;
 			
 			currentStats = { avg_rate: engagementRate, avg_followers: 0 };
 		}
@@ -231,17 +231,14 @@ export async function calculateEngagementSnapshot(
 		if (!previousStats || previousStats.avg_rate === null) {
 			const prevTweetsStats = (db as any)['db'].queryOne(
 				`SELECT 
-					SUM(likeCount + retweetCount + replyCount) as total_engagement,
-					SUM(impressionCount) as total_impressions
+					AVG(likeCount + retweetCount + replyCount) as avg_engagement
 				FROM tweets
 				WHERE userId = ? AND UPPER(status) = 'POSTED'
 				AND DATE(createdAt / 1000, 'unixepoch') BETWEEN ? AND ?`,
 				[userId, prevStartDate, prevEndDate]
 			);
 			
-			const prevEngagementRate = (prevTweetsStats?.total_impressions || 0) > 0
-				? ((prevTweetsStats?.total_engagement || 0) / (prevTweetsStats?.total_impressions || 1)) * 100
-				: 0;
+			const prevEngagementRate = prevTweetsStats?.avg_engagement || 0;
 			
 			previousStats = { avg_rate: prevEngagementRate };
 		}
@@ -586,9 +583,9 @@ export async function calculateTrends(userId: string, dateRange: DateRange = '30
 	const { startDate, endDate } = getDateRangeTimestamps(dateRange);
 	
 	try {
-		// Get accounts for this user
+		// Get accounts for this user with their usernames
 		const accounts = (db as any)['db'].query(
-			'SELECT id FROM accounts WHERE userId = ?',
+			'SELECT id, providerAccountId, username FROM accounts WHERE userId = ?',
 			[userId]
 		);
 		
@@ -599,28 +596,40 @@ export async function calculateTrends(userId: string, dateRange: DateRange = '30
 		const accountIds = accounts.map((a: any) => a.id);
 		const placeholders = accountIds.map(() => '?').join(',');
 		
-		// Follower growth trend (mock data for now since daily_stats is empty)
-		let followerData = (db as any)['db'].query(
-			`SELECT date, SUM(followers) as total_followers
-			FROM daily_stats
-			WHERE account_id IN (${placeholders})
-			AND date BETWEEN ? AND ?
-			GROUP BY date
-			ORDER BY date ASC`,
-			[...accountIds, startDate, endDate]
-		);
+		// Follower growth trend - per account
+		const followerGrowthByAccount = [];
 		
-		// Fallback: Generate mock follower data
-		if (followerData.length === 0) {
-			const start = new Date(startDate);
-			const end = new Date(endDate);
-			followerData = [];
-			for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-				followerData.push({
-					date: d.toISOString().split('T')[0],
-					total_followers: 1000 + Math.floor(Math.random() * 100)
-				});
+		for (const account of accounts) {
+			let accountFollowerData = (db as any)['db'].query(
+				`SELECT date, followers
+				FROM daily_stats
+				WHERE account_id = ?
+				AND date BETWEEN ? AND ?
+				ORDER BY date ASC`,
+				[account.id, startDate, endDate]
+			);
+			
+			// Fallback: Get current follower count from account table if daily_stats is empty
+			if (accountFollowerData.length === 0) {
+				const currentFollowers = account.followersCount || 0;
+				const start = new Date(startDate);
+				const end = new Date(endDate);
+				accountFollowerData = [];
+				
+				// Generate data points showing stable count (will be updated by real sync)
+				for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+					accountFollowerData.push({
+						date: d.toISOString().split('T')[0],
+						followers: currentFollowers
+					});
+				}
 			}
+			
+			followerGrowthByAccount.push({
+				accountId: account.providerAccountId,
+				username: account.username,
+				data: accountFollowerData.map((r: any) => ({ date: r.date, value: r.followers }))
+			});
 		}
 		
 		// Engagement trend
@@ -643,17 +652,14 @@ export async function calculateTrends(userId: string, dateRange: DateRange = '30
 				const dayStr = d.toISOString().split('T')[0];
 				const dayStats = (db as any)['db'].queryOne(
 					`SELECT 
-						SUM(likeCount + retweetCount + replyCount) as engagement,
-						SUM(impressionCount) as impressions
+						AVG(likeCount + retweetCount + replyCount) as avg_engagement
 					 FROM tweets
 					 WHERE userId = ? AND UPPER(status) = 'POSTED'
 					 AND DATE(createdAt / 1000, 'unixepoch') = ?`,
 					[userId, dayStr]
 				);
 				
-				const rate = (dayStats?.impressions || 0) > 0
-					? ((dayStats?.engagement || 0) / (dayStats?.impressions || 1)) * 100
-					: 0;
+				const rate = dayStats?.avg_engagement || 0;
 				
 				engagementData.push({ date: dayStr, avg_rate: rate });
 			}
@@ -689,7 +695,7 @@ export async function calculateTrends(userId: string, dateRange: DateRange = '30
 		}
 		
 		return {
-			followerGrowth: followerData.map((r: any) => ({ date: r.date, value: r.total_followers })),
+			followerGrowth: followerGrowthByAccount,
 			engagementTrend: engagementData.map((r: any) => ({ date: r.date, value: Math.round(r.avg_rate * 100) / 100 })),
 			postsPerDay: postsData.map((r: any) => ({ date: r.date, value: r.total_posts }))
 		};
@@ -748,7 +754,7 @@ export async function getSystemStatus(userId: string): Promise<SystemStatus> {
 		
 		// Get pending drafts count
 		const draftsResult = (db as any)['db'].queryOne(
-			"SELECT COUNT(*) as count FROM tweets WHERE userId = ? AND status = 'DRAFT'",
+			"SELECT COUNT(*) as count FROM tweets WHERE userId = ? AND UPPER(status) = 'DRAFT'",
 			[userId]
 		);
 		

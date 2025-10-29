@@ -25,6 +25,15 @@
 	let engagementChart: any;
 	let postsChart: any;
 
+	// Calculate percent change for each account
+	function calculatePercentChange(data: { value: number }[]): number {
+		if (data.length < 2) return 0;
+		const first = data[0].value;
+		const last = data[data.length - 1].value;
+		if (first === 0) return 0;
+		return ((last - first) / first) * 100;
+	}
+
 	// Calculate trend direction
 	function getTrendDirection(data: { value: number }[]): 'up' | 'down' | 'stable' {
 		if (data.length < 2) return 'stable';
@@ -36,7 +45,6 @@
 		return 'stable';
 	}
 
-	$: followerTrend = getTrendDirection(trends.followerGrowth);
 	$: engagementTrend = getTrendDirection(trends.engagementTrend);
 	$: postsTrend = getTrendDirection(trends.postsPerDay);
 
@@ -48,6 +56,7 @@
 		// Use IIFE to handle async import
 		(async () => {
 			const ApexCharts = (await import('apexcharts')).default;
+			const { HSTooltip } = await import('preline/preline');
 			const isDark = document.documentElement.classList.contains('dark');
 
 			// Common sparkline options
@@ -56,7 +65,7 @@
 				type: 'area',
 				height: 80,
 				sparkline: { enabled: true },
-				fontFamily: 'Inter, ui-sans-serif'
+				fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, sans-serif'
 			},
 			stroke: { curve: 'smooth', width: 2 },
 			fill: {
@@ -82,44 +91,115 @@
 			theme: { mode: isDark ? 'dark' : 'light' }
 		};
 
-			// Follower Growth Sparkline
-			followerChart = new ApexCharts(followerChartEl, {
-			...sparklineOptions,
-			series: [
-				{
-					name: 'Followers',
-					data: trends.followerGrowth.map(t => t.value)
-				}
-			],
-			colors: ['#8b5cf6']
-		});
-			followerChart.render();
+			// Follower Growth - Multi-line chart for each account
+			const colors = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#6366f1'];
+			
+			// Only render chart if we have data
+			if (trends.followerGrowth && trends.followerGrowth.length > 0) {
+				const followerSeries = trends.followerGrowth
+					.filter(account => account.data && account.data.length > 0)
+					.map((account) => ({
+						name: `@${account.username}`,
+						data: account.data.map(d => ({ x: d.date, y: d.value }))
+					}));
+
+				if (followerSeries.length === 0) {
+					// Show empty state
+					followerChartEl.innerHTML = '<div class="flex h-[220px] items-center justify-center text-sm text-gray-500 dark:text-gray-400">No follower data available for this period</div>';
+				} else {
+					followerChart = new ApexCharts(followerChartEl, {
+				chart: {
+					type: 'line',
+					height: 220,
+					fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, sans-serif',
+					toolbar: { show: false },
+					zoom: { enabled: false }
+				},
+				series: followerSeries,
+				colors: colors.slice(0, followerSeries.length),
+				stroke: {
+					curve: 'smooth',
+					width: 2
+				},
+				xaxis: {
+					type: 'datetime',
+					labels: {
+						show: true,
+						style: { fontSize: '10px' }
+					}
+				},
+				yaxis: {
+					labels: {
+						show: true,
+						style: { fontSize: '10px' },
+						formatter: (val: number) => Math.round(val).toString()
+					}
+				},
+				legend: {
+					show: false
+				},
+				grid: {
+					show: true,
+					strokeDashArray: 3,
+					borderColor: isDark ? '#374151' : '#e5e7eb',
+					padding: {
+						right: 40
+					}
+				},
+				tooltip: {
+					enabled: true,
+					x: { format: 'MMM dd' },
+					y: {
+						formatter: (val: number) => val.toLocaleString()
+					}
+				},
+					theme: { mode: isDark ? 'dark' : 'light' }
+				});
+				followerChart.render();
+				
+				// Initialize Preline tooltips
+				setTimeout(() => {
+					HSTooltip.autoInit();
+				}, 100);
+			}
+		} else {
+			// Show empty state when no accounts
+			followerChartEl.innerHTML = '<div class="flex h-[220px] items-center justify-center text-sm text-gray-500 dark:text-gray-400">Connect a Twitter account to see follower growth</div>';
+		}
 
 			// Engagement Trend Sparkline
-			engagementChart = new ApexCharts(engagementChartEl, {
-			...sparklineOptions,
-			series: [
-				{
-					name: 'Engagement Rate',
-					data: trends.engagementTrend.map(t => t.value)
-				}
-			],
-			colors: ['#ec4899']
-		});
-			engagementChart.render();
+			if (trends.engagementTrend && trends.engagementTrend.length > 0) {
+				engagementChart = new ApexCharts(engagementChartEl, {
+					...sparklineOptions,
+					series: [
+						{
+							name: 'Engagement Rate',
+							data: trends.engagementTrend.map(t => t.value)
+						}
+					],
+					colors: ['#ec4899']
+				});
+				engagementChart.render();
+			} else {
+				engagementChartEl.innerHTML = '<div class="flex h-[80px] items-center justify-center text-xs text-gray-500 dark:text-gray-400">No data</div>';
+			}
 
 			// Posts Per Day Sparkline
-			postsChart = new ApexCharts(postsChartEl, {
-			...sparklineOptions,
-			series: [
-				{
-					name: 'Posts',
-					data: trends.postsPerDay.map(t => t.value)
-				}
-			],
-			colors: ['#3b82f6']
-		});
-			postsChart.render();
+			if (trends.postsPerDay && trends.postsPerDay.length > 0) {
+				postsChart = new ApexCharts(postsChartEl, {
+					...sparklineOptions,
+					series: [
+						{
+							name: 'Posts',
+							data: trends.postsPerDay.map(t => t.value)
+						}
+					],
+					colors: ['#3b82f6']
+				});
+				postsChart.render();
+			} else {
+				postsChartEl.innerHTML = '<div class="flex h-[80px] items-center justify-center text-xs text-gray-500 dark:text-gray-400">No data</div>';
+			}
 
 			// Listen for theme changes
 			observer = new MutationObserver(() => {
@@ -166,7 +246,7 @@
 		<div
 			class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800"
 		>
-			<div class="mb-3 flex items-center justify-between">
+			<div class="mb-3 flex items-center">
 				<div class="flex items-center gap-2">
 					<div
 						class="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/30"
@@ -177,23 +257,43 @@
 						Follower Growth
 					</h3>
 				</div>
-				<span class="text-lg {getTrendColor(followerTrend)}">
-					{getTrendIcon(followerTrend)}
-				</span>
 			</div>
-			<div bind:this={followerChartEl}></div>
-			{#if trends.followerGrowth.length > 0}
-				<p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-					Current: {trends.followerGrowth[trends.followerGrowth.length - 1]?.value.toLocaleString() || 0}
-				</p>
-			{/if}
+			<div class="relative">
+				<div bind:this={followerChartEl} class="follower-chart-container"></div>
+				<!-- Avatars positioned at end of lines -->
+				{#if trends.followerGrowth && trends.followerGrowth.length > 0 && trends.followerGrowth.some(a => a.data && a.data.length > 0)}
+					<div class="absolute right-0 top-0 flex h-full flex-col justify-around pr-2">
+						{#each trends.followerGrowth.filter(a => a.data && a.data.length > 0) as account, i}
+							{@const percentChange = calculatePercentChange(account.data)}
+							{@const colors = ['bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400', 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400', 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400', 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400', 'bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400', 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400']}
+							<div class="hs-tooltip [--placement:left]">
+								<button type="button" class="hs-tooltip-toggle inline-flex h-6 w-6 items-center justify-center rounded-full {colors[i % colors.length]}">
+									<span class="text-[10px] font-medium">
+										{account.username.charAt(0).toUpperCase()}
+									</span>
+									<span
+										class="hs-tooltip-content invisible absolute z-10 inline-block rounded-lg bg-gray-900 px-3 py-2 text-xs text-white opacity-0 shadow-sm transition-opacity hs-tooltip-shown:visible hs-tooltip-shown:opacity-100 dark:bg-gray-700"
+										role="tooltip"
+									>
+										<span class="font-medium">@{account.username}</span>
+										<br />
+										<span class="{percentChange >= 0 ? 'text-green-400' : 'text-red-400'}">
+											{percentChange >= 0 ? '+' : ''}{percentChange.toFixed(1)}%
+										</span>
+									</span>
+								</button>
+							</div>
+						{/each}
+					</div>
+				{/if}
+			</div>
 		</div>
 
 		<!-- Engagement Trend -->
 		<div
 			class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800"
 		>
-			<div class="mb-3 flex items-center justify-between">
+			<div class="mb-3 flex items-center">
 				<div class="flex items-center gap-2">
 					<div
 						class="flex h-8 w-8 items-center justify-center rounded-lg bg-pink-100 dark:bg-pink-900/30"
@@ -204,9 +304,6 @@
 						Engagement Rate
 					</h3>
 				</div>
-				<span class="text-lg {getTrendColor(engagementTrend)}">
-					{getTrendIcon(engagementTrend)}
-				</span>
 			</div>
 			<div bind:this={engagementChartEl}></div>
 			{#if trends.engagementTrend.length > 0}
@@ -220,7 +317,7 @@
 		<div
 			class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800"
 		>
-			<div class="mb-3 flex items-center justify-between">
+			<div class="mb-3 flex items-center">
 				<div class="flex items-center gap-2">
 					<div
 						class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30"
@@ -231,9 +328,6 @@
 						Posts Per Day
 					</h3>
 				</div>
-				<span class="text-lg {getTrendColor(postsTrend)}">
-					{getTrendIcon(postsTrend)}
-				</span>
 			</div>
 			<div bind:this={postsChartEl}></div>
 			{#if trends.postsPerDay.length > 0}

@@ -176,7 +176,7 @@ export interface PostingTimeHeatmap {
 }
 
 export interface TrendData {
-	followerGrowth: TrendPoint[];
+	followerGrowth: AccountFollowerTrend[];
 	engagementTrend: TrendPoint[];
 	postsPerDay: TrendPoint[];
 }
@@ -184,6 +184,12 @@ export interface TrendData {
 export interface TrendPoint {
 	date: string; // YYYY-MM-DD
 	value: number;
+}
+
+export interface AccountFollowerTrend {
+	accountId: string;
+	username: string;
+	data: TrendPoint[];
 }
 
 export interface SystemStatus {

@@ -7,6 +7,7 @@ import { RequestContext, logApiRequest, logApiError } from '$lib/server/logging'
 import { apiRateLimiter, authRateLimiter, getRateLimitIdentifier, createRateLimitResponse } from '$lib/server/rate-limiter';
 import { TweetSchedulerService } from '$lib/server/tweetScheduler';
 import { ThreadSchedulerService } from '$lib/server/threadScheduler';
+import { EngagementSyncService } from '$lib/server/engagementSyncService';
 
 // Initialize database and ensure default admin user
 let dbInitialized = false;
@@ -45,8 +46,11 @@ const initDb = async () => {
 				const threadScheduler = ThreadSchedulerService.getInstance();
 				threadScheduler.start(60000); // Check every minute
 				
+				const engagementSync = EngagementSyncService.getInstance();
+				engagementSync.start(); // Runs daily at 3 AM
+				
 				schedulerInitialized = true;
-				logger.info('Tweet and thread schedulers initialized');
+				logger.info('Tweet, thread, and engagement sync schedulers initialized');
 			}
 		} catch (error) {
 			logger.error({ error }, 'Database initialization failed');
