@@ -43,9 +43,9 @@ export async function calculateActivitySummary(userId: string): Promise<Activity
 		// Get tweet counts by status
 		const tweetsResult = (db as any)['db'].queryOne(
 			`SELECT 
-				COUNT(CASE WHEN status = 'POSTED' THEN 1 END) as published,
-				COUNT(CASE WHEN status = 'SCHEDULED' THEN 1 END) as scheduled,
-				COUNT(CASE WHEN status = 'FAILED' THEN 1 END) as failed
+				COUNT(CASE WHEN status = 'published' THEN 1 END) as published,
+				COUNT(CASE WHEN status = 'scheduled' THEN 1 END) as scheduled,
+				COUNT(CASE WHEN status = 'failed' THEN 1 END) as failed
 			FROM tweets WHERE userId = ?`,
 			[userId]
 		);
@@ -59,27 +59,27 @@ export async function calculateActivitySummary(userId: string): Promise<Activity
 			`SELECT 
 				COUNT(CASE WHEN scheduledDate BETWEEN ? AND ? THEN 1 END) as in24h,
 				COUNT(CASE WHEN scheduledDate BETWEEN ? AND ? THEN 1 END) as in7d
-			FROM tweets WHERE userId = ? AND status = 'SCHEDULED'`,
+			FROM tweets WHERE userId = ? AND status = 'scheduled'`,
 			[now, in24h, now, in7d, userId]
 		);
 		
 		// Calculate average posts per day (last 30 days)
 		const thirtyDaysAgo = now - (30 * 24 * 60 * 60 * 1000);
 		const postsLast30Days = (db as any)['db'].queryOne(
-			'SELECT COUNT(*) as count FROM tweets WHERE userId = ? AND status = "POSTED" AND createdAt >= ?',
+			'SELECT COUNT(*) as count FROM tweets WHERE userId = ? AND status = "published" AND createdAt >= ?',
 			[userId, thirtyDaysAgo]
 		);
 		const avgPostsPerDay = postsLast30Days.count / 30;
 		
 		// Get last post time
 		const lastPost = (db as any)['db'].queryOne(
-			'SELECT MAX(createdAt) as time FROM tweets WHERE userId = ? AND status = "POSTED"',
+			'SELECT MAX(createdAt) as time FROM tweets WHERE userId = ? AND status = "published"',
 			[userId]
 		);
 		
 		// Get next scheduled post
 		const nextPost = (db as any)['db'].queryOne(
-			'SELECT MIN(scheduledDate) as time FROM tweets WHERE userId = ? AND status = "SCHEDULED"',
+			'SELECT MIN(scheduledDate) as time FROM tweets WHERE userId = ? AND status = "scheduled"',
 			[userId]
 		);
 		
@@ -115,7 +115,7 @@ function calculateQueueHealth(userId: string, scheduledCount: number, nextPostTi
 	
 	const db = getDbInstance();
 	const lastScheduled = (db as any)['db'].queryOne(
-		'SELECT MAX(scheduledDate) as time FROM tweets WHERE userId = ? AND status = "SCHEDULED"',
+		'SELECT MAX(scheduledDate) as time FROM tweets WHERE userId = ? AND status = "scheduled"',
 		[userId]
 	);
 	
@@ -197,7 +197,7 @@ export async function calculateEngagementSnapshot(
 					SUM(likeCount + retweetCount + replyCount) as total_engagement,
 					SUM(impressionCount) as total_impressions
 				FROM tweets
-				WHERE userId = ? AND status = 'POSTED'
+				WHERE userId = ? AND status = 'published'
 				AND DATE(createdAt / 1000, 'unixepoch') BETWEEN ? AND ?`,
 				[userId, startDate, endDate]
 			);
@@ -229,7 +229,7 @@ export async function calculateEngagementSnapshot(
 					SUM(likeCount + retweetCount + replyCount) as total_engagement,
 					SUM(impressionCount) as total_impressions
 				FROM tweets
-				WHERE userId = ? AND status = 'POSTED'
+				WHERE userId = ? AND status = 'published'
 				AND DATE(createdAt / 1000, 'unixepoch') BETWEEN ? AND ?`,
 				[userId, prevStartDate, prevEndDate]
 			);
@@ -281,7 +281,7 @@ async function getMostEngagedPost(userId: string, startDate: string, endDate: st
 			(t.likeCount + t.retweetCount + t.replyCount) as engagement_score
 		FROM tweets t
 		LEFT JOIN accounts a ON t.twitterAccountId = a.providerAccountId
-		WHERE t.userId = ? AND t.status = 'POSTED' 
+		WHERE t.userId = ? AND t.status = 'published' 
 		AND DATE(t.createdAt / 1000, 'unixepoch') BETWEEN ? AND ?
 		ORDER BY engagement_score DESC
 		LIMIT 1`,
@@ -395,7 +395,7 @@ async function getPostTypeDistribution(userId: string, startDate: string, endDat
 			SUM(CASE WHEN ca.has_video = 0 AND ca.has_image = 0 AND ca.has_gif = 0 THEN 1 ELSE 0 END) as text
 		FROM content_analytics ca
 		JOIN tweets t ON ca.tweet_id = t.id
-		WHERE t.userId = ? AND t.status = 'POSTED'
+		WHERE t.userId = ? AND t.status = 'published'
 		AND DATE(t.createdAt / 1000, 'unixepoch') BETWEEN ? AND ?`,
 		[userId, startDate, endDate]
 	);
@@ -404,7 +404,7 @@ async function getPostTypeDistribution(userId: string, startDate: string, endDat
 	if (!result || (result.text === 0 && result.image === 0 && result.video === 0 && result.gif === 0 && result.link === 0)) {
 		const tweets = (db as any)['db'].query(
 			`SELECT media, content FROM tweets 
-			 WHERE userId = ? AND status = 'POSTED'
+			 WHERE userId = ? AND status = 'published'
 			 AND DATE(createdAt / 1000, 'unixepoch') BETWEEN ? AND ?`,
 			[userId, startDate, endDate]
 		);
@@ -445,7 +445,7 @@ async function getTopHashtags(userId: string, startDate: string, endDate: string
 		`SELECT ca.hashtags, ca.engagement_score
 		FROM content_analytics ca
 		JOIN tweets t ON ca.tweet_id = t.id
-		WHERE t.userId = ? AND t.status = 'POSTED' AND ca.hashtag_count > 0
+		WHERE t.userId = ? AND t.status = 'published' AND ca.hashtag_count > 0
 		AND DATE(t.createdAt / 1000, 'unixepoch') BETWEEN ? AND ?`,
 		[userId, startDate, endDate]
 	);
@@ -455,7 +455,7 @@ async function getTopHashtags(userId: string, startDate: string, endDate: string
 		results = (db as any)['db'].query(
 			`SELECT content, likeCount, retweetCount, replyCount
 			 FROM tweets
-			 WHERE userId = ? AND status = 'POSTED'
+			 WHERE userId = ? AND status = 'published'
 			 AND DATE(createdAt / 1000, 'unixepoch') BETWEEN ? AND ?`,
 			[userId, startDate, endDate]
 		);
@@ -500,7 +500,7 @@ async function getPostingTimeHeatmap(userId: string, startDate: string, endDate:
 		`SELECT ca.post_hour, ca.post_day, AVG(ca.engagement_score) as avg_engagement, COUNT(*) as count
 		FROM content_analytics ca
 		JOIN tweets t ON ca.tweet_id = t.id
-		WHERE t.userId = ? AND t.status = 'POSTED'
+		WHERE t.userId = ? AND t.status = 'published'
 		AND DATE(t.createdAt / 1000, 'unixepoch') BETWEEN ? AND ?
 		GROUP BY ca.post_hour, ca.post_day`,
 		[userId, startDate, endDate]
@@ -511,7 +511,7 @@ async function getPostingTimeHeatmap(userId: string, startDate: string, endDate:
 		const tweets = (db as any)['db'].query(
 			`SELECT createdAt, likeCount, retweetCount, replyCount
 			 FROM tweets
-			 WHERE userId = ? AND status = 'POSTED'
+			 WHERE userId = ? AND status = 'published'
 			 AND DATE(createdAt / 1000, 'unixepoch') BETWEEN ? AND ?`,
 			[userId, startDate, endDate]
 		);
@@ -674,7 +674,7 @@ export async function calculateTrends(userId: string, dateRange: DateRange = '30
 				const dayStr = d.toISOString().split('T')[0];
 				const count = (db as any)['db'].queryOne(
 					`SELECT COUNT(*) as count FROM tweets
-					 WHERE userId = ? AND status = 'POSTED'
+					 WHERE userId = ? AND status = 'published'
 					 AND DATE(createdAt / 1000, 'unixepoch') = ?`,
 					[userId, dayStr]
 				);
@@ -711,7 +711,7 @@ export async function getSystemStatus(userId: string): Promise<SystemStatus> {
 				a.id, a.username, a.expires_at,
 				MAX(t.createdAt) as last_post_time
 			FROM accounts a
-			LEFT JOIN tweets t ON a.providerAccountId = t.twitterAccountId AND t.status = 'POSTED'
+			LEFT JOIN tweets t ON a.providerAccountId = t.twitterAccountId AND t.status = 'published'
 			WHERE a.userId = ?
 			GROUP BY a.id, a.username, a.expires_at`,
 			[userId]
@@ -743,7 +743,7 @@ export async function getSystemStatus(userId: string): Promise<SystemStatus> {
 		
 		// Get pending drafts count
 		const draftsResult = (db as any)['db'].queryOne(
-			'SELECT COUNT(*) as count FROM tweets WHERE userId = ? AND status = "DRAFT"',
+			'SELECT COUNT(*) as count FROM tweets WHERE userId = ? AND status = "draft"',
 			[userId]
 		);
 		
