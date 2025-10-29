@@ -1,6 +1,6 @@
 <script lang="ts">
-    import TweetEmbedWrapper from '$lib/components/TweetEmbedWrapper.svelte';
-    import { FileText, Loader2, AlertCircle, Filter, Search } from 'lucide-svelte';
+    import TweetPreview from '$lib/components/TweetPreview.svelte';
+    import { FileText, Loader2, AlertCircle, Filter, Search, ExternalLink } from 'lucide-svelte';
     import type { Tweet as TweetType } from '$lib/stores/dashboardStore';
     import type { UserAccount } from '$lib/types';
 
@@ -173,10 +173,37 @@
 		<div class="max-h-[800px] space-y-4 overflow-y-auto pr-2 scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400 dark:scrollbar-track-gray-800 dark:scrollbar-thumb-gray-600 dark:hover:scrollbar-thumb-gray-500">
 			{#if paginatedTweets.length > 0}
 				{#each paginatedTweets as tweet}
-					{@const tweetLink = getTweetLink(tweet)}
-					{#if tweetLink}
-						<div class="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-							<TweetEmbedWrapper tweetLink={tweetLink} theme={theme} />
+					{@const account = tweet.twitterAccountId ? accountByProviderId[tweet.twitterAccountId] : null}
+					{#if account}
+						<div class="tweet-preview-wrapper">
+							<TweetPreview
+								avatarUrl={account.profileImage || '/avatar.png'}
+								displayName={account.displayName || account.username}
+								username={account.username}
+								content={tweet.content}
+								media={tweet.media || []}
+								createdAt={tweet.updatedAt || tweet.createdAt}
+								replies={0}
+								retweets={0}
+								likes={0}
+								bookmarks={0}
+								views={0}
+								hideActions={false}
+							>
+								<svelte:fragment slot="actions">
+									{#if tweet.twitterTweetId}
+										<a
+											href={`https://twitter.com/${account.username}/status/${tweet.twitterTweetId}`}
+											target="_blank"
+											rel="noopener noreferrer"
+											class="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30"
+											title="View on Twitter/X"
+										>
+											<ExternalLink class="h-3 w-3" />
+										</a>
+									{/if}
+								</svelte:fragment>
+							</TweetPreview>
 						</div>
 					{:else}
 						<div class="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
