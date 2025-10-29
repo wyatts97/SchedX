@@ -188,20 +188,115 @@ CREATE TABLE IF NOT EXISTS openrouter_settings (
 CREATE INDEX IF NOT EXISTS idx_openrouter_settings_userId ON openrouter_settings(userId);
 CREATE INDEX IF NOT EXISTS idx_openrouter_settings_enabled ON openrouter_settings(enabled);`;
 
+// Migration 002: Analytics Tables
+const ANALYTICS_SCHEMA = `-- Daily engagement snapshots per account
+CREATE TABLE IF NOT EXISTS daily_stats (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  date TEXT NOT NULL,
+  followers INTEGER DEFAULT 0,
+  following INTEGER DEFAULT 0,
+  total_likes INTEGER DEFAULT 0,
+  total_replies INTEGER DEFAULT 0,
+  total_retweets INTEGER DEFAULT 0,
+  total_impressions INTEGER DEFAULT 0,
+  engagement_rate REAL DEFAULT 0,
+  top_tweet_id TEXT,
+  posts_count INTEGER DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE,
+  UNIQUE(account_id, date)
+);
+CREATE INDEX IF NOT EXISTS idx_daily_stats_account_date ON daily_stats(account_id, date);
+CREATE INDEX IF NOT EXISTS idx_daily_stats_date ON daily_stats(date);
+
+-- Content analytics per tweet
+CREATE TABLE IF NOT EXISTS content_analytics (
+  id TEXT PRIMARY KEY,
+  tweet_id TEXT NOT NULL,
+  has_image INTEGER DEFAULT 0,
+  has_video INTEGER DEFAULT 0,
+  has_gif INTEGER DEFAULT 0,
+  has_link INTEGER DEFAULT 0,
+  media_count INTEGER DEFAULT 0,
+  hashtag_count INTEGER DEFAULT 0,
+  hashtags TEXT,
+  mention_count INTEGER DEFAULT 0,
+  char_count INTEGER DEFAULT 0,
+  post_hour INTEGER,
+  post_day INTEGER,
+  post_timestamp INTEGER NOT NULL,
+  engagement_score REAL DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  FOREIGN KEY (tweet_id) REFERENCES tweets(id) ON DELETE CASCADE,
+  UNIQUE(tweet_id)
+);
+CREATE INDEX IF NOT EXISTS idx_content_analytics_tweet ON content_analytics(tweet_id);
+CREATE INDEX IF NOT EXISTS idx_content_analytics_post_time ON content_analytics(post_hour, post_day);
+CREATE INDEX IF NOT EXISTS idx_content_analytics_engagement ON content_analytics(engagement_score DESC);
+
+-- Smart insights cache
+CREATE TABLE IF NOT EXISTS insights (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  insight_type TEXT NOT NULL,
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  priority INTEGER DEFAULT 0,
+  data TEXT,
+  generated_at INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL,
+  dismissed INTEGER DEFAULT 0,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_insights_user_expires ON insights(user_id, expires_at);
+CREATE INDEX IF NOT EXISTS idx_insights_priority ON insights(priority DESC, generated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_insights_dismissed ON insights(dismissed, expires_at);
+
+-- Tweet engagement history
+CREATE TABLE IF NOT EXISTS engagement_snapshots (
+  id TEXT PRIMARY KEY,
+  tweet_id TEXT NOT NULL,
+  snapshot_date TEXT NOT NULL,
+  like_count INTEGER DEFAULT 0,
+  retweet_count INTEGER DEFAULT 0,
+  reply_count INTEGER DEFAULT 0,
+  impression_count INTEGER DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  FOREIGN KEY (tweet_id) REFERENCES tweets(id) ON DELETE CASCADE,
+  UNIQUE(tweet_id, snapshot_date)
+);
+CREATE INDEX IF NOT EXISTS idx_engagement_snapshots_tweet_date ON engagement_snapshots(tweet_id, snapshot_date);
+CREATE INDEX IF NOT EXISTS idx_engagement_snapshots_date ON engagement_snapshots(snapshot_date);`;
+
 /**
  * Run database migrations
  */
 export async function runMigrations(db: SqliteDatabase): Promise<void> {
   console.log('Running database migrations...');
 
-  // Split by semicolon and execute each statement
-  const statements = INITIAL_SCHEMA
+  // Migration 001: Initial Schema
+  const initialStatements = INITIAL_SCHEMA
     .split(';')
     .map(s => s.trim())
     .filter(s => s.length > 0 && !s.startsWith('--'));
 
   db.transaction(() => {
-    for (const statement of statements) {
+    for (const statement of initialStatements) {
+      if (statement.trim()) {
+        db.execute(statement + ';');
+      }
+    }
+  });
+
+  // Migration 002: Analytics Tables
+  const analyticsStatements = ANALYTICS_SCHEMA
+    .split(';')
+    .map(s => s.trim())
+    .filter(s => s.length > 0 && !s.startsWith('--'));
+
+  db.transaction(() => {
+    for (const statement of analyticsStatements) {
       if (statement.trim()) {
         db.execute(statement + ';');
       }
