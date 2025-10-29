@@ -66,20 +66,20 @@ export async function calculateActivitySummary(userId: string): Promise<Activity
 		// Calculate average posts per day (last 30 days)
 		const thirtyDaysAgo = now - (30 * 24 * 60 * 60 * 1000);
 		const postsLast30Days = (db as any)['db'].queryOne(
-			'SELECT COUNT(*) as count FROM tweets WHERE userId = ? AND status = "published" AND createdAt >= ?',
+			"SELECT COUNT(*) as count FROM tweets WHERE userId = ? AND status = 'published' AND createdAt >= ?",
 			[userId, thirtyDaysAgo]
 		);
 		const avgPostsPerDay = postsLast30Days.count / 30;
 		
 		// Get last post time
 		const lastPost = (db as any)['db'].queryOne(
-			'SELECT MAX(createdAt) as time FROM tweets WHERE userId = ? AND status = "published"',
+			"SELECT MAX(createdAt) as time FROM tweets WHERE userId = ? AND status = 'published'",
 			[userId]
 		);
 		
 		// Get next scheduled post
 		const nextPost = (db as any)['db'].queryOne(
-			'SELECT MIN(scheduledDate) as time FROM tweets WHERE userId = ? AND status = "scheduled"',
+			"SELECT MIN(scheduledDate) as time FROM tweets WHERE userId = ? AND status = 'scheduled'",
 			[userId]
 		);
 		
@@ -120,7 +120,7 @@ function calculateQueueHealth(userId: string, scheduledCount: number, nextPostTi
 	
 	const db = getDbInstance();
 	const lastScheduled = (db as any)['db'].queryOne(
-		'SELECT MAX(scheduledDate) as time FROM tweets WHERE userId = ? AND status = "scheduled"',
+		"SELECT MAX(scheduledDate) as time FROM tweets WHERE userId = ? AND status = 'scheduled'",
 		[userId]
 	);
 	
@@ -748,7 +748,7 @@ export async function getSystemStatus(userId: string): Promise<SystemStatus> {
 		
 		// Get pending drafts count
 		const draftsResult = (db as any)['db'].queryOne(
-			'SELECT COUNT(*) as count FROM tweets WHERE userId = ? AND status = "draft"',
+			"SELECT COUNT(*) as count FROM tweets WHERE userId = ? AND status = 'draft'",
 			[userId]
 		);
 		
