@@ -40,14 +40,18 @@
 	$: engagementTrend = getTrendDirection(trends.engagementTrend);
 	$: postsTrend = getTrendDirection(trends.postsPerDay);
 
-	onMount(async () => {
+	onMount(() => {
 		if (!browser) return;
 
-		const ApexCharts = (await import('apexcharts')).default;
-		const isDark = document.documentElement.classList.contains('dark');
+		let observer: MutationObserver;
 
-		// Common sparkline options
-		const sparklineOptions = {
+		// Use IIFE to handle async import
+		(async () => {
+			const ApexCharts = (await import('apexcharts')).default;
+			const isDark = document.documentElement.classList.contains('dark');
+
+			// Common sparkline options
+			const sparklineOptions = {
 			chart: {
 				type: 'area',
 				height: 80,
@@ -78,8 +82,8 @@
 			theme: { mode: isDark ? 'dark' : 'light' }
 		};
 
-		// Follower Growth Sparkline
-		followerChart = new ApexCharts(followerChartEl, {
+			// Follower Growth Sparkline
+			followerChart = new ApexCharts(followerChartEl, {
 			...sparklineOptions,
 			series: [
 				{
@@ -89,10 +93,10 @@
 			],
 			colors: ['#8b5cf6']
 		});
-		followerChart.render();
+			followerChart.render();
 
-		// Engagement Trend Sparkline
-		engagementChart = new ApexCharts(engagementChartEl, {
+			// Engagement Trend Sparkline
+			engagementChart = new ApexCharts(engagementChartEl, {
 			...sparklineOptions,
 			series: [
 				{
@@ -102,10 +106,10 @@
 			],
 			colors: ['#ec4899']
 		});
-		engagementChart.render();
+			engagementChart.render();
 
-		// Posts Per Day Sparkline
-		postsChart = new ApexCharts(postsChartEl, {
+			// Posts Per Day Sparkline
+			postsChart = new ApexCharts(postsChartEl, {
 			...sparklineOptions,
 			series: [
 				{
@@ -115,10 +119,10 @@
 			],
 			colors: ['#3b82f6']
 		});
-		postsChart.render();
+			postsChart.render();
 
-		// Listen for theme changes
-		const observer = new MutationObserver(() => {
+			// Listen for theme changes
+			observer = new MutationObserver(() => {
 			const isDark = document.documentElement.classList.contains('dark');
 			const themeUpdate = { theme: { mode: isDark ? 'dark' : 'light' } };
 			if (followerChart) followerChart.updateOptions(themeUpdate);
@@ -126,13 +130,15 @@
 			if (postsChart) postsChart.updateOptions(themeUpdate);
 		});
 
-		observer.observe(document.documentElement, {
-			attributes: true,
-			attributeFilter: ['class']
-		});
+			observer.observe(document.documentElement, {
+				attributes: true,
+				attributeFilter: ['class']
+			});
+		})(); // Close IIFE
 
+		// Return cleanup function synchronously
 		return () => {
-			observer.disconnect();
+			if (observer) observer.disconnect();
 			if (followerChart) followerChart.destroy();
 			if (engagementChart) engagementChart.destroy();
 			if (postsChart) postsChart.destroy();
