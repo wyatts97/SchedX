@@ -18,7 +18,7 @@ export const GET: RequestHandler = async ({ cookies }: any) => {
 		}
 
 		// Get analytics data
-		const tweets = await (db as any).getAllTweets();
+		const tweets = await (db as any).getAllTweets(user.id);
 		const accounts = await (db as any).getAllUserAccounts();
 
 		// Debug: Log actual tweet statuses
@@ -66,7 +66,7 @@ export const GET: RequestHandler = async ({ cookies }: any) => {
 				recentActivity,
 				errors
 			}
-		});
+		}, { headers: { 'cache-control': 'no-cache' } });
 	} catch (error) {
 		logger.error('Error fetching analytics');
 		return json({ error: 'Failed to fetch analytics' }, { status: 500 });

@@ -74,7 +74,7 @@ export async function collectDailyStats(accountId: string): Promise<{
 		
 		const tweets = await client.v2.userTimeline(userInfo.data.id, {
 			max_results: 100,
-			'tweet.fields': ['public_metrics', 'created_at', 'attachments'],
+			'tweet.fields': ['public_metrics', 'created_at'],
 			start_time: yesterday.toISOString(),
 			end_time: new Date().toISOString()
 		});
@@ -83,17 +83,15 @@ export async function collectDailyStats(accountId: string): Promise<{
 		let totalLikes = 0;
 		let totalReplies = 0;
 		let totalRetweets = 0;
-		let totalImpressions = 0;
 		let topTweetId: string | null = null;
 		let maxEngagement = 0;
 
 		for (const tweet of tweets.data.data || []) {
-			const metrics = tweet.public_metrics;
+				const metrics = tweet.public_metrics;
 			if (metrics) {
 				totalLikes += metrics.like_count || 0;
 				totalReplies += metrics.reply_count || 0;
 				totalRetweets += metrics.retweet_count || 0;
-				totalImpressions += metrics.impression_count || 0;
 
 				const engagement = (metrics.like_count || 0) + (metrics.reply_count || 0) + (metrics.retweet_count || 0);
 				if (engagement > maxEngagement) {
@@ -113,9 +111,9 @@ export async function collectDailyStats(accountId: string): Promise<{
 		(db as any)['db'].execute(
 			`INSERT INTO daily_stats (
 				id, account_id, date, followers, following,
-				total_likes, total_replies, total_retweets, total_impressions,
+				total_likes, total_replies, total_retweets, 
 				engagement_rate, top_tweet_id, posts_count, created_at
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			[
 				statsId,
 				accountId,
@@ -125,7 +123,6 @@ export async function collectDailyStats(accountId: string): Promise<{
 				totalLikes,
 				totalReplies,
 				totalRetweets,
-				totalImpressions,
 				engagementRate,
 				topTweetId,
 				tweets.data.data?.length || 0,
@@ -142,7 +139,6 @@ export async function collectDailyStats(accountId: string): Promise<{
 			totalLikes,
 			totalReplies,
 			totalRetweets,
-			totalImpressions,
 			engagementRate,
 			topTweetId,
 			postsCount: tweets.data.data?.length || 0,
@@ -351,9 +347,9 @@ export async function createEngagementSnapshot(tweetId: string): Promise<{
 		(db as any)['db'].execute(
 			`INSERT INTO engagement_snapshots (
 				id, tweet_id, snapshot_date,
-				like_count, retweet_count, reply_count, impression_count,
+				like_count, retweet_count, reply_count,
 				created_at
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+			) VALUES (?, ?, ?, ?, ?, ?, ?)`,
 			[
 				snapshotId,
 				tweetId,
@@ -361,7 +357,6 @@ export async function createEngagementSnapshot(tweetId: string): Promise<{
 				tweet.likeCount || 0,
 				tweet.retweetCount || 0,
 				tweet.replyCount || 0,
-				tweet.impressionCount || 0,
 				Date.now()
 			]
 		);
@@ -373,7 +368,6 @@ export async function createEngagementSnapshot(tweetId: string): Promise<{
 			likeCount: tweet.likeCount || 0,
 			retweetCount: tweet.retweetCount || 0,
 			replyCount: tweet.replyCount || 0,
-			impressionCount: tweet.impressionCount || 0,
 			createdAt: new Date()
 		};
 
@@ -443,7 +437,6 @@ function mapDailyStats(row: any): DailyStats {
 		totalLikes: row.total_likes,
 		totalReplies: row.total_replies,
 		totalRetweets: row.total_retweets,
-		totalImpressions: row.total_impressions,
 		engagementRate: row.engagement_rate,
 		topTweetId: row.top_tweet_id,
 		postsCount: row.posts_count,
@@ -459,7 +452,6 @@ function mapEngagementSnapshot(row: any): EngagementSnapshot {
 		likeCount: row.like_count,
 		retweetCount: row.retweet_count,
 		replyCount: row.reply_count,
-		impressionCount: row.impression_count,
 		createdAt: new Date(row.created_at)
 	};
 }

@@ -67,6 +67,9 @@ export class ThreadSchedulerService {
 		try {
 			const db = getDbInstance();
 			
+			// Clean up stale PROCESSING threads
+			await this.resetStaleProcessingThreads();
+			
 			// Get first admin user (role='admin')
 			const user = await (db as any).getAdminUserByUsername('');
 			if (!user) {
@@ -90,6 +93,21 @@ export class ThreadSchedulerService {
 
 			for (const thread of dueThreads) {
 				try {
+					// Idempotency check: Skip if already posted
+					if (thread.twitterThreadId) {
+						log.warn('Thread already has twitterThreadId, skipping', {
+							threadId: thread.id,
+							twitterThreadId: thread.twitterThreadId
+						});
+						if (thread.status !== TweetStatus.POSTED) {
+							await db.updateThreadStatus(thread.id, TweetStatus.POSTED, thread.twitterThreadId);
+						}
+						continue;
+					}
+					
+					// Mark as PROCESSING immediately to prevent race conditions
+					await db.updateThreadStatus(thread.id, TweetStatus.PROCESSING);
+					
 					await this.postThread(thread);
 				} catch (error) {
 					log.error('Failed to post scheduled thread', {
@@ -107,10 +125,53 @@ export class ThreadSchedulerService {
 	}
 
 	/**
+	 * Reset threads stuck in PROCESSING status for more than 5 minutes
+	 */
+	private async resetStaleProcessingThreads(): Promise<void> {
+		const db = getDbInstance();
+		try {
+			const user = await (db as any).getAdminUserByUsername('');
+			if (!user) return;
+			
+			const allThreads = await db.getThreads(user.id);
+			const now = Date.now();
+			const fiveMinutesAgo = now - 5 * 60 * 1000;
+			
+			const staleThreads = allThreads.filter((t: any) => 
+				t.status === TweetStatus.PROCESSING && 
+				t.updatedAt && 
+				new Date(t.updatedAt).getTime() < fiveMinutesAgo
+			);
+			
+			if (staleThreads.length > 0) {
+				log.warn('Found stale PROCESSING threads, resetting to SCHEDULED', {
+					count: staleThreads.length,
+					threadIds: staleThreads.map((t: any) => t.id)
+				});
+				
+				for (const thread of staleThreads) {
+					await db.updateThreadStatus(thread.id, TweetStatus.SCHEDULED);
+				}
+			}
+		} catch (error) {
+			log.error('Error resetting stale processing threads', { error });
+		}
+	}
+
+	/**
 	 * Post a thread to Twitter
 	 */
 	private async postThread(thread: any): Promise<void> {
 		const db = getDbInstance();
+		
+		// Double-check thread hasn't been posted
+		if (thread.twitterThreadId) {
+			log.warn('Thread already posted, skipping', {
+				threadId: thread.id,
+				twitterThreadId: thread.twitterThreadId
+			});
+			return;
+		}
 
 		// Get the account for this thread
 		const accounts = await db.getAllUserAccounts();

@@ -13,7 +13,6 @@ CREATE TABLE IF NOT EXISTS daily_stats (
   total_likes INTEGER DEFAULT 0,
   total_replies INTEGER DEFAULT 0,
   total_retweets INTEGER DEFAULT 0,
-  total_impressions INTEGER DEFAULT 0,
   engagement_rate REAL DEFAULT 0, -- Calculated: (likes + replies + retweets) / followers * 100
   top_tweet_id TEXT, -- Tweet with highest engagement for this day
   posts_count INTEGER DEFAULT 0, -- Number of tweets posted this day
@@ -78,7 +77,6 @@ CREATE TABLE IF NOT EXISTS engagement_snapshots (
   like_count INTEGER DEFAULT 0,
   retweet_count INTEGER DEFAULT 0,
   reply_count INTEGER DEFAULT 0,
-  impression_count INTEGER DEFAULT 0,
   created_at INTEGER NOT NULL,
   FOREIGN KEY (tweet_id) REFERENCES tweets(id) ON DELETE CASCADE,
   UNIQUE(tweet_id, snapshot_date)

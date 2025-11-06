@@ -31,7 +31,7 @@ export const GET: RequestHandler = async ({ cookies }) => {
 
 		return new Response(JSON.stringify({ apps }), {
 			status: 200,
-			headers: { 'Content-Type': 'application/json' }
+			headers: { 'Content-Type': 'application/json', 'cache-control': 'no-cache' }
 		});
 	} catch (error) {
 		logger.error('Error fetching Twitter apps');

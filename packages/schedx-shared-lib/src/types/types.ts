@@ -2,6 +2,7 @@ export enum TweetStatus {
   DRAFT = 'draft',
   SCHEDULED = 'scheduled',
   QUEUED = 'queued',
+  PROCESSING = 'processing',
   POSTED = 'posted',
   FAILED = 'failed'
 }

@@ -18,7 +18,7 @@ export const GET: RequestHandler = async ({ cookies }: any) => {
 		}
 
 		// Get all tweets
-		const tweets = await (db as any).getAllTweets();
+		const tweets = await (db as any).getAllTweets(user.id);
 
 		// Format tweets for display
 		const formattedTweets = tweets.map((tweet: any) => ({
@@ -29,12 +29,13 @@ export const GET: RequestHandler = async ({ cookies }: any) => {
 			twitterAccountId: tweet.twitterAccountId,
 			twitterTweetId: tweet.twitterTweetId,
 			createdAt: tweet.createdAt,
+			updatedAt: tweet.updatedAt,
 			media: tweet.media || []
 		}));
 
 		return json({
 			tweets: formattedTweets
-		});
+		}, { headers: { 'cache-control': 'no-cache' } });
 	} catch (error) {
 		logger.error('Error fetching tweets');
 		return json({ error: 'Failed to fetch tweets' }, { status: 500 });

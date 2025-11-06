@@ -17,11 +17,13 @@ export const GET: RequestHandler = async ({ cookies }) => {
 			return json({ error: 'Unauthorized' }, { status: 401 });
 		}
 
+		const userId = session.data.user.id;
+
 		// Batch all database calls in parallel for better performance
 		const [appsResult, analyticsResult, tweetsResult, accountsResult] = await Promise.all([
 			db.listTwitterApps().catch(() => ([])),
-			Promise.resolve(computeAnalytics(db)).catch(() => ({})),
-			db.getAllTweets().catch(() => ([])),
+			Promise.resolve(computeAnalytics(db, userId)).catch(() => ({})),
+			db.getAllTweets(userId).catch(() => ([])),
 			(db as any).getAllUserAccounts().catch(() => ([]))
 		]);
 
@@ -38,7 +40,7 @@ export const GET: RequestHandler = async ({ cookies }) => {
 			analytics: analytics || {},
 			tweets: tweets || [],
 			accounts: accounts || []
-		});
+		}, { headers: { 'cache-control': 'no-cache' } });
 	} catch (error) {
 		logger.error({ error }, 'Failed to load batched dashboard data');
 		return json(
@@ -55,8 +57,8 @@ export const GET: RequestHandler = async ({ cookies }) => {
 };
 
 // Extract analytics computation to reuse logic
-async function computeAnalytics(db: any) {
-	const tweets = await db.getAllTweets();
+async function computeAnalytics(db: any, userId: string) {
+	const tweets = await db.getAllTweets(userId);
 	const accounts = await (db as any).getAllUserAccounts();
 
 	const totalTweets = tweets.length;

@@ -249,8 +249,13 @@ export class TweetProcessor {
           
           if (postedTweet.data) {
             await this.dbClient.updateTweetStatus(tweet.id!, TweetStatus.POSTED);
+            log.info(`Attempting to update tweet Twitter ID for tweet ${tweet.id} with Twitter ID ${postedTweet.data.id}`, { 
+              userId, 
+              tweetId: tweet.id,
+              twitterTweetId: postedTweet.data.id 
+            });
             await this.dbClient.updateTweetTwitterId(tweet.id!, postedTweet.data.id);
-            log.info(`Successfully posted tweet for user ${userId}`, { 
+            log.info(`Successfully updated tweet Twitter ID for tweet ${tweet.id}`, { 
               userId, 
               tweetId: tweet.id,
               twitterTweetId: postedTweet.data.id 

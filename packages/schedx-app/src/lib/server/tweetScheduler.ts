@@ -69,6 +69,11 @@ export class TweetSchedulerService {
 	private async processDueTweets(): Promise<void> {
 		try {
 			const db = getDbInstance();
+			
+			// Clean up stale PROCESSING tweets (older than 5 minutes)
+			// These are tweets that were marked as processing but failed/crashed
+			await this.resetStaleProcessingTweets();
+			
 			const dueTweets = await (db as any).findDueTweets();
 
 			if (dueTweets.length === 0) {
@@ -79,6 +84,22 @@ export class TweetSchedulerService {
 
 			for (const tweet of dueTweets) {
 				try {
+					// Idempotency check: Skip if already posted
+					if (tweet.twitterTweetId) {
+						log.warn('Tweet already has twitterTweetId, skipping', {
+							tweetId: tweet.id,
+							twitterTweetId: tweet.twitterTweetId
+						});
+						// Mark as POSTED if not already
+						if (tweet.status !== TweetStatus.POSTED) {
+							await db.updateTweetStatus(tweet.id, TweetStatus.POSTED);
+						}
+						continue;
+					}
+					
+					// Mark as PROCESSING immediately to prevent race conditions
+					await db.updateTweetStatus(tweet.id, TweetStatus.PROCESSING);
+					
 					await this.postTweet(tweet);
 				} catch (error) {
 					log.error('Failed to post scheduled tweet', {
@@ -99,10 +120,51 @@ export class TweetSchedulerService {
 	}
 
 	/**
+	 * Reset tweets stuck in PROCESSING status for more than 5 minutes
+	 * This handles cases where the scheduler crashed while processing
+	 */
+	private async resetStaleProcessingTweets(): Promise<void> {
+		const db = getDbInstance();
+		try {
+			const allTweets = await (db as any).getAllTweets((await db.getFirstAdminUser())?.id);
+			const now = Date.now();
+			const fiveMinutesAgo = now - 5 * 60 * 1000;
+			
+			const staleTweets = allTweets.filter((t: any) => 
+				t.status === TweetStatus.PROCESSING && 
+				t.updatedAt && 
+				new Date(t.updatedAt).getTime() < fiveMinutesAgo
+			);
+			
+			if (staleTweets.length > 0) {
+				log.warn('Found stale PROCESSING tweets, resetting to SCHEDULED', {
+					count: staleTweets.length,
+					tweetIds: staleTweets.map((t: any) => t.id)
+				});
+				
+				for (const tweet of staleTweets) {
+					await db.updateTweetStatus(tweet.id, TweetStatus.SCHEDULED);
+				}
+			}
+		} catch (error) {
+			log.error('Error resetting stale processing tweets', { error });
+		}
+	}
+
+	/**
 	 * Post a single tweet to Twitter
 	 */
 	private async postTweet(tweet: Tweet): Promise<void> {
 		const db = getDbInstance();
+		
+		// Double-check tweet hasn't been posted (additional safety)
+		if (tweet.twitterTweetId) {
+			log.warn('Tweet already posted, skipping', {
+				tweetId: tweet.id,
+				twitterTweetId: tweet.twitterTweetId
+			});
+			return;
+		}
 
 		// Get the account for this tweet
 		const accounts = await db.getAllUserAccounts();

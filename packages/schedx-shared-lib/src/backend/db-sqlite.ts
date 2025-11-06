@@ -610,8 +610,8 @@ export class DatabaseClient {
         recurrenceType, recurrenceInterval, recurrenceEndDate,
         templateName, templateCategory, queuePosition,
         isThread, threadId, threadPosition, threadTotal,
-        createdAt
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        twitterTweetId, createdAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         tweet.userId,
@@ -635,6 +635,7 @@ export class DatabaseClient {
         tweet.threadId || null,
         tweet.threadPosition || null,
         tweet.threadTotal || null,
+        tweet.twitterTweetId || null,
         now
       ]
     );
@@ -815,6 +816,7 @@ export class DatabaseClient {
 
   async updateTweetTwitterId(tweetId: string, twitterTweetId: string): Promise<void> {
     const now = this.db.now();
+    logger.info({ tweetId, twitterTweetId }, 'Updating tweet with Twitter Tweet ID');
     this.db.execute(
       'UPDATE tweets SET twitterTweetId = ?, updatedAt = ? WHERE id = ?',
       [twitterTweetId, now, tweetId]
@@ -874,6 +876,10 @@ export class DatabaseClient {
       updateFields.push('recurrenceEndDate = ?');
       params.push(updates.recurrenceEndDate ? updates.recurrenceEndDate.getTime() : null);
     }
+    if (updates.twitterTweetId !== undefined) {
+      updateFields.push('twitterTweetId = ?');
+      params.push(updates.twitterTweetId);
+    }
     
     updateFields.push('updatedAt = ?');
     params.push(now, tweetId);
@@ -884,8 +890,8 @@ export class DatabaseClient {
     );
   }
 
-  async getAllTweets(): Promise<any[]> {
-    const tweets = this.db.query<any>('SELECT * FROM tweets');
+  async getAllTweets(userId: string): Promise<any[]> {
+    const tweets = this.db.query<any>('SELECT * FROM tweets WHERE userId = ?', [userId]);
     
     return tweets.map((tweet: any) => ({
       id: tweet.id,

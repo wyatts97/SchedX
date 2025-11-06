@@ -17,7 +17,6 @@ export interface DailyStats {
 	totalLikes: number;
 	totalReplies: number;
 	totalRetweets: number;
-	totalImpressions: number;
 	engagementRate: number; // Percentage (0-100)
 	topTweetId: string | null;
 	postsCount: number;
@@ -63,7 +62,6 @@ export interface EngagementSnapshot {
 	likeCount: number;
 	retweetCount: number;
 	replyCount: number;
-	impressionCount: number;
 	createdAt: Date;
 }
 

@@ -7,12 +7,6 @@
     export let tweets: TweetType[] = [];
     export let accounts: UserAccount[] = [];
 
-    // Debug: Log when component receives data
-    $: if (tweets.length > 0) {
-        console.log('PublishedTweets component - tweets:', tweets);
-        console.log('PublishedTweets component - accounts:', accounts);
-    }
-
     // Filter and sort state
     let selectedAccount = 'all';
     let sortBy: 'date' | 'engagement' = 'date';
@@ -28,17 +22,17 @@
     }
 
     // Create account lookup map
-    $: accountByProviderId = accounts.reduce((acc: any, account: any) => {
-        acc[account.providerAccountId] = account;
+    $: accountById = accounts.reduce((acc: any, account: any) => {
+        // Use providerAccountId as the key to align with tweet.twitterAccountId
+        const key = account.providerAccountId || account.id;
+        acc[key] = account;
         return acc;
     }, {});
 
-    // Filter published tweets only
-    $: publishedTweets = tweets.filter(t => t.status === 'posted' && t.twitterTweetId);
-    $: if (publishedTweets.length > 0) {
-        console.log('Filtered published tweets:', publishedTweets);
-        console.log('Account lookup map:', accountByProviderId);
-    }
+    // Filter published tweets only (case-insensitive status check)
+    $: publishedTweets = tweets.filter(
+        (t) => (t.status ? t.status.toLowerCase() === 'posted' : false) && t.twitterTweetId
+    );
 
     // Apply filters
     $: filteredTweets = publishedTweets.filter(tweet => {
@@ -68,18 +62,11 @@
         (currentPage - 1) * itemsPerPage,
         currentPage * itemsPerPage
     );
-    $: if (paginatedTweets.length > 0) {
-        console.log('Paginated tweets to display:', paginatedTweets);
-        paginatedTweets.forEach(tweet => {
-            const link = getTweetLink(tweet);
-            console.log(`Tweet ${tweet.id}: link = ${link}`);
-        });
-    }
 
     // Build tweet link for embed
     function getTweetLink(tweet: TweetType): string | null {
         if (!tweet.twitterAccountId || !tweet.twitterTweetId) return null;
-        const account = accountByProviderId[tweet.twitterAccountId];
+        const account = accountById[tweet.twitterAccountId];
         if (!account) return null;
 
         // Clean username - remove any URL prefix if present
@@ -101,7 +88,6 @@
         }
 
         const tweetLink = `${username}/status/${tweet.twitterTweetId}`;
-        console.log('Generated tweetLink:', tweetLink, 'from username:', account.username);
         return tweetLink;
     }
 
@@ -173,7 +159,7 @@
 		<div class="max-h-[800px] space-y-4 overflow-y-auto pr-2 scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400 dark:scrollbar-track-gray-800 dark:scrollbar-thumb-gray-600 dark:hover:scrollbar-thumb-gray-500">
 			{#if paginatedTweets.length > 0}
 				{#each paginatedTweets as tweet}
-					{@const account = tweet.twitterAccountId ? accountByProviderId[tweet.twitterAccountId] : null}
+					{@const account = tweet.twitterAccountId ? accountById[tweet.twitterAccountId] : null}
 					{#if account}
 						<div class="tweet-preview-wrapper">
 							<TweetPreview
