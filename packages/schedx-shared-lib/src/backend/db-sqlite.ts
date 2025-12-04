@@ -363,6 +363,34 @@ export class DatabaseClient {
   }
 
   // ============================================
+  // USER METHODS - Twitter Cookie Management
+  // ============================================
+
+  async getUserById(userId: string): Promise<any | null> {
+    const user = this.db.queryOne<any>(
+      'SELECT * FROM users WHERE id = ?',
+      [userId]
+    );
+    return user || null;
+  }
+
+  async updateUserRettiwtApiKey(userId: string, encryptedApiKey: string | null): Promise<void> {
+    const now = this.db.now();
+    this.db.execute(
+      'UPDATE users SET rettiwt_api_key = ?, updatedAt = ? WHERE id = ?',
+      [encryptedApiKey, now, userId]
+    );
+  }
+
+  async getUserRettiwtApiKey(userId: string): Promise<string | null> {
+    const user = this.db.queryOne<{ rettiwt_api_key: string | null }>(
+      'SELECT rettiwt_api_key FROM users WHERE id = ?',
+      [userId]
+    );
+    return user?.rettiwt_api_key || null;
+  }
+
+  // ============================================
   // ACCOUNT METHODS (OAuth Connections)
   // ============================================
 

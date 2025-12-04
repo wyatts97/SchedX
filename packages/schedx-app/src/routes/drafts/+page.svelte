@@ -148,17 +148,19 @@
 
 	<div class="flex w-full flex-col gap-8 md:flex-row">
 		<div class="flex-1">
-			<TweetCreate
-				accounts={(data.accounts || []).map((a: any) => ({
-					...a,
-					id: a.id || a.providerAccountId || ''
-				}))}
-				{selectedAccountId}
-				on:accountChange={handleAccountChange}
-				on:contentInput={handleContentInput}
-				on:changeMedia={handleMediaChange}
-				on:submit={handleSubmit}
-			/>
+			<div class="rounded-lg border border-gray-200 bg-white p-6 shadow dark:border-gray-700 dark:bg-[#15202B] theme-lightsout:border-gray-800 theme-lightsout:bg-[#111111]">
+				<TweetCreate
+					accounts={(data.accounts || []).map((a: any) => ({
+						...a,
+						id: a.id || a.providerAccountId || ''
+					}))}
+					{selectedAccountId}
+					on:accountChange={handleAccountChange}
+					on:contentInput={handleContentInput}
+					on:changeMedia={handleMediaChange}
+					on:submit={handleSubmit}
+				/>
+			</div>
 		</div>
 		<div class="flex flex-1 items-start justify-center">
 			<TweetPreview

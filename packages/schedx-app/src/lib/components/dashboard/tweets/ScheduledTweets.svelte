@@ -4,11 +4,20 @@
 	import type { UserAccount } from '$lib/types';
 	import { createEventDispatcher } from 'svelte';
 	import TweetPreview from '$lib/components/TweetPreview.svelte';
+	import AccountDropdown from '$lib/components/AccountDropdown.svelte';
 
 	export let tweets: Tweet[] = [];
 	export let accounts: UserAccount[] = [];
 
 	const dispatch = createEventDispatcher();
+	
+	// Transform accounts for dropdown with avatar support
+	$: dropdownAccounts = accounts.map(account => ({
+		id: (account.providerAccountId || account.id) as string,
+		username: account.username,
+		displayName: (account as any).displayName || account.username,
+		avatarUrl: (account as any).profileImage || undefined
+	}));
 
 	// Filter state
 	let selectedAccount = 'all';
@@ -76,13 +85,13 @@
 	}
 </script>
 
-<div class="rounded-lg bg-white shadow dark:bg-gray-800">
+<div class="surface-card rounded-lg dark:bg-[#15202B]">
 	<div class="px-4 py-5 sm:p-6">
 		<div class="mb-4 flex items-center justify-between">
-			<h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">
+			<h3 class="text-lg font-medium leading-6 text-surface-900 dark:text-surface-100">
 				Scheduled Tweets
 			</h3>
-			<span class="text-sm text-gray-500 dark:text-gray-400">
+			<span class="text-sm text-surface-500 dark:text-surface-400">
 				{filteredTweets.length} tweet{filteredTweets.length !== 1 ? 's' : ''}
 			</span>
 		</div>
@@ -91,19 +100,12 @@
 		<div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
 			<!-- Account Filter -->
 			<div class="flex-1">
-				<label for="scheduled-account-filter" class="sr-only">Filter by account</label>
-				<select
-					id="scheduled-account-filter"
-					bind:value={selectedAccount}
-					class="block w-full rounded-lg border-gray-300 bg-gray-50 px-3 py-2 text-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-				>
-					<option value="all">All Accounts</option>
-					{#each accounts as account}
-						<option value={account.providerAccountId}>
-							@{account.username}
-						</option>
-					{/each}
-				</select>
+				<AccountDropdown
+					accounts={dropdownAccounts}
+					bind:selectedAccount
+					onSelect={(id) => { selectedAccount = id; }}
+					placeholder="Filter by account"
+				/>
 			</div>
 
 			<!-- Status Filter -->
@@ -112,7 +114,7 @@
 				<select
 					id="status-filter"
 					bind:value={selectedStatus}
-					class="block w-full rounded-lg border-gray-300 bg-gray-50 px-3 py-2 text-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+					class="input-surface block w-full rounded-lg px-3 py-2 text-sm focus:border-surface-500 focus:ring-surface-500 dark:text-surface-100"
 				>
 					<option value="all">All Status</option>
 					<option value="scheduled">Scheduled</option>
@@ -127,20 +129,20 @@
 				{#each sortedTweets as tweet}
 					{@const account = tweet.twitterAccountId ? accountByProviderId[tweet.twitterAccountId] : undefined}
 					{@const displayDate = getDisplayDate(tweet)}
-					<div class="group relative rounded-lg border border-gray-200 bg-white transition-all hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-800/80">
+					<div class="group relative rounded-lg border border-surface-200 bg-surface-100 transition-all hover:bg-surface-200 dark:border-surface-700 dark:bg-surface-800 dark:hover:bg-surface-800/80">
 						<!-- Status Badge & Actions - Top right corner -->
 						<div class="absolute right-3 top-3 z-10 flex gap-2">
 							<!-- Status Badge with Countdown -->
 							{#if tweet.status === 'scheduled'}
 								<div class="flex items-center gap-2">
-									<span class="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/30">
+									<span class="inline-flex items-center gap-1.5 rounded-full bg-surface-50 px-3 py-1.5 text-xs font-medium text-surface-700 ring-1 ring-inset ring-surface-600/20 dark:bg-surface-500/10 dark:text-surface-400 dark:ring-surface-500/30">
 										<Clock class="h-3 w-3" />
 										{getTimeUntil(displayDate)}
 									</span>
 									<button
 										type="button"
 										on:click={() => handleEditTweet(tweet)}
-										class="inline-flex items-center justify-center gap-2 rounded-full bg-blue-50 px-4 py-1.5 text-blue-700 ring-1 ring-inset ring-blue-600/20 transition-colors hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/30 dark:hover:bg-blue-500/20"
+										class="inline-flex items-center justify-center gap-2 rounded-full bg-blue-500 px-4 py-1.5 text-white ring-1 ring-inset ring-blue-600/20 transition-colors hover:bg-blue-600 dark:ring-blue-500/30"
 										title="Edit scheduled tweet"
 									>
 										<CalendarIcon class="h-3.5 w-3.5 flex-shrink-0" />
@@ -150,18 +152,18 @@
 								</div>
 							{:else if tweet.status === 'queued'}
 								<div class="flex items-center gap-2">
-									<span class="inline-flex items-center gap-1.5 rounded-full bg-purple-50 px-3 py-1.5 text-xs font-medium text-purple-700 ring-1 ring-inset ring-purple-600/20 dark:bg-purple-500/10 dark:text-purple-400 dark:ring-purple-500/30">
+									<span class="inline-flex items-center gap-1.5 rounded-full bg-surface-50 px-3 py-1.5 text-xs font-medium text-surface-700 ring-1 ring-inset ring-surface-600/20 dark:bg-surface-500/10 dark:text-surface-400 dark:ring-surface-500/30">
 										<Clock class="h-3 w-3" />
 										{getTimeUntil(displayDate)}
 									</span>
 									<button
 										type="button"
 										on:click={() => handleEditTweet(tweet)}
-										class="inline-flex items-center justify-center gap-2 rounded-full bg-purple-50 px-4 py-1.5 text-purple-700 ring-1 ring-inset ring-purple-600/20 transition-colors hover:bg-purple-100 dark:bg-purple-500/10 dark:text-purple-400 dark:ring-purple-500/30 dark:hover:bg-purple-500/20"
+										class="inline-flex items-center justify-center gap-2 rounded-full bg-blue-500 px-4 py-1.5 text-white ring-1 ring-inset ring-blue-600/20 transition-colors hover:bg-blue-600 dark:ring-blue-500/30"
 										title="Edit queued tweet"
 									>
 										<List class="h-3.5 w-3.5 flex-shrink-0" />
-										<div class="h-3.5 w-px bg-purple-600/20 dark:bg-purple-500/30"></div>
+										<div class="h-3.5 w-px bg-blue-600/20 dark:bg-blue-500/30"></div>
 										<Edit class="h-3.5 w-3.5 flex-shrink-0" />
 									</button>
 								</div>
@@ -171,7 +173,7 @@
 							<button
 								type="button"
 								on:click={() => handleDeleteTweet(tweet)}
-								class="inline-flex items-center justify-center gap-2 rounded-full bg-red-50 px-4 py-1.5 text-red-700 ring-1 ring-inset ring-red-600/20 transition-colors hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:ring-red-500/30 dark:hover:bg-red-500/20"
+								class="inline-flex items-center justify-center gap-2 rounded-full bg-red-500 px-4 py-1.5 text-white ring-1 ring-inset ring-red-600/20 transition-colors hover:bg-red-600 dark:ring-red-500/30"
 								title="Delete tweet"
 							>
 								<Trash2 class="h-3.5 w-3.5 flex-shrink-0" />
@@ -201,17 +203,17 @@
 				{/each}
 			{:else if selectedAccount !== 'all' || selectedStatus !== 'all'}
 				<div class="py-12 text-center">
-					<Filter class="mx-auto h-12 w-12 text-gray-400" />
-					<h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No tweets found</h3>
-					<p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+					<Filter class="mx-auto h-12 w-12 text-surface-400" />
+					<h3 class="mt-2 text-sm font-medium text-surface-900 dark:text-surface-100">No tweets found</h3>
+					<p class="mt-1 text-sm text-surface-500 dark:text-surface-400">
 						Try adjusting your filters.
 					</p>
 				</div>
 			{:else}
 				<div class="py-12 text-center">
-					<FileText class="mx-auto h-12 w-12 text-gray-400" />
-					<h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No scheduled tweets</h3>
-					<p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+					<FileText class="mx-auto h-12 w-12 text-surface-400" />
+					<h3 class="mt-2 text-sm font-medium text-surface-900 dark:text-surface-100">No scheduled tweets</h3>
+					<p class="mt-1 text-sm text-surface-500 dark:text-surface-400">
 						Schedule your first tweet to see it here.
 					</p>
 					<div class="mt-6">

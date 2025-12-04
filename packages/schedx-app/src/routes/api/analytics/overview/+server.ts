@@ -24,11 +24,8 @@ import {
 	calculateTrends,
 	getSystemStatus
 } from '$lib/server/analytics/aggregators';
+import { getCachedData, setCachedData } from '$lib/server/analytics/cache';
 import type { DateRange, OverviewAnalytics, Insight } from '$lib/types/analytics';
-
-// Simple in-memory cache (5 minutes)
-const cache = new Map<string, { data: any; timestamp: number }>();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 /**
  * GET /api/analytics/overview
@@ -57,10 +54,10 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
 		
 		// Check cache
 		const cacheKey = `overview:${userId}:${dateRange}:${accountId || 'all'}`;
-		const cached = cache.get(cacheKey);
-		if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+		const cached = getCachedData(cacheKey);
+		if (cached) {
 			logger.debug({ userId, cacheKey }, 'Returning cached overview data');
-			return json(cached.data);
+			return json(cached);
 		}
 
 		logger.info({ userId, dateRange, accountId }, 'Fetching overview analytics');
@@ -92,20 +89,7 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
 		};
 
 		// Cache the response
-		cache.set(cacheKey, {
-			data: response,
-			timestamp: Date.now()
-		});
-
-		// Clean old cache entries (simple cleanup)
-		if (cache.size > 100) {
-			const now = Date.now();
-			for (const [key, value] of cache.entries()) {
-				if (now - value.timestamp > CACHE_DURATION) {
-					cache.delete(key);
-				}
-			}
-		}
+		setCachedData(cacheKey, response);
 
 		logger.info({ userId, dateRange }, 'Overview analytics fetched successfully');
 		return json(response);

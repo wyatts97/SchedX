@@ -61,64 +61,124 @@ export class EngagementSyncService {
 
 	/**
 	 * Sync engagement metrics for all posted tweets across all users
+	 * Limited to 3 tweets per Twitter app per day to stay within free tier
 	 * @param userId - Optional: sync only for specific user
-	 * @param maxTweets - Optional: limit number of tweets to sync (default: 10)
 	 */
-	public async syncAllEngagement(userId?: string, maxTweets: number = 10): Promise<{
+	public async syncAllEngagement(userId?: string): Promise<{
 		synced: number;
 		failed: number;
 		skipped: number;
 	}> {
 		const stats = { synced: 0, failed: 0, skipped: 0 };
+		let lastError: string | null = null;
 
 		try {
 			const db = getDbInstance();
 
 			// Get posted tweets that have Twitter IDs (status is lowercase in DB)
 			const query = userId
-				? `SELECT * FROM tweets WHERE userId = ? AND LOWER(status) = 'posted' AND twitterTweetId IS NOT NULL ORDER BY createdAt DESC LIMIT ?`
-				: `SELECT * FROM tweets WHERE LOWER(status) = 'posted' AND twitterTweetId IS NOT NULL ORDER BY createdAt DESC LIMIT ?`;
+				? `SELECT * FROM tweets WHERE userId = ? AND LOWER(status) = 'posted' AND twitterTweetId IS NOT NULL ORDER BY createdAt DESC`
+				: `SELECT * FROM tweets WHERE LOWER(status) = 'posted' AND twitterTweetId IS NOT NULL ORDER BY createdAt DESC`;
 			
-			const params = userId ? [userId, maxTweets] : [maxTweets];
+			const params = userId ? [userId] : [];
 			const tweets = (db as any)['db'].query(query, params);
 
 			if (tweets.length === 0) {
 				log.info('No posted tweets found to sync engagement');
+				await this.updateSyncStatus(userId, null);
 				return stats;
 			}
 
-			log.info(`Starting engagement sync for ${tweets.length} tweets`, { userId });
+			log.info(`Starting engagement sync for tweets`, { userId, totalTweets: tweets.length });
 
-			// Group tweets by account to minimize API client initialization
-			const tweetsByAccount = new Map<string, Tweet[]>();
+			// Group tweets by Twitter app (not account) to limit 3 tweets per app
+			const tweetsByApp = new Map<string, Tweet[]>();
+			const accounts = await db.getAllUserAccounts();
+			
 			for (const tweet of tweets) {
-				if (!tweetsByAccount.has(tweet.twitterAccountId)) {
-					tweetsByAccount.set(tweet.twitterAccountId, []);
+				const account = accounts.find((acc: any) => acc.providerAccountId === tweet.twitterAccountId);
+				if (account && account.twitterAppId) {
+					if (!tweetsByApp.has(account.twitterAppId)) {
+						tweetsByApp.set(account.twitterAppId, []);
+					}
+					// Limit to 3 tweets per Twitter app
+					if (tweetsByApp.get(account.twitterAppId)!.length < 3) {
+						tweetsByApp.get(account.twitterAppId)!.push(tweet);
+					} else {
+						stats.skipped++;
+					}
 				}
-				tweetsByAccount.get(tweet.twitterAccountId)!.push(tweet);
 			}
 
 			// First, sync follower counts for all accounts
 			await this.syncFollowerCounts(userId);
+			
+			// Group selected tweets by account for processing
+			const tweetsByAccount = new Map<string, Tweet[]>();
+			for (const appTweets of tweetsByApp.values()) {
+				for (const tweet of appTweets) {
+					const accountId = tweet.twitterAccountId;
+					if (accountId) {
+						if (!tweetsByAccount.has(accountId)) {
+							tweetsByAccount.set(accountId, []);
+						}
+						tweetsByAccount.get(accountId)!.push(tweet);
+					}
+				}
+			}
 			
 			// Process each account's tweets
 			for (const [accountId, accountTweets] of tweetsByAccount.entries()) {
 				try {
 					await this.syncAccountEngagement(accountId, accountTweets, stats);
 				} catch (error) {
+					const errorMsg = error instanceof Error ? error.message : 'Unknown error';
 					log.error('Failed to sync engagement for account', {
 						accountId,
-						error: error instanceof Error ? error.message : 'Unknown error'
+						error: errorMsg
 					});
+					lastError = errorMsg;
 					stats.failed += accountTweets.length;
 				}
 			}
 
 			log.info('Engagement sync completed', stats);
+			await this.updateSyncStatus(userId, lastError);
 			return stats;
 		} catch (error) {
-			log.error('Error in engagement sync', { error });
+			const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+			log.error('Error in engagement sync', { error: errorMsg });
+			await this.updateSyncStatus(userId, errorMsg);
 			throw error;
+		}
+	}
+
+	/**
+	 * Update sync status in user settings
+	 */
+	private async updateSyncStatus(userId: string | undefined, error: string | null): Promise<void> {
+		if (!userId) return;
+		
+		try {
+			const db = getDbInstance();
+			const existing = (db as any)['db'].queryOne(
+				'SELECT id FROM user_sync_settings WHERE user_id = ?',
+				[userId]
+			);
+
+			if (existing) {
+				(db as any)['db'].execute(
+					'UPDATE user_sync_settings SET last_sync_at = ?, last_sync_error = ?, updated_at = ? WHERE user_id = ?',
+					[Date.now(), error, Date.now(), userId]
+				);
+			} else {
+				(db as any)['db'].execute(
+					'INSERT INTO user_sync_settings (id, user_id, sync_time, last_sync_at, last_sync_error, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+					[crypto.randomUUID(), userId, '03:00', Date.now(), error, Date.now(), Date.now()]
+				);
+			}
+		} catch (err) {
+			log.error('Failed to update sync status', { error: err });
 		}
 	}
 
@@ -290,16 +350,16 @@ export class EngagementSyncService {
 
 	/**
 	 * Sync engagement for a specific user (manual trigger from UI)
+	 * Limited to 3 tweets per Twitter app to stay within free tier
 	 * @param userId - User ID to sync engagement for
-	 * @param maxTweets - Maximum number of tweets to sync (default: 10 for manual sync)
 	 */
-	public async syncUserEngagement(userId: string, maxTweets: number = 10): Promise<{
+	public async syncUserEngagement(userId: string): Promise<{
 		synced: number;
 		failed: number;
 		skipped: number;
 	}> {
-		log.info('Manual engagement sync triggered', { userId, maxTweets });
-		return this.syncAllEngagement(userId, maxTweets);
+		log.info('Manual engagement sync triggered', { userId });
+		return this.syncAllEngagement(userId);
 	}
 }
 

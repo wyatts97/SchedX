@@ -3,7 +3,7 @@
 	import { browser } from '$app/environment';
 	import { adminProfile, fetchAdminProfile } from '$lib/components/adminProfile';
 	import { get } from 'svelte/store';
-	import { Mail, ChevronRight, Sparkles, Upload, User } from 'lucide-svelte';
+	import { Mail, ChevronRight, Sparkles, Upload, User, Database } from 'lucide-svelte';
 
 	let loading = true;
 	let error = '';
@@ -427,6 +427,33 @@
 								</h3>
 								<p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
 									Configure OpenRouter API for AI-powered tweet generation
+								</p>
+							</div>
+						</div>
+						<ChevronRight class="h-5 w-5 text-gray-400" />
+					</div>
+				</div>
+			</a>
+
+			<!-- Tweet Data Card -->
+			<a
+				href="/admin/settings/tweet-data"
+				class="block rounded-lg bg-white shadow transition-all duration-200 hover:shadow-md dark:bg-gray-800"
+			>
+				<div class="px-4 py-5 sm:p-6">
+					<div class="flex items-center justify-between">
+						<div class="flex items-center space-x-4">
+							<div
+								class="flex h-12 w-12 items-center justify-center rounded-lg bg-cyan-100 dark:bg-cyan-900/20"
+							>
+								<Database class="h-6 w-6 text-cyan-600 dark:text-cyan-400" />
+							</div>
+							<div>
+								<h3 class="text-lg font-medium text-gray-900 dark:text-white">
+									Tweet Data
+								</h3>
+								<p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+									Optional Twitter cookie for enhanced analytics and restricted content access
 								</p>
 							</div>
 						</div>

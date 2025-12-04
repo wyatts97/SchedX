@@ -111,12 +111,8 @@
 		<div class="flex items-center">
 			<img class="h-11 w-11 rounded-full object-cover" src={avatarUrl} alt={displayName} />
 			<div class="ml-2 text-sm leading-tight">
-				<span class="theme-dark:text-white block font-bold text-black dark:text-white"
-					>{displayName}</span
-				>
-				<span class="theme-dark:text-gray-400 block font-normal text-gray-500 dark:text-gray-400"
-					>@{username}</span
-				>
+				<div class="font-semibold text-gray-900 dark:text-white theme-lightsout:text-white">{displayName}</div>
+				<div class="text-gray-500 dark:text-gray-400 theme-lightsout:text-white">@{username}</div>
 			</div>
 		</div>
 		
@@ -140,11 +136,9 @@
 			</svg>
 		{/if}
 	</div>
-	<p
-		class="theme-dark:text-white mt-3 block whitespace-pre-line text-xl leading-snug text-black dark:text-white"
-	>
+	<div class="text-gray-800 dark:text-gray-200 theme-lightsout:text-white mt-3 block whitespace-pre-line text-xl leading-snug">
 		{content}
-	</p>
+	</div>
 
 	{#if validMediaItems && validMediaItems.length > 0}
 		<div class="mt-2 flex flex-col gap-2">
@@ -199,9 +193,9 @@
 		</div>
 	{/if}
 	<MediaLightbox bind:this={lightbox} mediaItems={lightboxMedia} />
-	<p class="theme-dark:text-gray-400 my-0.5 py-1 text-base text-gray-500 dark:text-gray-400">
+	<div class="text-gray-500 dark:text-gray-400 theme-lightsout:text-gray-400">
 		{formatDate(createdAt)}
-	</p>
+	</div>
 	<div
 		class="theme-dark:border-gray-700 my-1 border border-b-0 border-gray-200 dark:border-gray-600"
 	></div>

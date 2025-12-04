@@ -1,57 +1,45 @@
-<!--
-  @component PerformanceTrends
-  
-  Displays performance trends using ApexCharts sparklines and line charts.
-  Shows follower growth, engagement trends, and posting frequency.
-  
-  @prop {TrendData} trends - Trend data from API
-  
-  @example
-  <PerformanceTrends {trends} />
--->
-
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import type { TrendData } from '$lib/types/analytics';
-	import { TrendingUp, Heart, Calendar } from 'lucide-svelte';
+	import { TrendingUp } from 'lucide-svelte';
 
 	export let trends: TrendData;
 
 	let followerChartEl: HTMLElement;
-	let engagementChartEl: HTMLElement;
-	let postsChartEl: HTMLElement;
 	let followerChart: any;
-	let engagementChart: any;
-	let postsChart: any;
+	
+	// Track observer and mounted state for proper cleanup
+	let observer: MutationObserver | null = null;
+	let isMounted = true;
 
 	// Calculate percent change for each account
 	function calculatePercentChange(data: { value: number }[]): number {
-		if (data.length < 2) return 0;
-		const first = data[0].value;
-		const last = data[data.length - 1].value;
+		if (!data || data.length < 2) return 0;
+		const first = data[0]?.value ?? 0;
+		const last = data[data.length - 1]?.value ?? 0;
 		if (first === 0) return 0;
 		return ((last - first) / first) * 100;
 	}
 
 	// Calculate trend direction
 	function getTrendDirection(data: { value: number }[]): 'up' | 'down' | 'stable' {
-		if (data.length < 2) return 'stable';
-		const first = data[0].value;
-		const last = data[data.length - 1].value;
+		if (!data || data.length < 2) return 'stable';
+		const first = data[0]?.value ?? 0;
+		const last = data[data.length - 1]?.value ?? 0;
+		if (first === 0) return 'stable';
 		const change = ((last - first) / first) * 100;
 		if (change > 5) return 'up';
 		if (change < -5) return 'down';
 		return 'stable';
 	}
 
-	$: engagementTrend = getTrendDirection(trends.engagementTrend);
-	$: postsTrend = getTrendDirection(trends.postsPerDay);
+	// Removed engagement and posts trends
 
 	onMount(() => {
 		if (!browser) return;
-
-		let observer: MutationObserver;
+		
+		isMounted = true;
 
 		// Use IIFE to handle async import
 		(async () => {
@@ -172,56 +160,15 @@
 			followerChartEl.innerHTML = '<div class="flex h-[240px] items-center justify-center text-sm text-gray-500 dark:text-gray-400">Connect a Twitter account to see follower growth</div>';
 		}
 
-			// Engagement Trend Sparkline
-			if (trends.engagementTrend && trends.engagementTrend.length > 0) {
-				engagementChart = new ApexCharts(engagementChartEl, {
-					...sparklineOptions,
-					chart: {
-						...sparklineOptions.chart,
-						height: 180
-					},
-					series: [
-						{
-							name: 'Engagement Rate',
-							data: trends.engagementTrend.map(t => t.value)
-						}
-					],
-					colors: ['#ec4899']
-				});
-				engagementChart.render();
-			} else {
-				engagementChartEl.innerHTML = '<div class="flex h-[180px] items-center justify-center text-xs text-gray-500 dark:text-gray-400">No data</div>';
-			}
-
-			// Posts Per Day Sparkline
-			if (trends.postsPerDay && trends.postsPerDay.length > 0) {
-				postsChart = new ApexCharts(postsChartEl, {
-					...sparklineOptions,
-					chart: {
-						...sparklineOptions.chart,
-						height: 180
-					},
-					series: [
-						{
-							name: 'Posts',
-							data: trends.postsPerDay.map(t => t.value)
-						}
-					],
-					colors: ['#3b82f6']
-				});
-				postsChart.render();
-			} else {
-				postsChartEl.innerHTML = '<div class="flex h-[180px] items-center justify-center text-xs text-gray-500 dark:text-gray-400">No data</div>';
-			}
-
-			// Listen for theme changes
+			// Listen for theme changes - only if still mounted
+			if (!isMounted) return;
+			
 			observer = new MutationObserver(() => {
-			const isDark = document.documentElement.classList.contains('dark');
-			const themeUpdate = { theme: { mode: isDark ? 'dark' : 'light' } };
-			if (followerChart) followerChart.updateOptions(themeUpdate);
-			if (engagementChart) engagementChart.updateOptions(themeUpdate);
-			if (postsChart) postsChart.updateOptions(themeUpdate);
-		});
+				if (!isMounted) return;
+				const isDark = document.documentElement.classList.contains('dark');
+				const themeUpdate = { theme: { mode: isDark ? 'dark' : 'light' } };
+				if (followerChart) followerChart.updateOptions(themeUpdate);
+			});
 
 			observer.observe(document.documentElement, {
 				attributes: true,
@@ -231,10 +178,15 @@
 
 		// Return cleanup function synchronously
 		return () => {
-			if (observer) observer.disconnect();
-			if (followerChart) followerChart.destroy();
-			if (engagementChart) engagementChart.destroy();
-			if (postsChart) postsChart.destroy();
+			isMounted = false;
+			if (observer) {
+				observer.disconnect();
+				observer = null;
+			}
+			if (followerChart) {
+				followerChart.destroy();
+				followerChart = null;
+			}
 		};
 	});
 
@@ -254,11 +206,10 @@
 <div class="mb-6">
 	<h2 class="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Performance Trends</h2>
 
-	<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-		<!-- Follower Growth -->
-		<div
-			class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800"
-		>
+	<!-- Follower Growth - Full Width -->
+	<div
+		class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800"
+	>
 			<div class="mb-3 flex items-center">
 				<div class="flex items-center gap-2">
 					<div
@@ -310,54 +261,5 @@
 					</div>
 				{/if}
 			</div>
-		</div>
-
-		<!-- Engagement Trend -->
-		<div
-			class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800"
-		>
-			<div class="mb-3 flex items-center">
-				<div class="flex items-center gap-2">
-					<div
-						class="flex h-8 w-8 items-center justify-center rounded-lg bg-pink-100 dark:bg-pink-900/30"
-					>
-						<Heart class="h-4 w-4 text-pink-600 dark:text-pink-400" />
-					</div>
-					<h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">
-						Engagement Rate
-					</h3>
-				</div>
-			</div>
-			<div bind:this={engagementChartEl}></div>
-			{#if trends.engagementTrend.length > 0}
-				<p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-					Current: {trends.engagementTrend[trends.engagementTrend.length - 1]?.value.toFixed(2) || 0}%
-				</p>
-			{/if}
-		</div>
-
-		<!-- Posts Per Day -->
-		<div
-			class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800"
-		>
-			<div class="mb-3 flex items-center">
-				<div class="flex items-center gap-2">
-					<div
-						class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30"
-					>
-						<Calendar class="h-4 w-4 text-blue-600 dark:text-blue-400" />
-					</div>
-					<h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">
-						Posts Per Day
-					</h3>
-				</div>
-			</div>
-			<div bind:this={postsChartEl}></div>
-			{#if trends.postsPerDay.length > 0}
-				<p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-					Today: {trends.postsPerDay[trends.postsPerDay.length - 1]?.value || 0} posts
-				</p>
-			{/if}
-		</div>
 	</div>
 </div>

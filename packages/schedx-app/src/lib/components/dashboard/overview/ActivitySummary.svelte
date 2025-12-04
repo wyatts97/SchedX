@@ -44,24 +44,24 @@
 
 	// Animate counters when summary changes
 	$: if (summary) {
-		animateCounter(summary.totalPublished, (val) => (animatedPublished = val));
-		animateCounter(summary.totalScheduled, (val) => (animatedScheduled = val));
-		animateCounter(summary.totalFailed, (val) => (animatedFailed = val));
-		animateCounter(summary.connectedAccounts, (val) => (animatedAccounts = val));
+		animateCounter(summary.totalPublished ?? 0, (val) => (animatedPublished = val));
+		animateCounter(summary.totalScheduled ?? 0, (val) => (animatedScheduled = val));
+		animateCounter(summary.totalFailed ?? 0, (val) => (animatedFailed = val));
+		animateCounter(summary.connectedAccounts ?? 0, (val) => (animatedAccounts = val));
 	}
 
 	// Format queue health status color
 	$: queueStatusColor =
-		summary?.queueHealth.status === 'healthy'
+		summary?.queueHealth?.status === 'healthy'
 			? 'text-green-600 dark:text-green-400'
-			: summary?.queueHealth.status === 'warning'
+			: summary?.queueHealth?.status === 'warning'
 				? 'text-yellow-600 dark:text-yellow-400'
 				: 'text-red-600 dark:text-red-400';
 
 	$: queueBgColor =
-		summary?.queueHealth.status === 'healthy'
+		summary?.queueHealth?.status === 'healthy'
 			? 'bg-green-50 dark:bg-green-900/20'
-			: summary?.queueHealth.status === 'warning'
+			: summary?.queueHealth?.status === 'warning'
 				? 'bg-yellow-50 dark:bg-yellow-900/20'
 				: 'bg-red-50 dark:bg-red-900/20';
 </script>
@@ -164,7 +164,7 @@
 		<div>
 			<p class="text-xs font-medium text-gray-500 dark:text-gray-400">Avg Posts/Day</p>
 			<p class="text-lg font-semibold text-gray-900 dark:text-white">
-				{summary.avgPostsPerDay.toFixed(1)}
+				{(summary?.avgPostsPerDay ?? 0).toFixed(1)}
 			</p>
 		</div>
 	</div>
@@ -197,7 +197,7 @@
 		<div class="flex-1">
 			<p class="text-xs font-medium {queueStatusColor}">Queue Status</p>
 			<p class="text-sm font-semibold text-gray-900 dark:text-white">
-				{summary.queueHealth.message}
+				{summary?.queueHealth?.message ?? 'Unknown'}
 			</p>
 		</div>
 	</div>

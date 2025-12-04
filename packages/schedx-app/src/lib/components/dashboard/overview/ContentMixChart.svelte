@@ -21,6 +21,15 @@
 	let hashtagChartEl: HTMLElement;
 	let postTypeChart: any;
 	let hashtagChart: any;
+	
+	// Check if we have any post type data
+	$: hasPostTypeData = contentMix?.postTypeDistribution && (
+		(contentMix.postTypeDistribution.text ?? 0) > 0 ||
+		(contentMix.postTypeDistribution.image ?? 0) > 0 ||
+		(contentMix.postTypeDistribution.video ?? 0) > 0 ||
+		(contentMix.postTypeDistribution.gif ?? 0) > 0 ||
+		(contentMix.postTypeDistribution.link ?? 0) > 0
+	);
 
 	onMount(() => {
 		if (!browser) return;
@@ -28,8 +37,8 @@
 		// Dynamically import ApexCharts and initialize charts
 		(async () => {
 			// Wait for post type chart element to be available
-			if (!postTypeChartEl) {
-				console.warn('Post type chart element not found, skipping chart initialization');
+			if (!postTypeChartEl || !hasPostTypeData) {
+				console.warn('Post type chart element not found or no data, skipping chart initialization');
 				return;
 			}
 			
@@ -37,11 +46,11 @@
 
 			// Post Type Distribution Chart (Donut)
 			const postTypeData = [
-			contentMix.postTypeDistribution.text,
-			contentMix.postTypeDistribution.image,
-			contentMix.postTypeDistribution.video,
-			contentMix.postTypeDistribution.gif,
-				contentMix.postTypeDistribution.link
+				contentMix.postTypeDistribution?.text ?? 0,
+				contentMix.postTypeDistribution?.image ?? 0,
+				contentMix.postTypeDistribution?.video ?? 0,
+				contentMix.postTypeDistribution?.gif ?? 0,
+				contentMix.postTypeDistribution?.link ?? 0
 			];
 
 			const postTypeOptions = {
@@ -107,7 +116,7 @@
 		postTypeChart.render();
 
 		// Top Hashtags Chart (Bar)
-		const hashtagData = contentMix.topHashtags.slice(0, 10);
+		const hashtagData = (contentMix?.topHashtags ?? []).slice(0, 10);
 		
 		const hashtagOptions = {
 			chart: {
@@ -190,7 +199,15 @@
 			<h3 class="mb-4 text-sm font-medium text-gray-700 dark:text-gray-300">
 				Post Type Distribution
 			</h3>
-			<div bind:this={postTypeChartEl}></div>
+			{#if hasPostTypeData}
+				<div bind:this={postTypeChartEl}></div>
+			{:else}
+				<div class="flex h-[300px] items-center justify-center">
+					<p class="text-sm text-gray-500 dark:text-gray-400">
+						No posts found. Click "Sync Analytics Data" to import tweets.
+					</p>
+				</div>
+			{/if}
 		</div>
 
 		<!-- Top Hashtags -->
@@ -200,7 +217,7 @@
 			<h3 class="mb-4 text-sm font-medium text-gray-700 dark:text-gray-300">
 				Top Hashtags
 			</h3>
-			{#if contentMix.topHashtags.length > 0}
+			{#if contentMix?.topHashtags?.length > 0}
 				<div bind:this={hashtagChartEl}></div>
 			{:else}
 				<div class="flex h-[300px] items-center justify-center">

@@ -36,10 +36,10 @@
 
 <div class="space-y-6">
 	<!-- Connected Accounts Section -->
-	<div class="rounded-lg bg-white shadow dark:bg-gray-800">
-		<div class="border-b border-gray-200 px-6 py-4 dark:border-gray-700">
+	<div class="rounded-lg border border-gray-200 bg-white shadow dark:border-gray-700 dark:bg-[#15202B] theme-lightsout:border-gray-800 theme-lightsout:bg-[#111111]">
+		<div class="border-b border-gray-200 px-6 py-4 dark:border-gray-700 theme-lightsout:border-gray-800">
 			<div class="flex items-center justify-between">
-				<h2 class="flex items-center text-lg font-semibold text-gray-900 dark:text-white">
+				<h2 class="flex items-center text-lg font-semibold text-gray-900 dark:text-white theme-lightsout:text-white">
 					<Users class="mr-2 h-5 w-5" />
 					Connected Accounts
 				</h2>
@@ -58,12 +58,12 @@
 	</div>
 
 	<!-- Twitter Apps Management Section -->
-	<div class="rounded-lg bg-white shadow dark:bg-gray-800">
-		<div class="border-b border-gray-200 px-6 py-4 dark:border-gray-700">
-			<h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+	<div class="rounded-lg border border-gray-200 bg-white shadow dark:border-gray-700 dark:bg-[#15202B] theme-lightsout:border-gray-800 theme-lightsout:bg-[#111111]">
+		<div class="border-b border-gray-200 px-6 py-4 dark:border-gray-700 theme-lightsout:border-gray-800">
+			<h2 class="text-lg font-semibold text-gray-900 dark:text-white theme-lightsout:text-white">
 				Twitter Apps
 			</h2>
-			<p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+			<p class="mt-1 text-sm text-gray-500 dark:text-gray-400 theme-lightsout:text-gray-400">
 				Manage your Twitter OAuth applications used for account connections.
 			</p>
 		</div>

@@ -71,7 +71,7 @@
 		<div class="relative z-40 flex flex-col">
 			<!-- Floating Sidebar Panel -->
 			<div
-				class="theme-lightsout:bg-gray-900/90 theme-lightsout:border-gray-800/50 theme-lightsout:shadow-gray-900/30 relative w-64 overflow-visible rounded-2xl border border-gray-200/50 bg-white/80 shadow-xl backdrop-blur-md dark:border-gray-700/50 dark:bg-gray-800/80 dark:shadow-gray-900/20"
+				class="sidebar h-full w-64 flex flex-col border-r border-gray-200 bg-white shadow-sidebar dark:bg-[#15202B] theme-lightsout:bg-[#111111] relative w-64 overflow-visible rounded-2xl border border-gray-200/50 bg-white/80 shadow-xl backdrop-blur-md dark:border-gray-700/50 dark:bg-gray-800/80 dark:shadow-gray-900/20"
 			>
 				<div class="relative flex flex-col overflow-visible">
 					<!-- Header -->
@@ -145,7 +145,7 @@
 								<button
 									id="account-dropdown-trigger"
 									type="button"
-									class="focus:outline-hidden theme-lightsout:text-white inline-flex size-8 items-center justify-center gap-x-2 rounded-full border border-transparent text-sm font-semibold text-gray-700 disabled:pointer-events-none disabled:opacity-50 dark:text-white"
+									class="focus:outline-hidden theme-lightsout:text-white inline-flex size-8 items-center justify-center gap-x-2 rounded-full border border-transparent text-sm font-semibold text-gray-700 disabled:pointer-events-none disabled:opacity-50 dark:bg-gray-700 theme-lightsout:bg-surface-2"
 									aria-haspopup="menu"
 									aria-expanded={isAccountMenuOpen}
 									aria-controls="account-dropdown-menu"
@@ -166,13 +166,13 @@
 									id="account-dropdown-menu"
 									class="theme-lightsout:bg-gray-900 theme-lightsout:border-gray-800 absolute bottom-12 right-0 z-50 min-w-60 rounded-lg bg-white shadow-md transition-opacity duration-150 dark:divide-gray-700 dark:border dark:border-gray-700 dark:bg-gray-800 {isAccountMenuOpen
 										? 'opacity-100'
-										: 'pointer-events-none opacity-0'}"
+										: 'pointer-events-none opacity-0'} dropdown-content avatar-dropdown theme-lightsout:bg-gray-900"
 									role="menu"
 									aria-orientation="vertical"
 									aria-labelledby="account-dropdown-trigger"
 								>
 									<div
-										class="theme-lightsout:bg-gray-800 rounded-t-lg bg-gray-100 px-5 py-3 dark:bg-gray-700"
+										class="theme-lightsout:bg-gray-800 rounded-t-lg bg-gray-100 px-5 py-3 dark:bg-gray-700 dropdown-header theme-lightsout:bg-gray-900"
 									>
 										<p
 											class="theme-lightsout:text-gray-300 text-sm text-gray-500 dark:text-gray-400"

@@ -283,7 +283,7 @@ async function getMostEngagedPost(userId: string, startDate: string, endDate: st
 			(t.likeCount + t.retweetCount + t.replyCount) as engagement_score
 		FROM tweets t
 		LEFT JOIN accounts a ON t.twitterAccountId = a.providerAccountId
-		WHERE t.userId = ? AND LOWER(t.status) = 'posted' 
+		WHERE t.userId = ? AND UPPER(t.status) IN ('POSTED', 'IMPORTED')
 		AND DATE(t.createdAt / 1000, 'unixepoch') BETWEEN ? AND ?
 		ORDER BY engagement_score DESC
 		LIMIT 1`,
@@ -360,19 +360,24 @@ function getEmptyEngagementSnapshot(): EngagementSnapshotData {
 
 /**
  * Calculates content type distribution and patterns.
+ * NOTE: Content Mix uses ALL-TIME data by default, not the date range selector.
+ * This provides a complete picture of content patterns regardless of recent activity.
  */
-export async function calculateContentMix(userId: string, dateRange: DateRange = '30d'): Promise<ContentMixData> {
+export async function calculateContentMix(userId: string, _dateRange: DateRange = '30d'): Promise<ContentMixData> {
 	const db = getDbInstance();
-	const { startDate, endDate } = getDateRangeTimestamps(dateRange);
+	// Use 'all' time range for content mix - this data should show complete patterns
+	const { startDate, endDate } = getDateRangeTimestamps('all');
+	
+	logger.info({ userId, startDate, endDate }, '[ContentMix] Calculating content mix (all-time)');
 	
 	try {
-		// Get post type distribution
+		// Get post type distribution (all-time)
 		const distribution = await getPostTypeDistribution(userId, startDate, endDate);
 		
-		// Get top hashtags
+		// Get top hashtags (all-time)
 		const hashtags = await getTopHashtags(userId, startDate, endDate);
 		
-		// Get posting time heatmap
+		// Get posting time heatmap (all-time)
 		const heatmap = await getPostingTimeHeatmap(userId, startDate, endDate);
 		
 		return {
@@ -404,31 +409,43 @@ async function getPostTypeDistribution(userId: string, startDate: string, endDat
 	);
 	
 	// Fallback: Analyze tweets directly if content_analytics is empty
-	if (!result || (result.text === 0 && result.image === 0 && result.video === 0 && result.gif === 0 && result.link === 0)) {
+	// Note: SQLite returns NULL (not 0) when no rows match, so we check for null/undefined/0
+	const hasNoData = !result || 
+		((result.text ?? 0) === 0 && (result.image ?? 0) === 0 && 
+		 (result.video ?? 0) === 0 && (result.gif ?? 0) === 0 && (result.link ?? 0) === 0);
+	
+	logger.info({ hasNoData, result }, '[ContentMix] Primary query result');
+	
+	if (hasNoData) {
+		// Analyze tweets directly - query ALL tweets for this user (no date filter for content mix)
 		const tweets = (db as any)['db'].query(
 			`SELECT media, content FROM tweets 
-			 WHERE userId = ? AND UPPER(status) = 'POSTED'
-			 AND DATE(createdAt / 1000, 'unixepoch') BETWEEN ? AND ?`,
-			[userId, startDate, endDate]
+			 WHERE userId = ? AND UPPER(status) IN ('POSTED', 'IMPORTED')`,
+			[userId]
 		);
+		
+		logger.info({ tweetCount: tweets.length }, '[ContentMix] Analyzing all tweets for post type distribution');
 		
 		let text = 0, image = 0, video = 0, gif = 0, link = 0;
 		
 		for (const tweet of tweets) {
 			const media = tweet.media ? JSON.parse(tweet.media) : [];
+			
 			if (media.length === 0) {
 				text++;
 			} else {
 				const mediaType = media[0]?.type || '';
-				if (mediaType.includes('video')) video++;
-				else if (mediaType.includes('image')) image++;
-				else if (mediaType.includes('gif')) gif++;
+				// Rettiwt API returns: 'photo', 'video', 'animated_gif'
+				if (mediaType === 'video') video++;
+				else if (mediaType === 'photo') image++;
+				else if (mediaType === 'animated_gif') gif++;
 			}
-			if (tweet.content.includes('http://') || tweet.content.includes('https://')) {
+			if (tweet.content?.includes('http://') || tweet.content?.includes('https://')) {
 				link++;
 			}
 		}
 		
+		logger.debug({ text, image, video, gif, link }, '[ContentMix] Post type distribution results');
 		return { text, image, video, gif, link };
 	}
 	
@@ -441,32 +458,38 @@ async function getPostTypeDistribution(userId: string, startDate: string, endDat
 	};
 }
 
-async function getTopHashtags(userId: string, startDate: string, endDate: string, limit: number = 10): Promise<HashtagFrequency[]> {
+async function getTopHashtags(userId: string, _startDate: string, _endDate: string, limit: number = 10): Promise<HashtagFrequency[]> {
 	const db = getDbInstance();
 	
+	// Try content_analytics first (all-time, no date filter for hashtags)
 	let results = (db as any)['db'].query(
 		`SELECT ca.hashtags, ca.engagement_score
 		FROM content_analytics ca
 		JOIN tweets t ON ca.tweet_id = t.id
-		WHERE t.userId = ? AND UPPER(t.status) = 'POSTED' AND ca.hashtag_count > 0
-		AND DATE(t.createdAt / 1000, 'unixepoch') BETWEEN ? AND ?`,
-		[userId, startDate, endDate]
+		WHERE t.userId = ? AND UPPER(t.status) IN ('POSTED', 'IMPORTED') AND ca.hashtag_count > 0`,
+		[userId]
 	);
 	
-	// Fallback: Extract hashtags from tweets directly
+	// Fallback: Extract hashtags from tweets directly (all tweets)
 	if (results.length === 0) {
-		results = (db as any)['db'].query(
+		const tweets = (db as any)['db'].query(
 			`SELECT content, likeCount, retweetCount, replyCount
 			 FROM tweets
-			 WHERE userId = ? AND UPPER(status) = 'POSTED'
-			 AND DATE(createdAt / 1000, 'unixepoch') BETWEEN ? AND ?`,
-			[userId, startDate, endDate]
+			 WHERE userId = ? AND UPPER(status) IN ('POSTED', 'IMPORTED')`,
+			[userId]
 		);
 		
-		results = results.map((tweet: any) => ({
-			hashtags: JSON.stringify((tweet.content.match(/#\w+/g) || []).map((tag: string) => tag.substring(1).toLowerCase())),
-			engagement_score: (tweet.likeCount || 0) + (tweet.retweetCount || 0) + (tweet.replyCount || 0)
-		})).filter((r: any) => r.hashtags !== '[]');
+		logger.info({ tweetCount: tweets.length }, '[Hashtags] Analyzing all tweets for hashtags');
+		
+		results = tweets.map((tweet: any) => {
+			const hashtags = (tweet.content?.match(/#\w+/g) || []).map((tag: string) => tag.substring(1).toLowerCase());
+			return {
+				hashtags: JSON.stringify(hashtags),
+				engagement_score: (tweet.likeCount || 0) + (tweet.retweetCount || 0) + (tweet.replyCount || 0)
+			};
+		}).filter((r: any) => r.hashtags !== '[]');
+		
+		logger.debug({ tweetsWithHashtags: results.length }, '[Hashtags] Tweets with hashtags found');
 	}
 	
 	// Aggregate hashtag stats
@@ -496,28 +519,29 @@ async function getTopHashtags(userId: string, startDate: string, endDate: string
 	return hashtagArray;
 }
 
-async function getPostingTimeHeatmap(userId: string, startDate: string, endDate: string): Promise<PostingTimeHeatmap> {
+async function getPostingTimeHeatmap(userId: string, _startDate: string, _endDate: string): Promise<PostingTimeHeatmap> {
 	const db = getDbInstance();
 	
+	// Try content_analytics first (all-time for heatmap patterns)
 	let results = (db as any)['db'].query(
 		`SELECT ca.post_hour, ca.post_day, AVG(ca.engagement_score) as avg_engagement, COUNT(*) as count
 		FROM content_analytics ca
 		JOIN tweets t ON ca.tweet_id = t.id
-		WHERE t.userId = ? AND UPPER(t.status) = 'POSTED'
-		AND DATE(t.createdAt / 1000, 'unixepoch') BETWEEN ? AND ?
+		WHERE t.userId = ? AND UPPER(t.status) IN ('POSTED', 'IMPORTED')
 		GROUP BY ca.post_hour, ca.post_day`,
-		[userId, startDate, endDate]
+		[userId]
 	);
 	
-	// Fallback: Calculate from tweets directly
+	// Fallback: Calculate from tweets directly (all tweets for complete pattern)
 	if (results.length === 0) {
 		const tweets = (db as any)['db'].query(
 			`SELECT createdAt, likeCount, retweetCount, replyCount
 			 FROM tweets
-			 WHERE userId = ? AND UPPER(status) = 'POSTED'
-			 AND DATE(createdAt / 1000, 'unixepoch') BETWEEN ? AND ?`,
-			[userId, startDate, endDate]
+			 WHERE userId = ? AND UPPER(status) IN ('POSTED', 'IMPORTED')`,
+			[userId]
 		);
+		
+		logger.info({ tweetCount: tweets.length }, '[Heatmap] Analyzing all tweets for posting time patterns');
 		
 		const timeMap = new Map<string, { count: number; totalEngagement: number }>();
 		
@@ -584,9 +608,9 @@ export async function calculateTrends(userId: string, dateRange: DateRange = '30
 	const { startDate, endDate } = getDateRangeTimestamps(dateRange);
 	
 	try {
-		// Get accounts for this user with their usernames and profile images
+		// Get accounts for this user with their usernames, profile images, and follower counts
 		const accounts = (db as any)['db'].query(
-			'SELECT id, providerAccountId, username, profileImage FROM accounts WHERE userId = ?',
+			'SELECT id, providerAccountId, username, profileImage, followerCount FROM accounts WHERE userId = ?',
 			[userId]
 		);
 		
@@ -612,7 +636,7 @@ export async function calculateTrends(userId: string, dateRange: DateRange = '30
 			
 			// Fallback: Get current follower count from account table if daily_stats is empty
 			if (accountFollowerData.length === 0) {
-				const currentFollowers = account.followersCount || 0;
+				const currentFollowers = account.followerCount || 0;
 				const start = new Date(startDate);
 				const end = new Date(endDate);
 				accountFollowerData = [];

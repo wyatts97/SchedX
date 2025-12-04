@@ -59,6 +59,7 @@
     "postcss": "^8.5.6",
     "preact": "^10.27.2",
     "preline": "^3.1.0",
+    "rettiwt-api": "^6.0.7",
     "socks": "^2.8.6",
     "svelte-lazy": "^1.2.2",
     "svelte-sonner": "^1.0.5",
