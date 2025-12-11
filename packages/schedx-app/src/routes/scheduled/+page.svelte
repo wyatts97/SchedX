@@ -7,6 +7,7 @@
 	import { browser } from '$app/environment';
 	import TweetCreate from '$lib/components/TweetCreate.svelte';
 	import TweetPreview from '$lib/components/TweetPreview.svelte';
+	import AccountDropdown from '$lib/components/AccountDropdown.svelte';
 	import { AlertTriangle, CheckCircle, XCircle, Edit, Trash2, X, Calendar as CalendarIcon } from 'lucide-svelte'; // Icon for warning/alert messages
 	import ScheduleXCalendar from '$lib/components/ScheduleXCalendar.svelte';
 	import type { Tweet } from '@schedx/shared-lib/types/types';
@@ -41,8 +42,8 @@
 		}
 	});
 
-	function handleAccountChange(event: Event) {
-		selectedAccountId = (event.target as HTMLSelectElement).value;
+	function handleAccountChange(accountId: string) {
+		selectedAccountId = accountId;
 		// Don't reload page, just update filter
 	}
 
@@ -193,24 +194,20 @@
 		<div class="mb-6">
 			<!-- Account Filter -->
 			<div class="max-w-xs">
-				<label
-					class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
-					for="twitterAccountId"
-				>
+				<span class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
 					Filter by Account
-				</label>
-				<select
-					id="twitterAccountId"
-					name="twitterAccountId"
-					bind:value={selectedAccountId}
-					class="block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-					on:change={handleAccountChange}
-				>
-					<option value="">All Accounts</option>
-					{#each data.accounts as account}
-						<option value={account.providerAccountId}>{account.username}</option>
-					{/each}
-				</select>
+				</span>
+				<AccountDropdown
+					accounts={data.accounts.map(acc => ({
+						id: acc.providerAccountId,
+						username: acc.username,
+						displayName: acc.displayName || acc.username,
+						avatarUrl: acc.profileImage
+					}))}
+					selectedAccount={selectedAccountId || 'all'}
+					onSelect={handleAccountChange}
+					placeholder="All Accounts"
+				/>
 			</div>
 		</div>
 	{/if}

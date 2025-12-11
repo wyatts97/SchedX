@@ -1,0 +1,45 @@
+# Litestream Configuration for SchedX
+# Real-time SQLite replication to prevent data loss
+#
+# Supported destinations:
+# - S3 (AWS, MinIO, Backblaze B2, Cloudflare R2)
+# - Azure Blob Storage
+# - Google Cloud Storage
+# - SFTP
+# - Local filesystem (for testing/local backups)
+#
+# Documentation: https://litestream.io/reference/config/
+
+dbs:
+  # Main SchedX database
+  - path: /data/schedx.db
+    replicas:
+      # Option 1: Local filesystem backup (default, always enabled)
+      - type: file
+        path: /backups/schedx
+        retention: 168h  # Keep 7 days of backups
+        sync-interval: 60s
+
+      # Option 2: S3-compatible storage (uncomment and configure)
+      # Works with AWS S3, MinIO, Backblaze B2, Cloudflare R2, etc.
+      # - type: s3
+      #   bucket: your-bucket-name
+      #   path: schedx/backups
+      #   endpoint: ${LITESTREAM_S3_ENDPOINT}  # e.g., s3.us-west-2.amazonaws.com
+      #   region: ${LITESTREAM_S3_REGION}      # e.g., us-west-2
+      #   access-key-id: ${LITESTREAM_ACCESS_KEY_ID}
+      #   secret-access-key: ${LITESTREAM_SECRET_ACCESS_KEY}
+      #   retention: 720h  # Keep 30 days
+      #   sync-interval: 10s
+
+      # Option 3: SFTP backup (uncomment and configure)
+      # - type: sftp
+      #   host: ${LITESTREAM_SFTP_HOST}
+      #   user: ${LITESTREAM_SFTP_USER}
+      #   path: /backups/schedx
+      #   key-path: /etc/litestream/sftp-key
+
+# Logging configuration
+# logging:
+#   level: info
+#   type: text

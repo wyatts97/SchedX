@@ -275,3 +275,36 @@ export interface TopHashtagInsightData {
 	useCount: number;
 	avgEngagement: number;
 }
+
+// ============================================================================
+// Account Stats Types (for profile cards)
+// ============================================================================
+
+export interface AccountStats {
+	accountId: string;
+	username: string;
+	displayName: string;
+	profileImage: string;
+	profileBanner?: string; // Twitter header/banner image
+	followers: number;
+	following: number;
+	tweetsCount: number;
+	verified: boolean;
+	bio: string;
+	createdAt?: string; // Account creation date
+	// Engagement metrics from recent tweets
+	recentTweets: number;
+	totalLikes: number;
+	totalRetweets: number;
+	totalReplies: number;
+	totalViews: number;
+	avgEngagement: number;
+	engagementRate: number; // (likes + retweets + replies) / followers * 100
+}
+
+export interface AccountStatsResponse {
+	accounts: AccountStats[];
+	totalFollowers: number;
+	totalEngagement: number;
+	timestamp: string;
+}

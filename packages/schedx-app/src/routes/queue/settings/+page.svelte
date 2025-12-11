@@ -3,6 +3,8 @@
 	import { goto } from '$app/navigation';
 	import { Save, ArrowLeft, Plus, X } from 'lucide-svelte';
 	import { toastStore } from '$lib/stores/toastStore';
+	import AccountDropdown from '$lib/components/AccountDropdown.svelte';
+	import StyledSelect from '$lib/components/StyledSelect.svelte';
 	import logger from '$lib/logger';
 
 	let settings = {
@@ -19,7 +21,7 @@
 	let saving = false;
 	let newTime = '';
 	let accounts: any[] = [];
-	let selectedAccountId: string | undefined = undefined;
+	let selectedAccountId: string = 'all';
 	let allSettings: any[] = [];
 
 	onMount(async () => {
@@ -44,7 +46,7 @@
 	async function fetchSettings() {
 		loading = true;
 		try {
-			const url = selectedAccountId
+			const url = selectedAccountId && selectedAccountId !== 'all'
 				? `/api/queue/settings?accountId=${selectedAccountId}`
 				: '/api/queue/settings';
 			const res = await fetch(url, {
@@ -77,7 +79,8 @@
 		}
 	}
 
-	function onAccountChange() {
+	function onAccountChange(accountId: string) {
+		selectedAccountId = accountId;
 		fetchSettings();
 	}
 
@@ -173,19 +176,17 @@
 					<p class="mb-4 text-sm text-gray-500 dark:text-gray-400">
 						Configure queue settings for a specific account or use default settings for all accounts
 					</p>
-					<select
-						bind:value={selectedAccountId}
-						on:change={onAccountChange}
-						class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
-					>
-						<option value={undefined}>Default (All Accounts)</option>
-						{#each accounts as account}
-							<option value={account.providerAccountId}>
-								@{account.username}
-								{#if account.isDefault}(Default){/if}
-							</option>
-						{/each}
-					</select>
+					<AccountDropdown
+						accounts={accounts.map(acc => ({
+							id: acc.providerAccountId,
+							username: acc.username,
+							displayName: acc.displayName || acc.username,
+							avatarUrl: acc.profileImage
+						}))}
+						selectedAccount={selectedAccountId}
+						onSelect={onAccountChange}
+						placeholder="Default (All Accounts)"
+					/>
 				</div>
 			{/if}
 
@@ -303,23 +304,21 @@
 
 					<!-- Timezone -->
 					<div>
-						<label
-							for="timezone"
-							class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-						>
+						<span class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
 							Timezone
-						</label>
-						<select
+						</span>
+						<StyledSelect
 							id="timezone"
 							bind:value={settings.timezone}
-							class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
-						>
-							<option value="America/New_York">Eastern Time (ET)</option>
-							<option value="America/Chicago">Central Time (CT)</option>
-							<option value="America/Denver">Mountain Time (MT)</option>
-							<option value="America/Los_Angeles">Pacific Time (PT)</option>
-							<option value="UTC">UTC</option>
-						</select>
+							options={[
+								{ value: 'America/New_York', label: 'Eastern Time (ET)' },
+								{ value: 'America/Chicago', label: 'Central Time (CT)' },
+								{ value: 'America/Denver', label: 'Mountain Time (MT)' },
+								{ value: 'America/Los_Angeles', label: 'Pacific Time (PT)' },
+								{ value: 'UTC', label: 'UTC' }
+							]}
+							placeholder="Select timezone"
+						/>
 					</div>
 				</div>
 			</div>

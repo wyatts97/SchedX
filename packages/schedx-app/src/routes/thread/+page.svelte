@@ -3,6 +3,7 @@
 	import { browser } from '$app/environment';
 	import type { PageData } from './$types';
 	import ThreadComposer from '$lib/components/ThreadComposer.svelte';
+	import AccountDropdown from '$lib/components/AccountDropdown.svelte';
 	import { toastStore } from '$lib/stores/toastStore';
 	import { Calendar, Save, Send, ListPlus } from 'lucide-svelte';
 	import logger from '$lib/logger';
@@ -103,21 +104,20 @@
 
 	<!-- Account Selection -->
 	<div class="mb-6 rounded-lg bg-white p-4 shadow dark:bg-gray-800">
-		<label for="account" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+		<span class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
 			Select Account
-		</label>
-		<select
-			id="account"
-			bind:value={selectedAccountId}
-			class="block w-full appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 pr-10 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
-			style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 fill=%27none%27 viewBox=%270 0 20 20%27%3E%3Cpath stroke=%27%236b7280%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27 stroke-width=%271.5%27 d=%27M6 8l4 4 4-4%27/%3E%3C/svg%3E'); background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.5em 1.5em;"
-		>
-			{#each data.accounts as account}
-				<option value={account.id}>
-					@{account.username} {account.displayName ? `(${account.displayName})` : ''}
-				</option>
-			{/each}
-		</select>
+		</span>
+		<AccountDropdown
+			accounts={data.accounts.map(acc => ({
+				id: acc.id,
+				username: acc.username,
+				displayName: acc.displayName || acc.username,
+				avatarUrl: acc.profileImage
+			}))}
+			selectedAccount={selectedAccountId}
+			onSelect={(id) => selectedAccountId = id}
+			placeholder="Select an account"
+		/>
 	</div>
 
 	<!-- Thread Composer -->

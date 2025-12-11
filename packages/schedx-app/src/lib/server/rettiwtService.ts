@@ -100,21 +100,42 @@ export class RettiwtService {
 				? (totalLikes + totalRetweets + totalReplies) / tweetList.length
 				: 0;
 
+			// Get high-resolution profile image
+			// Twitter profile images can be requested in different sizes:
+			// _normal (48x48), _bigger (73x73), _200x200, _400x400, or original (remove size suffix)
+			let profileImageUrl = userDetails.profileImage || '';
+			if (profileImageUrl) {
+				// Replace _normal or other size suffixes with _400x400 for higher quality
+				profileImageUrl = profileImageUrl
+					.replace(/_normal\./, '_400x400.')
+					.replace(/_bigger\./, '_400x400.')
+					.replace(/_200x200\./, '_400x400.');
+			}
+
+			// Calculate engagement rate: (likes + retweets + replies) / followers * 100
+			const totalEngagement = totalLikes + totalRetweets + totalReplies;
+			const engagementRate = userDetails.followersCount > 0 
+				? (totalEngagement / userDetails.followersCount) * 100 
+				: 0;
+
 			return {
 				username: userDetails.userName,
 				displayName: userDetails.fullName,
 				followers: userDetails.followersCount,
 				following: userDetails.followingsCount,
 				tweetsCount: userDetails.statusesCount,
-				profileImage: userDetails.profileImage,
+				profileImage: profileImageUrl,
+				profileBanner: userDetails.profileBanner || '',
 				bio: userDetails.description || '',
 				verified: userDetails.isVerified,
+				createdAt: userDetails.createdAt || '',
 				recentTweets: tweetList.length,
 				totalLikes,
 				totalRetweets,
 				totalReplies,
 				totalViews,
-				avgEngagement: Math.round(avgEngagement * 100) / 100
+				avgEngagement: Math.round(avgEngagement * 100) / 100,
+				engagementRate: Math.round(engagementRate * 100) / 100
 			};
 		} catch (error: any) {
 			logger.error({ 
@@ -129,6 +150,53 @@ export class RettiwtService {
 				username, 
 				userId 
 			}, 'Failed to fetch user analytics');
+			throw error;
+		}
+	}
+
+	/**
+	 * Fetches high-quality profile image for a Twitter user
+	 * @param username - Twitter username (without @)
+	 * @param userId - Optional user ID for authenticated access
+	 * @returns High-quality profile image URL (400x400)
+	 */
+	public static async getHighQualityProfileImage(username: string, userId?: string): Promise<{
+		profileImage: string;
+		displayName: string;
+	}> {
+		try {
+			const rettiwt = await this.createInstance(userId);
+
+			logger.debug({ username, userId }, 'Fetching high-quality profile image');
+
+			const userDetails = await rettiwt.user.details(username);
+
+			if (!userDetails) {
+				throw new Error(`Twitter user @${username} not found`);
+			}
+
+			// Get high-resolution profile image
+			// Twitter profile images can be requested in different sizes:
+			// _normal (48x48), _bigger (73x73), _200x200, _400x400, or original (remove size suffix)
+			let profileImageUrl = userDetails.profileImage || '';
+			if (profileImageUrl) {
+				// Replace _normal or other size suffixes with _400x400 for higher quality
+				profileImageUrl = profileImageUrl
+					.replace(/_normal\./, '_400x400.')
+					.replace(/_bigger\./, '_400x400.')
+					.replace(/_200x200\./, '_400x400.');
+			}
+
+			return {
+				profileImage: profileImageUrl,
+				displayName: userDetails.fullName || username
+			};
+		} catch (error: any) {
+			logger.error({ 
+				error: error?.message, 
+				username, 
+				userId 
+			}, 'Failed to fetch high-quality profile image');
 			throw error;
 		}
 	}
@@ -166,10 +234,11 @@ export class RettiwtService {
 				id: tweet.id,
 				text: tweet.fullText,
 				createdAt: tweet.createdAt,
-				likeCount: tweet.likeCount,
-				retweetCount: tweet.retweetCount,
-				replyCount: tweet.replyCount,
-				viewCount: tweet.viewCount,
+				likeCount: tweet.likeCount ?? 0,
+				retweetCount: tweet.retweetCount ?? 0,
+				replyCount: tweet.replyCount ?? 0,
+				viewCount: tweet.viewCount ?? 0,
+				bookmarkCount: tweet.bookmarkCount ?? 0,
 				author: {
 					username: tweet.tweetBy?.userName || '',
 					displayName: tweet.tweetBy?.fullName || '',

@@ -59,8 +59,9 @@ export default {
 	},
 	plugins: [
 		function ({ addVariant }) {
-			addVariant('theme-lightsout', '.theme-lightsout &');
-			addVariant('theme-dark', '.theme-dark &');
+			// Use data-theme attribute for more reliable targeting
+			addVariant('theme-lightsout', '[data-theme="lightsout"] &');
+			addVariant('theme-dark', '[data-theme="dark"] &');
 		}
 	],
 	darkMode: 'class',

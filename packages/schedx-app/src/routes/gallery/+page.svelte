@@ -4,6 +4,7 @@
 	import { Search, X, Trash2, Loader2, CheckCircle, Upload as UploadIcon } from 'lucide-svelte';
 	import MediaLightbox from '$lib/components/MediaLightbox.svelte';
 	import FileUpload from '$lib/components/FileUpload.svelte';
+	import AccountDropdown from '$lib/components/AccountDropdown.svelte';
 	import logger from '$lib/logger';
 
 	interface MediaItem {
@@ -25,7 +26,7 @@
 
 	let mediaItems: MediaItem[] = [];
 	let accounts: Account[] = [];
-	let selectedAccountId: string | null = null;
+	let selectedAccountId: string = 'all';
 	let loading = true;
 	let error = '';
 
@@ -64,7 +65,7 @@
 	async function fetchMedia() {
 		try {
 			loading = true;
-			const url = selectedAccountId
+			const url = selectedAccountId && selectedAccountId !== 'all'
 				? `/api/gallery?accountId=${selectedAccountId}`
 				: '/api/gallery';
 			const response = await fetch(url);
@@ -81,7 +82,8 @@
 	}
 
 	// Handle account filter change
-	function handleAccountFilterChange() {
+	function handleAccountFilterChange(accountId: string) {
+		selectedAccountId = accountId;
 		fetchMedia();
 	}
 
@@ -298,27 +300,20 @@
 	<!-- Account Filter -->
 	{#if accounts.length > 0}
 		<div class="mb-6">
-			<label
-				for="account-filter"
-				class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
-			>
+			<span class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
 				Filter by Account
-			</label>
-			<div class="relative">
-				<select
-					id="account-filter"
-					bind:value={selectedAccountId}
-					on:change={handleAccountFilterChange}
-					class="theme-lightsout:border-gray-700 theme-lightsout:bg-gray-800 theme-lightsout:text-white block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-				>
-					<option value={null}>All Accounts</option>
-					{#each accounts as account}
-						<option value={account.id}>
-							{account.displayName || account.username} (@{account.username})
-						</option>
-					{/each}
-				</select>
-			</div>
+			</span>
+			<AccountDropdown
+				accounts={accounts.map(acc => ({
+					id: acc.id,
+					username: acc.username,
+					displayName: acc.displayName || acc.username,
+					avatarUrl: acc.profileImage
+				}))}
+				selectedAccount={selectedAccountId}
+				onSelect={handleAccountFilterChange}
+				placeholder="All Accounts"
+			/>
 		</div>
 	{/if}
 

@@ -63,9 +63,10 @@
     "socks": "^2.8.6",
     "svelte-lazy": "^1.2.2",
     "svelte-sonner": "^1.0.5",
+    "sveltekit-superforms": "2.27.0",
     "temporal-polyfill": "^0.3.0",
     "twitter-api-v2": "^1.24.0",
-    "zod": "^3.22.4"
+    "zod": "^3.25.67"
   },
   "overrides": {
     "cookie": "^0.7.0"

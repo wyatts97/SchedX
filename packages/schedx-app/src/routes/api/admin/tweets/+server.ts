@@ -30,7 +30,12 @@ export const GET: RequestHandler = async ({ cookies }: any) => {
 			twitterTweetId: tweet.twitterTweetId,
 			createdAt: tweet.createdAt,
 			updatedAt: tweet.updatedAt,
-			media: tweet.media || []
+			media: tweet.media || [],
+			likeCount: tweet.likeCount || 0,
+			retweetCount: tweet.retweetCount || 0,
+			replyCount: tweet.replyCount || 0,
+			impressionCount: tweet.impressionCount || 0,
+			bookmarkCount: tweet.bookmarkCount || 0
 		}));
 
 		return json({

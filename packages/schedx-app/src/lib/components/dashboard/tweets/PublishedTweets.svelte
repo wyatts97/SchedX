@@ -1,11 +1,17 @@
 <script lang="ts">
     import TweetPreview from '$lib/components/TweetPreview.svelte';
     import AccountDropdown from '$lib/components/AccountDropdown.svelte';
-    import { FileText, Loader2, AlertCircle, Filter, Search, ExternalLink } from 'lucide-svelte';
+    import { FileText, Loader2, AlertCircle, Filter, Search, ExternalLink, RefreshCw } from 'lucide-svelte';
     import type { Tweet as TweetType } from '$lib/stores/dashboardStore';
     import type { UserAccount } from '$lib/types';
 
     export let tweets: TweetType[] = [];
+    
+    // Track which tweets are currently refreshing
+    let refreshingTweets: Set<string> = new Set();
+    
+    // Local tweet stats cache (for immediate UI updates after refresh)
+    let tweetStats: Map<string, { likeCount: number; retweetCount: number; replyCount: number; impressionCount: number; bookmarkCount: number }> = new Map();
     export let accounts: UserAccount[] = [];
     
     // Transform accounts for dropdown with avatar support
@@ -59,10 +65,14 @@
     // Sort tweets
     $: sortedTweets = [...filteredTweets].sort((a, b) => {
         if (sortBy === 'date') {
-            return new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime();
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         }
-        // For engagement, we'd need actual metrics from Twitter API
-        return 0;
+        // Sort by engagement (likes + retweets + replies)
+        const aStats = getTweetStats(a);
+        const bStats = getTweetStats(b);
+        const aEngagement = aStats.likeCount + aStats.retweetCount + aStats.replyCount;
+        const bEngagement = bStats.likeCount + bStats.retweetCount + bStats.replyCount;
+        return bEngagement - aEngagement;
     });
 
     // Pagination
@@ -102,6 +112,51 @@
 
     function handlePageChange(page: number) {
         currentPage = page;
+    }
+    
+    // Get stats for a tweet (from cache or original data)
+    function getTweetStats(tweet: TweetType) {
+        const cached = tweetStats.get(tweet.id!);
+        if (cached) return cached;
+        return {
+            likeCount: tweet.likeCount || 0,
+            retweetCount: tweet.retweetCount || 0,
+            replyCount: tweet.replyCount || 0,
+            impressionCount: tweet.impressionCount || 0,
+            bookmarkCount: (tweet as any).bookmarkCount || 0
+        };
+    }
+    
+    // Refresh stats for a single tweet
+    async function refreshTweetStats(tweetId: string) {
+        if (refreshingTweets.has(tweetId)) return;
+        
+        refreshingTweets.add(tweetId);
+        refreshingTweets = refreshingTweets; // Trigger reactivity
+        
+        try {
+            const response = await fetch(`/api/tweets/${tweetId}/refresh-stats`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({ message: 'Failed to refresh stats' }));
+                throw new Error(error.message || 'Failed to refresh stats');
+            }
+            
+            const result = await response.json();
+            
+            // Update local cache with new stats
+            tweetStats.set(tweetId, result.stats);
+            tweetStats = tweetStats; // Trigger reactivity
+            
+        } catch (error: any) {
+            console.error('Failed to refresh tweet stats:', error);
+        } finally {
+            refreshingTweets.delete(tweetId);
+            refreshingTweets = refreshingTweets; // Trigger reactivity
+        }
     }
 </script>
 
@@ -150,6 +205,7 @@
                 {#each paginatedTweets as tweet}
                     {@const account = tweet.twitterAccountId ? accountById[tweet.twitterAccountId] : null}
                     {#if account}
+                        {@const stats = getTweetStats(tweet)}
                         <div class="tweet-preview-wrapper">
                             <TweetPreview
                                 avatarUrl={account.profileImage || '/avatar.png'}
@@ -157,16 +213,24 @@
                                 username={account.username}
                                 content={tweet.content}
                                 media={tweet.media || []}
-                                createdAt={tweet.updatedAt || tweet.createdAt}
-                                replies={0}
-                                retweets={0}
-                                likes={0}
-                                bookmarks={0}
-                                views={0}
+                                createdAt={tweet.createdAt}
+                                replies={stats.replyCount}
+                                retweets={stats.retweetCount}
+                                likes={stats.likeCount}
+                                bookmarks={stats.bookmarkCount}
+                                views={stats.impressionCount}
                                 hideActions={false}
                             >
                                 <svelte:fragment slot="actions">
                                     {#if tweet.twitterTweetId}
+                                        <button
+                                            on:click={() => refreshTweetStats(tweet.id!)}
+                                            disabled={refreshingTweets.has(tweet.id!)}
+                                            class="inline-flex items-center justify-center gap-1 rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                                            title="Refresh engagement stats"
+                                        >
+                                            <RefreshCw class="h-3.5 w-3.5 {refreshingTweets.has(tweet.id!) ? 'animate-spin' : ''}" />
+                                        </button>
                                         <a
                                             href={`https://twitter.com/${account.username}/status/${tweet.twitterTweetId}`}
                                             target="_blank"

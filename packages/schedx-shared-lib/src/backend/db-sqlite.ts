@@ -611,6 +611,21 @@ export class DatabaseClient {
     this.db.execute('DELETE FROM accounts WHERE id = ?', [accountId]);
   }
 
+  async updateAccountProfileImage(accountId: string, profileImage: string, displayName?: string): Promise<void> {
+    const now = this.db.now();
+    if (displayName) {
+      this.db.execute(
+        'UPDATE accounts SET profileImage = ?, displayName = ?, updatedAt = ? WHERE id = ?',
+        [profileImage, displayName, now, accountId]
+      );
+    } else {
+      this.db.execute(
+        'UPDATE accounts SET profileImage = ?, updatedAt = ? WHERE id = ?',
+        [profileImage, now, accountId]
+      );
+    }
+  }
+
   async deleteAllUserAccounts(userId: string): Promise<void> {
     this.db.transaction(() => {
       this.db.execute('DELETE FROM accounts WHERE userId = ?', [userId]);
@@ -938,6 +953,7 @@ export class DatabaseClient {
       retweetCount: tweet.retweetCount || 0,
       replyCount: tweet.replyCount || 0,
       impressionCount: tweet.impressionCount || 0,
+      bookmarkCount: tweet.bookmarkCount || 0,
       recurrenceType: tweet.recurrenceType || null,
       recurrenceInterval: tweet.recurrenceInterval || null,
       recurrenceEndDate: tweet.recurrenceEndDate ? new Date(tweet.recurrenceEndDate) : null,

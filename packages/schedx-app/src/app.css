@@ -695,6 +695,71 @@ html[data-theme="lightsout"] .sidebar {
 
 /* Filerobot Image Editor - Let CDN styles work, only block theme overrides */
 
+/* Sidebar active state in lights-out mode - override blue backgrounds */
+html[data-theme="lightsout"] .sidebar .bg-blue-100 {
+  background-color: #2a2a2a !important;
+}
+
+html[data-theme="lightsout"] .sidebar .text-blue-700 {
+  color: #f0f0f0 !important;
+}
+
+/* SchedX Activity card in lights-out mode */
+html[data-theme="lightsout"] .schedx-activity-card {
+  background: #1a1a1a !important;
+  border-color: #333333 !important;
+}
+
+html[data-theme="lightsout"] .schedx-icon {
+  color: #888888 !important;
+}
+
+html[data-theme="lightsout"] .schedx-label {
+  color: #888888 !important;
+}
+
+/* Profile cards in lights-out mode - fix blue borders and text */
+/* Exclude sidebar from this rule */
+html[data-theme="lightsout"] .border-gray-200:not(.sidebar):not(.sidebar *) {
+  border-color: #333333 !important;
+}
+
+html[data-theme="lightsout"] .border-blue-100,
+html[data-theme="lightsout"] .border-blue-900\/50 {
+  border-color: #333333 !important;
+}
+
+html[data-theme="lightsout"] .from-blue-50,
+html[data-theme="lightsout"] .to-blue-100\/50,
+html[data-theme="lightsout"] .from-blue-950\/30,
+html[data-theme="lightsout"] .to-blue-900\/20 {
+  --tw-gradient-from: #1a1a1a !important;
+  --tw-gradient-to: #1a1a1a !important;
+}
+
+html[data-theme="lightsout"] .text-blue-600,
+html[data-theme="lightsout"] .text-blue-700,
+html[data-theme="lightsout"] .text-blue-500,
+html[data-theme="lightsout"] .text-blue-400,
+html[data-theme="lightsout"] .text-blue-300 {
+  color: #888888 !important;
+}
+
+/* Fix stat labels that might be showing blue */
+html[data-theme="lightsout"] .text-xs.text-gray-500 {
+  color: #888888 !important;
+}
+
+/* Force all text-gray-500 in lights-out to be gray, not blue */
+html[data-theme="lightsout"] .text-gray-500 {
+  color: #888888 !important;
+}
+
+/* Override any Tailwind dark: variants that might be applying blue */
+html[data-theme="lightsout"] [class*="dark:text-gray-400"] {
+  color: #888888 !important;
+}
+
 /* Avatar dropdown in lights-out mode */
 html[data-theme="lightsout"] .avatar-dropdown {
   background-color: #111111;
@@ -1017,10 +1082,11 @@ html[data-theme="lightsout"] .badge-gray {
 }
 
 /* Text color overrides for lights-out mode - more muted */
+/* Blue text should be gray in lights-out mode for consistency */
 html[data-theme="lightsout"] .text-blue-600,
 html[data-theme="lightsout"] .text-blue-700,
 html[data-theme="lightsout"] .text-blue-800 {
-  color: #60a5fa !important;
+  color: #888888 !important;
 }
 
 html[data-theme="lightsout"] .text-green-600,
@@ -1228,4 +1294,29 @@ html[data-theme="dark"] .text-red-700 {
 
 html[data-theme="lightsout"] .text-red-700 {
   color: #fecaca;
+}
+
+/* ============================================
+   LIGHTS-OUT MODE FINAL OVERRIDES
+   These rules have highest specificity to fix any remaining issues
+   ============================================ */
+
+/* Sidebar in lights-out mode - ensure proper border radius and no visible borders */
+html[data-theme="lightsout"] .sidebar {
+  border-color: transparent !important;
+  overflow: hidden !important;
+}
+
+html[data-theme="lightsout"] .sidebar > div {
+  overflow: hidden !important;
+}
+
+/* Profile card stat labels - ensure gray not blue */
+html[data-theme="lightsout"] p.text-xs {
+  color: #888888 !important;
+}
+
+/* Any remaining blue text in lights-out mode */
+html[data-theme="lightsout"] *[class*="text-blue"] {
+  color: #888888 !important;
 }

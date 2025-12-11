@@ -40,6 +40,7 @@ export interface Tweet {
   retweetCount?: number;
   replyCount?: number;
   impressionCount?: number;
+  bookmarkCount?: number;
   twitterTweetId?: string;
   twitterAccountId?: string;
   recurrenceType?: 'daily' | 'weekly' | 'monthly' | null;

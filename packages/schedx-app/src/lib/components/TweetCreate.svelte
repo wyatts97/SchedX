@@ -12,6 +12,7 @@
 	import FileUpload from '$lib/components/FileUpload.svelte';
 	import AIGenerator from '$lib/components/AIGenerator.svelte';
 	import DateTimePicker from '$lib/components/DateTimePicker.svelte';
+	import StyledSelect from '$lib/components/StyledSelect.svelte';
 	import { CheckCircle, XCircle, Loader2, Save, FileText, ListPlus, Calendar, Send, Sparkles } from 'lucide-svelte';
 	import logger from '$lib/logger';
 	import { toastStore } from '$lib/stores/toastStore';
@@ -429,19 +430,18 @@
 	/>
 	<!-- Recurrence -->
 	<div class="flex-1">
-		<label for="recurrence" class="mb-2 block text-sm font-medium dark:text-white">Recurrence</label
-		>
-		<select
+		<span class="mb-2 block text-sm font-medium dark:text-white">Recurrence</span>
+		<StyledSelect
 			id="recurrence"
-			class="block w-full rounded-lg border-2 border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
 			bind:value={recurrence}
-			disabled={submitting}
-		>
-			<option value="">None</option>
-			<option value="daily">Daily</option>
-			<option value="weekly">Weekly</option>
-			<option value="monthly">Monthly</option>
-		</select>
+			options={[
+				{ value: '', label: 'None' },
+				{ value: 'daily', label: 'Daily' },
+				{ value: 'weekly', label: 'Weekly' },
+				{ value: 'monthly', label: 'Monthly' }
+			]}
+			placeholder="Select recurrence"
+		/>
 	</div>
 </div>
 

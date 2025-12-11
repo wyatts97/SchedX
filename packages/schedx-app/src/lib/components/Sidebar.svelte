@@ -71,7 +71,7 @@
 		<div class="relative z-40 flex flex-col">
 			<!-- Floating Sidebar Panel -->
 			<div
-				class="sidebar h-full w-64 flex flex-col border-r border-gray-200 bg-white shadow-sidebar dark:bg-[#15202B] theme-lightsout:bg-[#111111] relative w-64 overflow-visible rounded-2xl border border-gray-200/50 bg-white/80 shadow-xl backdrop-blur-md dark:border-gray-700/50 dark:bg-gray-800/80 dark:shadow-gray-900/20"
+				class="sidebar h-full w-64 flex flex-col bg-white shadow-sidebar dark:bg-[#15202B] theme-lightsout:bg-[#111111] relative overflow-hidden rounded-2xl border border-gray-200/50 bg-white/80 shadow-xl backdrop-blur-md dark:border-gray-700/50 dark:bg-gray-800/80 dark:shadow-gray-900/20 theme-lightsout:border-gray-800/50"
 			>
 				<div class="relative flex flex-col overflow-visible">
 					<!-- Header -->
@@ -105,8 +105,8 @@
 										<a
 											class="focus:outline-hidden flex items-center gap-x-3.5 rounded-xl px-3 py-2.5 text-sm transition-all duration-200 {currentPath ===
 											item.href
-												? 'bg-blue-100 text-blue-700 font-semibold shadow-sm dark:bg-gray-700/50 dark:text-gray-200 theme-lightsout:!bg-[#2a2a2a] theme-lightsout:!text-white theme-lightsout:!shadow-none'
-												: 'text-gray-700 hover:bg-gray-100/80 focus:bg-gray-100/80 dark:text-gray-300 dark:hover:bg-gray-700/80 dark:focus:bg-gray-700/80 theme-lightsout:!text-gray-100 theme-lightsout:hover:!bg-[#1a1a1a] theme-lightsout:focus:!bg-[#1a1a1a]'}"
+												? 'bg-blue-100 text-blue-700 font-semibold shadow-sm dark:bg-gray-700/50 dark:text-gray-200 theme-lightsout:!bg-[#2a2a2a] theme-lightsout:!text-gray-100 theme-lightsout:!shadow-none'
+												: 'text-gray-700 hover:bg-gray-100/80 focus:bg-gray-100/80 dark:text-gray-300 dark:hover:bg-gray-700/80 dark:focus:bg-gray-700/80 theme-lightsout:!text-gray-300 theme-lightsout:hover:!bg-[#1a1a1a] theme-lightsout:focus:!bg-[#1a1a1a]'}"
 											href={item.href}
 											title={item.description}
 										>

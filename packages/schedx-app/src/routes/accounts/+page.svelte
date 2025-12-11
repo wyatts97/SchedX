@@ -10,7 +10,8 @@
 		AlertTriangle,
 		CheckCircle,
 		XCircle,
-		Loader2
+		Loader2,
+		RefreshCw
 	} from 'lucide-svelte';
 	import type { PageData } from './$types';
 	import logger from '$lib/logger';
@@ -29,6 +30,7 @@
 	let maxPolls = 30;
 	let showAppSelectionModal = false;
 	let initialLoad = true; // Track if this is the first load
+	let refreshingAvatars = false; // Track if we're refreshing avatars
 
 
 	const isAuthenticated = $page.data.isAuthenticated;
@@ -197,6 +199,32 @@
 		}
 	}
 
+	async function refreshAvatars() {
+		refreshingAvatars = true;
+		toastStore.info('Refreshing Avatars', 'Fetching high-quality profile images...');
+		try {
+			const res = await fetch('/api/accounts/refresh-avatars', {
+				method: 'POST'
+			});
+
+			if (!res.ok) {
+				throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+			}
+
+			const data = await res.json();
+			if (data.success) {
+				await fetchAccounts();
+				toastStore.success('Avatars Updated', `Updated ${data.updated} of ${data.total} account avatars`);
+			} else {
+				toastStore.error('Refresh Failed', 'Failed to refresh avatars');
+			}
+		} catch (e) {
+			toastStore.error('Refresh Failed', 'Failed to refresh avatars');
+		} finally {
+			refreshingAvatars = false;
+		}
+	}
+
 	onMount(async () => {
 		// Initialize Preline components
 		if (browser) {
@@ -295,7 +323,7 @@
 	<div
 		class="mb-6 rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800"
 	>
-		<div class="border-b border-gray-200 px-6 py-4 dark:border-gray-700">
+		<div class="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">
 			<h2 class="flex items-center text-lg font-semibold text-gray-900 dark:text-white">
 				<Users class="mr-2 h-5 w-5" />
 				Connected Accounts
@@ -303,6 +331,18 @@
 					<Loader2 class="ml-2 h-4 w-4 animate-spin" />
 				{/if}
 			</h2>
+			{#if accounts.length > 0}
+				<button
+					type="button"
+					on:click={refreshAvatars}
+					disabled={refreshingAvatars}
+					class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+					title="Refresh profile images to higher quality versions"
+				>
+					<RefreshCw class="h-4 w-4 {refreshingAvatars ? 'animate-spin' : ''}" />
+					{refreshingAvatars ? 'Refreshing...' : 'Refresh Avatars'}
+				</button>
+			{/if}
 		</div>
 
 		<div class="p-6">

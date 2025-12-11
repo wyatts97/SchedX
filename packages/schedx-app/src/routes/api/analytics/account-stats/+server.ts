@@ -50,17 +50,20 @@ export const GET: RequestHandler = async ({ locals }) => {
 						username: analytics.username,
 						displayName: analytics.displayName,
 						profileImage: analytics.profileImage,
+						profileBanner: analytics.profileBanner,
 						followers: analytics.followers,
 						following: analytics.following,
 						tweetsCount: analytics.tweetsCount,
 						verified: analytics.verified,
 						bio: analytics.bio,
+						createdAt: analytics.createdAt,
 						recentTweets: analytics.recentTweets,
 						totalLikes: analytics.totalLikes,
 						totalRetweets: analytics.totalRetweets,
 						totalReplies: analytics.totalReplies,
 						totalViews: analytics.totalViews,
-						avgEngagement: analytics.avgEngagement
+						avgEngagement: analytics.avgEngagement,
+						engagementRate: analytics.engagementRate
 					};
 				} catch (err) {
 					logger.error({

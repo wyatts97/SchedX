@@ -5,6 +5,7 @@
 	import { createEventDispatcher } from 'svelte';
 	import TweetPreview from '$lib/components/TweetPreview.svelte';
 	import AccountDropdown from '$lib/components/AccountDropdown.svelte';
+	import StyledSelect from '$lib/components/StyledSelect.svelte';
 
 	export let tweets: Tweet[] = [];
 	export let accounts: UserAccount[] = [];
@@ -110,16 +111,16 @@
 
 			<!-- Status Filter -->
 			<div class="flex-1">
-				<label for="status-filter" class="sr-only">Filter by status</label>
-				<select
+				<StyledSelect
 					id="status-filter"
 					bind:value={selectedStatus}
-					class="input-surface block w-full rounded-lg px-3 py-2 text-sm focus:border-surface-500 focus:ring-surface-500 dark:text-surface-100"
-				>
-					<option value="all">All Status</option>
-					<option value="scheduled">Scheduled</option>
-					<option value="queued">Queued</option>
-				</select>
+					options={[
+						{ value: 'all', label: 'All Status' },
+						{ value: 'scheduled', label: 'Scheduled' },
+						{ value: 'queued', label: 'Queued' }
+					]}
+					placeholder="Filter by status"
+				/>
 			</div>
 		</div>
 

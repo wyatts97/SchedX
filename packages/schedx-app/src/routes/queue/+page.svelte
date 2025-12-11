@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { Settings, Calendar as CalendarIcon, Edit, Trash2, GripVertical, Shuffle } from 'lucide-svelte';
 	import { toastStore } from '$lib/stores/toastStore';
+	import AccountDropdown from '$lib/components/AccountDropdown.svelte';
 	import logger from '$lib/logger';
 
 	let queuedTweets: any[] = [];
@@ -10,7 +11,7 @@
 	let processingQueue = false;
 	let shuffling = false;
 	let accounts: any[] = [];
-	let selectedAccountId: string | undefined = undefined;
+	let selectedAccountId: string = 'all';
 
 	onMount(async () => {
 		await fetchAccounts();
@@ -35,7 +36,7 @@
 		loading = true;
 		error = '';
 		try {
-			const url = selectedAccountId
+			const url = selectedAccountId && selectedAccountId !== 'all'
 				? `/api/queue?accountId=${selectedAccountId}`
 				: '/api/queue';
 			const res = await fetch(url, {
@@ -56,7 +57,8 @@
 		}
 	}
 
-	function onAccountChange() {
+	function onAccountChange(accountId: string) {
+		selectedAccountId = accountId;
 		fetchQueue();
 	}
 
@@ -168,23 +170,20 @@
 	<!-- Account Filter -->
 	{#if accounts.length > 1}
 		<div class="mb-6 rounded-lg bg-white p-4 shadow dark:bg-gray-800">
-			<label for="account-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+			<span class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
 				Filter by Account
-			</label>
-			<select
-				id="account-filter"
-				bind:value={selectedAccountId}
-				on:change={onAccountChange}
-				class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
-			>
-				<option value={undefined}>All Accounts</option>
-				{#each accounts as account}
-					<option value={account.providerAccountId}>
-						@{account.username}
-						{#if account.isDefault}(Default){/if}
-					</option>
-				{/each}
-			</select>
+			</span>
+			<AccountDropdown
+				accounts={accounts.map(acc => ({
+					id: acc.providerAccountId,
+					username: acc.username,
+					displayName: acc.displayName || acc.username,
+					avatarUrl: acc.profileImage
+				}))}
+				selectedAccount={selectedAccountId}
+				onSelect={onAccountChange}
+				placeholder="All Accounts"
+			/>
 		</div>
 	{/if}
 

@@ -1,0 +1,97 @@
+# Docker Compose with Litestream for automatic SQLite backups
+# Usage: docker-compose -f docker-compose.litestream.yml up -d
+#
+# This provides:
+# - Automatic real-time database replication
+# - Point-in-time recovery capability
+# - Local backups (default) or cloud storage (configurable)
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.litestream
+    # Command is passed to litestream-entrypoint.sh
+    command: npm start -w @schedx/app
+    ports:
+      - "${PORT:-5173}:${PORT:-5173}"
+    env_file:
+      - .env.docker
+    environment:
+      - BODY_SIZE_LIMIT=52428800
+      - NODE_OPTIONS=--max-http-header-size=65536
+      - DOCKER=true
+      - NODE_ENV=production
+      # Litestream S3 configuration (optional - uncomment to enable)
+      # - LITESTREAM_S3_ENDPOINT=s3.us-west-2.amazonaws.com
+      # - LITESTREAM_S3_REGION=us-west-2
+      # - LITESTREAM_ACCESS_KEY_ID=${LITESTREAM_ACCESS_KEY_ID}
+      # - LITESTREAM_SECRET_ACCESS_KEY=${LITESTREAM_SECRET_ACCESS_KEY}
+    volumes:
+      - uploads-data:/app/packages/schedx-app/uploads
+      - db-data:/data
+      - backup-data:/backups
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:5173/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    networks:
+      - schedx-network
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile.litestream
+    command: npm start -w @schedx/scheduler
+    env_file:
+      - .env.docker
+    environment:
+      - DOCKER=true
+      - NODE_ENV=production
+    volumes:
+      - uploads-data:/app/packages/schedx-app/uploads
+      - db-data:/data
+      - backup-data:/backups
+    healthcheck:
+      test: ["CMD", "pgrep", "node"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    networks:
+      - schedx-network
+
+volumes:
+  db-data:
+  uploads-data:
+  backup-data:
+    # For external backup storage, you can mount a host directory:
+    # driver: local
+    # driver_opts:
+    #   type: none
+    #   o: bind
+    #   device: /path/to/external/backup/drive
+
+networks:
+  schedx-network:
+    driver: bridge

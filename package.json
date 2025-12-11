@@ -34,6 +34,10 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
+    "@rollup/plugin-commonjs": "^29.0.0",
+    "@rollup/plugin-json": "^6.1.0",
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@rollup/plugin-terser": "^0.4.4",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^24.0.14",
     "chromatic": "^13.3.2",
@@ -77,6 +81,5 @@
   },
   "overrides": {
     "cookie": "^0.7.0"
-    }
+  }
 }
-
