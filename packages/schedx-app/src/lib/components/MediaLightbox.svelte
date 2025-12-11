@@ -56,8 +56,11 @@
 						type: getVideoMimeType(media.url),
 					},
 				];
-				item.width = media.width || 1920;
-				item.height = media.height || 1080;
+				// Only set dimensions if provided, otherwise let it auto-size
+				if (media.width && media.height) {
+					item.width = media.width;
+					item.height = media.height;
+				}
 				// Add video attributes
 				item.attr = {
 					controls: true,
@@ -65,11 +68,14 @@
 					playsinline: true,
 				};
 			} else {
-				// Image or GIF: use img property
+				// Image or GIF: use img property - don't force dimensions to preserve aspect ratio
 				item.img = media.url;
 				item.thumb = media.url; // Use same URL for thumbnail
-				item.width = media.width || 1920;
-				item.height = media.height || 1080;
+				// Only set dimensions if explicitly provided
+				if (media.width && media.height) {
+					item.width = media.width;
+					item.height = media.height;
+				}
 			}
 
 			return item;

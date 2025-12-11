@@ -206,7 +206,8 @@
                     {@const account = tweet.twitterAccountId ? accountById[tweet.twitterAccountId] : null}
                     {#if account}
                         {@const stats = getTweetStats(tweet)}
-                        <div class="tweet-preview-wrapper">
+                        <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-800">
+                            <div class="tweet-preview-wrapper [&>div]:rounded-none [&>div]:border-0 [&>div]:shadow-none">
                             <TweetPreview
                                 avatarUrl={account.profileImage || '/avatar.png'}
                                 displayName={account.displayName || account.username}
@@ -243,6 +244,7 @@
                                     {/if}
                                 </svelte:fragment>
                             </TweetPreview>
+                            </div>
                         </div>
                     {:else}
                         <div class="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">

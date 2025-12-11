@@ -379,8 +379,8 @@
 	</div>
 	<textarea
 		id="tweet-content"
-		class="block w-full rounded-lg border-2 border-gray-300 bg-white px-3 py-2 shadow-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:pointer-events-none disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 sm:px-4 sm:py-3 sm:text-sm"
-		rows="3"
+		class="block w-full rounded-lg border-2 border-gray-300 bg-white px-3 pb-12 pt-2 shadow-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:pointer-events-none disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 sm:px-4 sm:pb-12 sm:pt-3 sm:text-sm"
+		rows="4"
 		maxlength="280"
 		placeholder="What's happening?"
 		bind:value={tweetContent}
@@ -388,7 +388,7 @@
 		bind:this={textareaEl}
 		disabled={submitting}
 	></textarea>
-	<div class="absolute bottom-2 right-2 flex gap-1">
+	<div class="absolute bottom-3 right-3 flex gap-1.5">
 		<button
 			type="button"
 			class="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-sm transition-all hover:scale-105 hover:shadow-md"

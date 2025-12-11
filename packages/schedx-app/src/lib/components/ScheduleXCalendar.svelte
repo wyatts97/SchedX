@@ -213,7 +213,24 @@
 			subtree: true
 		});
 
-		return () => observer.disconnect();
+		// Hide preview on scroll to prevent position mismatch
+		const handleScroll = () => {
+			if (showHoverPreview) {
+				showHoverPreview = false;
+				hoveredEvent = null;
+				if (hoverTimeout) {
+					clearTimeout(hoverTimeout);
+					hoverTimeout = null;
+				}
+			}
+		};
+
+		window.addEventListener('scroll', handleScroll, true);
+
+		return () => {
+			observer.disconnect();
+			window.removeEventListener('scroll', handleScroll, true);
+		};
 	}
 
 	function handleEventHover(e: MouseEvent) {

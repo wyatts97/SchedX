@@ -141,56 +141,53 @@
 	</div>
 
 	{#if validMediaItems && validMediaItems.length > 0}
-		<div class="mt-2 flex flex-col gap-2">
+		<!-- Twitter/X style media grid -->
+		<div class="mt-3 overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700"
+			class:grid={validMediaItems.length > 1}
+			class:grid-cols-2={validMediaItems.length > 1}
+			class:gap-0.5={validMediaItems.length > 1}
+		>
 			{#each validMediaItems as m, index}
-				{#if m.type === 'image' || m.type === 'photo' || m.type === 'gif'}
-					<button
-						type="button"
-						class="w-full cursor-pointer border-0 bg-transparent p-0"
-						on:click={() => openLightbox(index)}
-					>
-						<img
-							class="theme-dark:border-gray-700 max-h-96 w-full rounded-2xl border border-gray-100 object-contain dark:border-gray-700"
-							src={m.url}
-							alt="Tweet media"
-						/>
-					</button>
-				{:else if m.type === 'video'}
-					<div
-						class="group relative cursor-pointer"
-						on:click={() => openLightbox(index)}
-						on:keydown={(e) => {
-							if (e.key === 'Enter' || e.key === ' ') {
-								e.preventDefault();
-								openLightbox(index);
-							}
-						}}
-						role="button"
-						tabindex="0"
-						aria-label="Play video"
-					>
-						<!-- svelte-ignore element_invalid_self_closing_tag -->
+				{@const isVideo = m.type === 'video'}
+				{@const isSingle = validMediaItems.length === 1}
+				<button
+					type="button"
+					class="relative block w-full cursor-pointer overflow-hidden border-0 bg-gray-100 p-0 dark:bg-gray-800"
+					class:aspect-video={isSingle}
+					class:aspect-square={!isSingle}
+					class:row-span-2={validMediaItems.length === 3 && index === 0}
+					on:click={() => openLightbox(index)}
+				>
+					{#if isVideo}
 						<video
-							class="theme-dark:border-gray-700 max-h-96 rounded-2xl border border-gray-100 object-contain dark:border-gray-700"
+							class="h-full w-full object-cover"
 							src={m.url}
 							muted
 							playsinline
 						></video>
-						<div class="absolute inset-0 flex items-center justify-center">
-							<svg
-								class="h-16 w-16 opacity-80 transition-transform group-hover:scale-110"
-								xmlns="http://www.w3.org/2000/svg"
-								viewBox="0 0 72 72"
-								><circle class="fill-white" cx="36" cy="36" r="36" fill-opacity=".8" /><path
-									class="fill-indigo-500 drop-shadow-2xl"
-									d="M44 36a.999.999 0 0 0-.427-.82l-10-7A1 1 0 0 0 32 29V43a.999.999 0 0 0 1.573.82l10-7A.995.995 0 0 0 44 36V36c0 .001 0 .001 0 0Z"
-								/></svg
-							>
+						<div class="absolute inset-0 flex items-center justify-center bg-black/20">
+							<div class="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 shadow-lg">
+								<svg class="ml-1 h-5 w-5 text-gray-900" fill="currentColor" viewBox="0 0 20 20">
+									<path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+								</svg>
+							</div>
 						</div>
-					</div>
-				{/if}
+					{:else}
+						<img
+							class="h-full w-full object-cover"
+							src={m.url}
+							alt="Tweet media"
+							loading="lazy"
+						/>
+					{/if}
+				</button>
 			{/each}
 		</div>
+		{#if validMediaItems.length > 1}
+			<p class="mt-1 text-center text-xs text-gray-500 dark:text-gray-400">
+				Media {validMediaItems.length} · Tap to view full
+			</p>
+		{/if}
 	{/if}
 	<MediaLightbox bind:this={lightbox} mediaItems={lightboxMedia} />
 	<div class="text-gray-500 dark:text-gray-400 theme-lightsout:text-gray-400">
