@@ -46,6 +46,21 @@
 	
 	// AI Generator state
 	let showAIGenerator = false;
+	let aiEnabled = false;
+	
+	// Check if OpenRouter AI is enabled
+	async function checkAIEnabled() {
+		try {
+			const response = await fetch('/api/admin/openrouter');
+			if (response.ok) {
+				const data = await response.json();
+				aiEnabled = data.settings?.enabled || false;
+			}
+		} catch (err) {
+			logger.debug('Failed to check AI status:', err instanceof Error ? { error: err.message } : undefined);
+			aiEnabled = false;
+		}
+	}
 	
 	// Initialize media from initialMedia prop for edit mode
 	$: if (mode === 'edit' && initialMedia && initialMedia.length > 0 && tweetMedia.length === 0) {
@@ -105,6 +120,9 @@
 			if (initialDate) {
 				scheduledDate = new Date(initialDate).toISOString();
 			}
+			
+			// Check if AI is enabled
+			await checkAIEnabled();
 		}
 
 		// Load initial media for edit mode
@@ -389,16 +407,18 @@
 		disabled={submitting}
 	></textarea>
 	<div class="absolute bottom-3 right-3 flex gap-1.5">
-		<button
-			type="button"
-			class="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-sm transition-all hover:scale-105 hover:shadow-md"
-			on:click={() => (showAIGenerator = true)}
-			aria-label="AI Suggestions"
-			title="AI Tweet Suggestions"
-			disabled={submitting}
-		>
-			<Sparkles class="h-4 w-4" />
-		</button>
+		{#if aiEnabled}
+			<button
+				type="button"
+				class="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-sm transition-all hover:scale-105 hover:shadow-md"
+				on:click={() => (showAIGenerator = true)}
+				aria-label="AI Suggestions"
+				title="AI Tweet Suggestions"
+				disabled={submitting}
+			>
+				<Sparkles class="h-4 w-4" />
+			</button>
+		{/if}
 		<button
 			type="button"
 			class="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-xl transition-colors hover:bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500"

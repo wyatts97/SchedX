@@ -32,15 +32,32 @@
 	});
 
 	/**
+	 * Preload image and get its natural dimensions
+	 */
+	function getImageDimensions(url: string): Promise<{ width: number; height: number }> {
+		return new Promise((resolve) => {
+			const img = new Image();
+			img.onload = () => {
+				resolve({ width: img.naturalWidth, height: img.naturalHeight });
+			};
+			img.onerror = () => {
+				// Fallback to square aspect ratio if image fails to load
+				resolve({ width: 1000, height: 1000 });
+			};
+			img.src = url;
+		});
+	}
+
+	/**
 	 * Opens the lightbox at a specific media item
 	 * @param index - Index of the media item to display
 	 * @param element - Optional DOM element for animation origin
 	 */
-	export function open(index: number = 0, element?: HTMLElement) {
+	export async function open(index: number = 0, element?: HTMLElement) {
 		if (!bp || !browser) return;
 
-		// Convert media items to bigger-picture format
-		const items = mediaItems.map((media) => {
+		// Convert media items to bigger-picture format, preloading images to get dimensions
+		const items = await Promise.all(mediaItems.map(async (media) => {
 			const item: any = {
 				element: element, // For animation
 				alt: media.filename,
@@ -56,11 +73,9 @@
 						type: getVideoMimeType(media.url),
 					},
 				];
-				// Only set dimensions if provided, otherwise let it auto-size
-				if (media.width && media.height) {
-					item.width = media.width;
-					item.height = media.height;
-				}
+				// Set dimensions if provided, otherwise use reasonable defaults for video
+				item.width = media.width || 1280;
+				item.height = media.height || 720;
 				// Add video attributes
 				item.attr = {
 					controls: true,
@@ -68,24 +83,31 @@
 					playsinline: true,
 				};
 			} else {
-				// Image or GIF: use img property - don't force dimensions to preserve aspect ratio
+				// Image or GIF: preload to get actual dimensions
 				item.img = media.url;
-				item.thumb = media.url; // Use same URL for thumbnail
-				// Only set dimensions if explicitly provided
+				item.thumb = media.url;
+				
+				// Use provided dimensions or preload image to get natural dimensions
 				if (media.width && media.height) {
 					item.width = media.width;
 					item.height = media.height;
+				} else {
+					// Preload image to get natural dimensions
+					const dims = await getImageDimensions(media.url);
+					item.width = dims.width;
+					item.height = dims.height;
 				}
 			}
 
 			return item;
-		});
+		}));
 
 		// Open lightbox
 		bp.open({
 			items,
 			position: index,
 			intro: 'fadeup',
+			scale: 0.95,
 		});
 	}
 

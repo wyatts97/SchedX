@@ -170,11 +170,14 @@ export const mediaUploadSchema = z.object({
 					'image/gif',
 					'image/webp',
 					'video/mp4',
-					'video/quicktime'
+					'video/webm',
+					'video/quicktime',
+					'video/mov'
 				].includes(file.type),
-			'File type must be JPEG, PNG, GIF, WebP, MP4, or QuickTime'
+			'File type must be JPEG, PNG, GIF, WebP, MP4, WebM, or MOV'
 		),
-	accountId: z.union([uuidSchema, z.undefined(), z.literal('')]).optional()
+	// accountId can be a UUID or a Twitter provider account ID (numeric string)
+	accountId: z.string().optional()
 });
 
 // API request validation schemas

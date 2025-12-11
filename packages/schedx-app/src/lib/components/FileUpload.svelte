@@ -119,7 +119,7 @@
 	}
 
 	function handleFiles(selected: FileList | File[]) {
-		if (!selected || (Array.isArray(selected) && selected.length === 0)) {
+		if (!selected || selected.length === 0) {
 			clearFiles();
 			return;
 		}

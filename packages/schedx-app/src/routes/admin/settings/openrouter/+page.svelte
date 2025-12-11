@@ -244,18 +244,17 @@
                   Use OpenRouter for AI tweet generation
                 </p>
               </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={settings.enabled}
-                on:click={() => settings.enabled = !settings.enabled}
-                class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 {settings.enabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'}"
-              >
-                <span class="sr-only">Enable OpenRouter</span>
-                <span
-                  class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {settings.enabled ? 'translate-x-5' : 'translate-x-0'}"
-                ></span>
-              </button>
+              <label class="relative inline-flex cursor-pointer items-center">
+                <input
+                  type="checkbox"
+                  id="enabled"
+                  bind:checked={settings.enabled}
+                  class="peer sr-only"
+                />
+                <div
+                  class="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:border-gray-600 dark:bg-gray-700 dark:peer-focus:ring-blue-800"
+                ></div>
+              </label>
             </div>
 
             {#if settings.enabled}
