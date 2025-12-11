@@ -372,43 +372,42 @@
 				<div class="space-y-4">
 					{#each accounts as account}
 						<div
-							class="flex items-center justify-between rounded-lg bg-gray-50 p-4 dark:bg-gray-700"
+							class="flex flex-col gap-3 rounded-lg bg-gray-50 p-4 dark:bg-gray-700 sm:flex-row sm:items-center sm:justify-between"
 						>
-							<div class="flex items-center space-x-4">
+							<div class="flex items-center space-x-3 sm:space-x-4">
 								{#if account.profileImage}
 									<img
 										src={account.profileImage}
 										alt={account.displayName}
-										class="h-10 w-10 rounded-full"
+										class="h-10 w-10 flex-shrink-0 rounded-full"
 									/>
 								{:else}
 									<div
-										class="flex h-10 w-10 items-center justify-center rounded-full bg-gray-300 dark:bg-gray-600"
+										class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-gray-300 dark:bg-gray-600"
 									>
 										<span class="font-medium text-gray-600 dark:text-gray-400"
 											>{account.username.charAt(0).toUpperCase()}</span
 										>
 									</div>
 								{/if}
-								<div>
-									<div class="flex items-center space-x-2">
-										<h3 class="font-medium text-gray-900 dark:text-white">{account.displayName}</h3>
-										<span class="text-sm text-gray-500 dark:text-gray-400">@{account.username}</span
-										>
+								<div class="min-w-0 flex-1">
+									<div class="flex flex-wrap items-center gap-1 sm:gap-2">
+										<h3 class="truncate font-medium text-gray-900 dark:text-white">{account.displayName}</h3>
+										<span class="truncate text-sm text-gray-500 dark:text-gray-400">@{account.username}</span>
 										{#if account.isDefault}
 											<span
-												class="inline-flex items-center rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+												class="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200"
 											>
 												Default
 											</span>
 										{/if}
 									</div>
-									<p class="text-sm text-gray-500 dark:text-gray-400">
+									<p class="truncate text-sm text-gray-500 dark:text-gray-400">
 										Connected via {account.twitterAppName || 'Unknown App'}
 									</p>
 								</div>
 							</div>
-							<div class="flex items-center space-x-2">
+							<div class="flex items-center justify-end gap-2 sm:flex-shrink-0">
 								{#if !account.isDefault}
 									<button
 										class="inline-flex items-center rounded-lg bg-blue-500 px-3 py-1.5 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"

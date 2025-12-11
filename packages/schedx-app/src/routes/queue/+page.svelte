@@ -141,17 +141,17 @@
 
 <div class="mx-auto max-w-6xl">
 	<!-- Header -->
-	<div class="mb-6 flex items-center justify-between">
+	<div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 		<div>
-			<h1 class="text-3xl font-bold text-gray-900 dark:text-white">Tweet Queue</h1>
-			<p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+			<h1 class="text-2xl font-bold text-gray-900 dark:text-white sm:text-3xl">Tweet Queue</h1>
+			<p class="mt-1 text-sm text-gray-600 dark:text-gray-400 sm:mt-2">
 				Manage tweets waiting to be auto-scheduled
 			</p>
 		</div>
-		<div class="flex gap-3">
+		<div class="flex flex-col gap-2 sm:flex-row sm:gap-3">
 			<a
 				href="/queue/settings"
-				class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all duration-200 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+				class="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all duration-200 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
 			>
 				<Settings class="h-4 w-4" />
 				Queue Settings
@@ -159,10 +159,11 @@
 			<button
 				on:click={processQueue}
 				disabled={processingQueue || queuedTweets.length === 0}
-				class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+				class="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
 			>
 				<CalendarIcon class="h-4 w-4" />
-				{processingQueue ? 'Processing...' : 'Process Queue Now'}
+				<span class="hidden xs:inline">{processingQueue ? 'Processing...' : 'Process Queue Now'}</span>
+				<span class="xs:hidden">{processingQueue ? 'Processing...' : 'Process Now'}</span>
 			</button>
 		</div>
 	</div>

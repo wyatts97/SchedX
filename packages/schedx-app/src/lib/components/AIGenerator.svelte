@@ -349,13 +349,13 @@
 
 			<!-- Footer -->
 			<div
-				class="flex items-center justify-between border-t border-gray-200 px-6 py-4 dark:border-gray-700"
+				class="flex flex-col gap-3 border-t border-gray-200 px-4 py-4 dark:border-gray-700 sm:flex-row sm:items-center sm:justify-between sm:px-6"
 			>
 				<div class="flex gap-2">
 					<button
 						type="button"
 						on:click={close}
-						class="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+						class="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 sm:px-4"
 						disabled={generating}
 					>
 						Cancel
@@ -366,29 +366,31 @@
 						<button
 							type="button"
 							on:click={() => showSavedPrompts = !showSavedPrompts}
-							class="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+							class="flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 sm:gap-2 sm:px-4"
 							disabled={generating}
 						>
 							<Clock class="h-4 w-4" />
-							Past Prompts
+							<span class="hidden xs:inline">Past Prompts</span>
+							<span class="xs:hidden">History</span>
 						</button>
 					{/if}
 				</div>
 
-				<div class="flex gap-2">
+				<div class="flex flex-wrap gap-2">
 					{#if showResult}
 						<button
 							type="button"
 							on:click={() => (showResult = false)}
-							class="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+							class="flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 sm:gap-2 sm:px-4"
 						>
 							<RefreshCw class="h-4 w-4" />
-							Try Again
+							<span class="hidden xs:inline">Try Again</span>
+							<span class="xs:hidden">Retry</span>
 						</button>
 						<button
 							type="button"
 							on:click={useTweet}
-							class="flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700"
+							class="flex items-center gap-1.5 rounded-lg bg-purple-600 px-3 py-2 text-sm font-medium text-white hover:bg-purple-700 sm:gap-2 sm:px-4"
 						>
 							Use Tweet
 							<ArrowRight class="h-4 w-4" />
@@ -399,17 +401,18 @@
 							type="button"
 							on:click={savePrompt}
 							disabled={saving || !prompt.trim() || isSaved}
-							class="flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50
+							class="flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:gap-2 sm:px-4
 								{isSaved 
 									? 'border-green-500 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300'
 									: 'border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'}"
 						>
 							{#if isSaved}
 								<BookmarkCheck class="h-4 w-4" />
-								Saved!
+								<span class="hidden xs:inline">Saved!</span>
 							{:else}
 								<Bookmark class="h-4 w-4" />
-								Save Prompt
+								<span class="hidden xs:inline">Save Prompt</span>
+								<span class="xs:hidden">Save</span>
 							{/if}
 						</button>
 						
@@ -418,11 +421,12 @@
 							type="button"
 							on:click={generate}
 							disabled={generating || !prompt.trim()}
-							class="flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
+							class="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 sm:gap-2 sm:px-4"
 						>
 							{#if generating}
 								<RefreshCw class="h-4 w-4 animate-spin" />
-								Generating...
+								<span class="hidden xs:inline">Generating...</span>
+								<span class="xs:hidden">...</span>
 							{:else}
 								<Sparkles class="h-4 w-4" />
 								Generate

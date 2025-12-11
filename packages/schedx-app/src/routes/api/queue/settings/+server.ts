@@ -14,14 +14,16 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
 		}
 
 		const db = getDbInstance();
-		const user = await (db as any).getAdminUserByUsername('admin');
-		if (!user) {
-			return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+		
+		// Get the session to find the user ID (works regardless of username)
+		const session = await db.getSession(adminSession);
+		if (!session || !session.data?.user?.id) {
+			return new Response(JSON.stringify({ error: 'Unauthorized - Invalid session' }), {
 				status: 401,
 				headers: { 'Content-Type': 'application/json' }
 			});
 		}
-		const userId = user.id;
+		const userId = session.data.user.id;
 
 		// Get optional account filter from query params
 		const accountId = url.searchParams.get('accountId') || undefined;
@@ -72,14 +74,16 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		}
 
 		const db = getDbInstance();
-		const user = await (db as any).getAdminUserByUsername('admin');
-		if (!user) {
-			return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+		
+		// Get the session to find the user ID (works regardless of username)
+		const session = await db.getSession(adminSession);
+		if (!session || !session.data?.user?.id) {
+			return new Response(JSON.stringify({ error: 'Unauthorized - Invalid session' }), {
 				status: 401,
 				headers: { 'Content-Type': 'application/json' }
 			});
 		}
-		const userId = user.id;
+		const userId = session.data.user.id;
 		const settings = await request.json();
 
 		// Add userId to settings

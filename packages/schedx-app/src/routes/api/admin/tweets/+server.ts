@@ -3,6 +3,13 @@ import type { RequestHandler } from '@sveltejs/kit';
 import { getDbInstance } from '$lib/server/db';
 import logger from '$lib/server/logger';
 
+// Helper to get user ID from session
+async function getUserIdFromSession(adminSession: string): Promise<string | null> {
+	const db = getDbInstance();
+	const session = await db.getSession(adminSession);
+	return session?.data?.user?.id || null;
+}
+
 export const GET: RequestHandler = async ({ cookies }: any) => {
 	const adminSession = cookies.get('admin_session');
 
@@ -11,14 +18,14 @@ export const GET: RequestHandler = async ({ cookies }: any) => {
 	}
 
 	try {
-		const db = getDbInstance();
-		const user = await (db as any).getAdminUserByUsername('admin');
-		if (!user) {
+		const userId = await getUserIdFromSession(adminSession);
+		if (!userId) {
 			return json({ error: 'Unauthorized' }, { status: 401 });
 		}
 
+		const db = getDbInstance();
 		// Get all tweets
-		const tweets = await (db as any).getAllTweets(user.id);
+		const tweets = await (db as any).getAllTweets(userId);
 
 		// Format tweets for display
 		const formattedTweets = tweets.map((tweet: any) => ({

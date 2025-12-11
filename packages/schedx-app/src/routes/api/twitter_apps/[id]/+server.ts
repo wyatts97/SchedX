@@ -7,6 +7,13 @@ import logger from '$lib/logger';
 
 const twitterAuth = TwitterAuthService.getInstance();
 
+// Helper to get user ID from session
+async function getUserIdFromSession(adminSession: string): Promise<string | null> {
+	const db = getDbInstance();
+	const session = await db.getSession(adminSession);
+	return session?.data?.user?.id || null;
+}
+
 export const PUT: RequestHandler = async ({ params, cookies, request }) => {
 	const adminSession = cookies.get('admin_session');
 
@@ -18,15 +25,15 @@ export const PUT: RequestHandler = async ({ params, cookies, request }) => {
 	}
 
 	try {
-		const db = getDbInstance();
-		const user = await (db as any).getAdminUserByUsername('admin');
-		if (!user) {
+		const userId = await getUserIdFromSession(adminSession);
+		if (!userId) {
 			return new Response(JSON.stringify({ error: 'Unauthorized' }), {
 				status: 401,
 				headers: { 'Content-Type': 'application/json' }
 			});
 		}
 
+		const db = getDbInstance();
 		const appId = params.id;
 		if (!appId) {
 			return new Response(JSON.stringify({ error: 'App ID is required' }), {
@@ -156,15 +163,15 @@ export const DELETE: RequestHandler = async ({ params, cookies }) => {
 	}
 
 	try {
-		const db = getDbInstance();
-		const user = await (db as any).getAdminUserByUsername('admin');
-		if (!user) {
+		const userId = await getUserIdFromSession(adminSession);
+		if (!userId) {
 			return new Response(JSON.stringify({ error: 'Unauthorized' }), {
 				status: 401,
 				headers: { 'Content-Type': 'application/json' }
 			});
 		}
 
+		const db = getDbInstance();
 		const appId = params.id;
 		if (!appId) {
 			return new Response(JSON.stringify({ error: 'App ID is required' }), {
@@ -233,15 +240,15 @@ export const GET: RequestHandler = async ({ params, cookies }) => {
 	}
 
 	try {
-		const db = getDbInstance();
-		const user = await (db as any).getAdminUserByUsername('admin');
-		if (!user) {
+		const userId = await getUserIdFromSession(adminSession);
+		if (!userId) {
 			return new Response(JSON.stringify({ error: 'Unauthorized' }), {
 				status: 401,
 				headers: { 'Content-Type': 'application/json' }
 			});
 		}
 
+		const db = getDbInstance();
 		const appId = params.id;
 		if (!appId) {
 			return new Response(JSON.stringify({ error: 'App ID is required' }), {

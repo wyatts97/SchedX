@@ -4,6 +4,13 @@ import { log } from '$lib/server/logger';
 import { TwitterApi } from 'twitter-api-v2';
 import { TwitterAuthService } from '$lib/server/twitterAuth';
 
+// Helper to get user ID from session
+async function getUserIdFromSession(adminSession: string): Promise<string | null> {
+	const db = getDbInstance();
+	const session = await db.getSession(adminSession);
+	return session?.data?.user?.id || null;
+}
+
 export const GET: RequestHandler = async ({ cookies, url }) => {
 	const adminSession = cookies.get('admin_session');
 
@@ -15,15 +22,15 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
 	}
 
 	try {
-		const db = getDbInstance();
-		const user = await (db as any).getAdminUserByUsername('admin');
-		if (!user) {
+		const userId = await getUserIdFromSession(adminSession);
+		if (!userId) {
 			return new Response(JSON.stringify({ error: 'Unauthorized' }), {
 				status: 401,
 				headers: { 'Content-Type': 'application/json' }
 			});
 		}
 
+		const db = getDbInstance();
 		const appId = url.searchParams.get('appId');
 		if (!appId) {
 			return new Response(JSON.stringify({ error: 'App ID is required' }), {

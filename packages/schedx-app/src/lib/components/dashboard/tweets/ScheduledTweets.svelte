@@ -131,53 +131,49 @@
 					{@const account = tweet.twitterAccountId ? accountByProviderId[tweet.twitterAccountId] : undefined}
 					{@const displayDate = getDisplayDate(tweet)}
 					<div class="group relative rounded-lg border border-surface-200 bg-surface-100 transition-all hover:bg-surface-200 dark:border-surface-700 dark:bg-surface-800 dark:hover:bg-surface-800/80">
-						<!-- Status Badge & Actions - Top right corner -->
-						<div class="absolute right-3 top-3 z-10 flex gap-2">
+						<!-- Status Badge & Actions - Responsive positioning -->
+						<div class="relative z-10 flex flex-wrap items-center justify-end gap-2 p-3 pb-0 sm:absolute sm:right-3 sm:top-3 sm:p-0">
 							<!-- Status Badge with Countdown -->
 							{#if tweet.status === 'scheduled'}
-								<div class="flex items-center gap-2">
-									<span class="inline-flex items-center gap-1.5 rounded-full bg-surface-50 px-3 py-1.5 text-xs font-medium text-surface-700 ring-1 ring-inset ring-surface-600/20 dark:bg-surface-500/10 dark:text-surface-400 dark:ring-surface-500/30">
-										<Clock class="h-3 w-3" />
-										{getTimeUntil(displayDate)}
-									</span>
-									<button
-										type="button"
-										on:click={() => handleEditTweet(tweet)}
-										class="inline-flex items-center justify-center gap-2 rounded-full bg-blue-500 px-4 py-1.5 text-white ring-1 ring-inset ring-blue-600/20 transition-colors hover:bg-blue-600 dark:ring-blue-500/30"
-										title="Edit scheduled tweet"
-									>
-										<CalendarIcon class="h-3.5 w-3.5 flex-shrink-0" />
-										<div class="h-3.5 w-px bg-blue-600/20 dark:bg-blue-500/30"></div>
-										<Edit class="h-3.5 w-3.5 flex-shrink-0" />
-									</button>
-								</div>
+								<span class="inline-flex items-center gap-1 rounded-full bg-surface-50 px-2 py-1 text-xs font-medium text-surface-700 ring-1 ring-inset ring-surface-600/20 dark:bg-surface-500/10 dark:text-surface-400 dark:ring-surface-500/30">
+									<Clock class="h-3 w-3" />
+									<span class="hidden xs:inline">{getTimeUntil(displayDate)}</span>
+									<span class="xs:hidden">{getTimeUntil(displayDate).replace('in ', '')}</span>
+								</span>
+								<button
+									type="button"
+									on:click={() => handleEditTweet(tweet)}
+									class="inline-flex items-center justify-center gap-1.5 rounded-full bg-blue-500 px-2.5 py-1 text-white ring-1 ring-inset ring-blue-600/20 transition-colors hover:bg-blue-600 dark:ring-blue-500/30 sm:gap-2 sm:px-3 sm:py-1.5"
+									title="Edit scheduled tweet"
+								>
+									<CalendarIcon class="h-3 w-3 flex-shrink-0 sm:h-3.5 sm:w-3.5" />
+									<Edit class="h-3 w-3 flex-shrink-0 sm:h-3.5 sm:w-3.5" />
+								</button>
 							{:else if tweet.status === 'queued'}
-								<div class="flex items-center gap-2">
-									<span class="inline-flex items-center gap-1.5 rounded-full bg-surface-50 px-3 py-1.5 text-xs font-medium text-surface-700 ring-1 ring-inset ring-surface-600/20 dark:bg-surface-500/10 dark:text-surface-400 dark:ring-surface-500/30">
-										<Clock class="h-3 w-3" />
-										{getTimeUntil(displayDate)}
-									</span>
-									<button
-										type="button"
-										on:click={() => handleEditTweet(tweet)}
-										class="inline-flex items-center justify-center gap-2 rounded-full bg-blue-500 px-4 py-1.5 text-white ring-1 ring-inset ring-blue-600/20 transition-colors hover:bg-blue-600 dark:ring-blue-500/30"
-										title="Edit queued tweet"
-									>
-										<List class="h-3.5 w-3.5 flex-shrink-0" />
-										<div class="h-3.5 w-px bg-blue-600/20 dark:bg-blue-500/30"></div>
-										<Edit class="h-3.5 w-3.5 flex-shrink-0" />
-									</button>
-								</div>
+								<span class="inline-flex items-center gap-1 rounded-full bg-surface-50 px-2 py-1 text-xs font-medium text-surface-700 ring-1 ring-inset ring-surface-600/20 dark:bg-surface-500/10 dark:text-surface-400 dark:ring-surface-500/30">
+									<Clock class="h-3 w-3" />
+									<span class="hidden xs:inline">{getTimeUntil(displayDate)}</span>
+									<span class="xs:hidden">{getTimeUntil(displayDate).replace('in ', '')}</span>
+								</span>
+								<button
+									type="button"
+									on:click={() => handleEditTweet(tweet)}
+									class="inline-flex items-center justify-center gap-1.5 rounded-full bg-blue-500 px-2.5 py-1 text-white ring-1 ring-inset ring-blue-600/20 transition-colors hover:bg-blue-600 dark:ring-blue-500/30 sm:gap-2 sm:px-3 sm:py-1.5"
+									title="Edit queued tweet"
+								>
+									<List class="h-3 w-3 flex-shrink-0 sm:h-3.5 sm:w-3.5" />
+									<Edit class="h-3 w-3 flex-shrink-0 sm:h-3.5 sm:w-3.5" />
+								</button>
 							{/if}
 							
 							<!-- Delete Button -->
 							<button
 								type="button"
 								on:click={() => handleDeleteTweet(tweet)}
-								class="inline-flex items-center justify-center gap-2 rounded-full bg-red-500 px-4 py-1.5 text-white ring-1 ring-inset ring-red-600/20 transition-colors hover:bg-red-600 dark:ring-red-500/30"
+								class="inline-flex items-center justify-center rounded-full bg-red-500 p-1.5 text-white ring-1 ring-inset ring-red-600/20 transition-colors hover:bg-red-600 dark:ring-red-500/30 sm:gap-2 sm:px-3 sm:py-1.5"
 								title="Delete tweet"
 							>
-								<Trash2 class="h-3.5 w-3.5 flex-shrink-0" />
+								<Trash2 class="h-3 w-3 flex-shrink-0 sm:h-3.5 sm:w-3.5" />
 							</button>
 						</div>
 

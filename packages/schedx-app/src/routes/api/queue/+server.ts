@@ -3,6 +3,13 @@ import { getDbInstance } from '$lib/server/db';
 import { TweetStatus } from '@schedx/shared-lib/types/types';
 import { log } from '$lib/server/logger';
 
+// Helper to get user ID from session
+async function getUserIdFromSession(adminSession: string): Promise<string | null> {
+	const db = getDbInstance();
+	const session = await db.getSession(adminSession);
+	return session?.data?.user?.id || null;
+}
+
 // GET: Fetch queued tweets
 export const GET: RequestHandler = async ({ cookies, url }) => {
 	try {
@@ -14,16 +21,15 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
 			});
 		}
 
-		const db = getDbInstance();
-		const user = await (db as any).getAdminUserByUsername('admin');
-		if (!user) {
+		const userId = await getUserIdFromSession(adminSession);
+		if (!userId) {
 			return new Response(JSON.stringify({ error: 'Unauthorized' }), {
 				status: 401,
 				headers: { 'Content-Type': 'application/json' }
 			});
 		}
-		const userId = user.id;
 
+		const db = getDbInstance();
 		// Get optional account filter from query params
 		const accountId = url.searchParams.get('accountId') || undefined;
 

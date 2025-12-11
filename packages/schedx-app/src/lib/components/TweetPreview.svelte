@@ -118,7 +118,7 @@
 		
 		<!-- Action Badges Slot (replaces X logo when provided) -->
 		{#if $$slots.actions}
-			<div class="flex gap-2">
+			<div class="flex flex-shrink-0 gap-1 sm:gap-2">
 				<slot name="actions" />
 			</div>
 		{:else if showXLogo}

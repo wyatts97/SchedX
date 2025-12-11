@@ -252,6 +252,26 @@ export class DatabaseClient {
     };
   }
 
+  async getAdminUserById(id: string): Promise<import('../types/types.js').AdminUser | null> {
+    const user = this.db.queryOne<any>(
+      'SELECT * FROM users WHERE id = ? AND role = ?',
+      [id, 'admin']
+    );
+    
+    if (!user) return null;
+    
+    return {
+      id: user.id,
+      username: user.username || user.displayName || user.email,
+      passwordHash: user.password,
+      displayName: user.displayName,
+      email: user.email,
+      avatar: user.avatar || '/avatar.png',
+      createdAt: new Date(user.createdAt),
+      updatedAt: new Date(user.updatedAt)
+    };
+  }
+
   async updateAdminUserPassword(id: string, passwordHash: string): Promise<void> {
     const now = this.db.now();
     this.db.execute(

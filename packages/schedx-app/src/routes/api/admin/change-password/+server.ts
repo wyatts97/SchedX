@@ -13,7 +13,15 @@ export const POST: RequestHandler = async ({ request, cookies }: any) => {
 
 	try {
 		const db = getDbInstance();
-		const user = await (db as any).getAdminUserByUsername('admin');
+		
+		// Get the session to find the user ID
+		const session = await db.getSession(adminSession);
+		if (!session || !session.data?.user?.id) {
+			return json({ error: 'Unauthorized - Invalid session' }, { status: 401 });
+		}
+		
+		// Get admin user by ID from session (works regardless of username)
+		const user = await (db as any).getAdminUserById(session.data.user.id);
 		if (!user) {
 			return json({ error: 'Unauthorized - Admin user not found' }, { status: 401 });
 		}

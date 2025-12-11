@@ -138,20 +138,20 @@
 
 <div class="rounded-lg bg-white shadow dark:bg-gray-800">
 	<div class="px-4 py-5 sm:p-6">
-		<div class="mb-6 flex items-center justify-between">
+		<div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 			<h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">
 				Twitter Applications
 			</h3>
-			<div class="flex gap-3">
+			<div class="flex flex-col gap-2 sm:flex-row sm:gap-3">
 				<a
 					href="/accounts"
-					class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all duration-200 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+					class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all duration-200 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 sm:px-4"
 				>
 					<Users class="mr-2 h-4 w-4" />
 					Manage Accounts
 				</a>
 				<button
-					class="inline-flex items-center justify-center rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+					class="inline-flex items-center justify-center rounded-lg bg-blue-500 px-3 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:px-4"
 					on:click={() => dashboardStore.openAppForm()}
 				>
 					<Settings class="mr-2 h-4 w-4" />
@@ -178,7 +178,65 @@
 					</div>
 				</div>
 			{:else}
-				<div class="overflow-x-auto">
+				<!-- Mobile Card View -->
+				<div class="space-y-4 md:hidden">
+					{#each apps as app}
+						<div class="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
+							<div class="mb-3 flex items-start justify-between">
+								<h4 class="font-medium text-gray-900 dark:text-white">{app.name}</h4>
+								<span class="text-xs text-gray-500 dark:text-gray-400">
+									{new Date(app.createdAt).toLocaleDateString()}
+								</span>
+							</div>
+							<div class="mb-3 flex flex-wrap gap-2">
+								{#if app.clientId && app.clientSecret}
+									<span class="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/20 dark:text-green-200">
+										✓ OAuth 2.0
+									</span>
+								{:else}
+									<span class="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900/20 dark:text-red-200">
+										✗ OAuth 2.0
+									</span>
+								{/if}
+								{#if app.consumerKey && app.consumerSecret && app.accessToken && app.accessTokenSecret}
+									<span class="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/20 dark:text-green-200">
+										✓ Media Ready
+									</span>
+								{:else}
+									<span class="inline-flex items-center rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-200">
+										⚠ Text Only
+									</span>
+								{/if}
+							</div>
+							<p class="mb-3 truncate font-mono text-xs text-gray-500 dark:text-gray-400">
+								{app.callbackUrl}
+							</p>
+							<div class="flex gap-2">
+								<button
+									class="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+									on:click={() => testAppConnection(app)}
+								>
+									Test
+								</button>
+								<button
+									class="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+									on:click={() => dashboardStore.openAppForm(app)}
+								>
+									Edit
+								</button>
+								<button
+									class="flex-1 rounded-lg bg-red-600 px-3 py-2 text-xs font-medium text-white hover:bg-red-700"
+									on:click={() => deleteApp(app)}
+								>
+									Delete
+								</button>
+							</div>
+						</div>
+					{/each}
+				</div>
+
+				<!-- Desktop Table View -->
+				<div class="hidden overflow-x-auto md:block">
 					<table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
 						<thead class="bg-gray-50 dark:bg-gray-700">
 							<tr>

@@ -27,12 +27,9 @@ export const load: PageServerLoad = async ({
 
 			// Verify session exists and is valid
 			const session = await db.getSession(adminSession);
-			if (session && session.data.user.username === 'admin') {
-				const user = await (db as any).getAdminUserByUsername('admin');
-				if (user) {
-					userId = user.id;
-					isAdmin = true;
-				}
+			if (session && session.data?.user?.id) {
+				userId = session.data.user.id;
+				isAdmin = true;
 			}
 		} catch (error) {
 			logger.error('Error validating admin session');
@@ -196,12 +193,9 @@ export const actions: Actions = {
 			try {
 				const db = getDbInstance();
 				const session = await db.getSession(adminSession);
-				if (session && session.data.user.username === 'admin') {
-					const user = await (db as any).getAdminUserByUsername('admin');
-					if (user) {
-						userId = user.id;
-						isAdmin = true;
-					}
+				if (session && session.data?.user?.id) {
+					userId = session.data.user.id;
+					isAdmin = true;
 				}
 			} catch (error) {
 				logger.error('Error validating admin session');

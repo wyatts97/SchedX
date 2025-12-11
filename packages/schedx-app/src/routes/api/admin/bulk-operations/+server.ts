@@ -3,6 +3,13 @@ import type { RequestHandler } from '@sveltejs/kit';
 import { getDbInstance } from '$lib/server/db';
 import logger from '$lib/server/logger';
 
+// Helper to get user ID from session
+async function getUserIdFromSession(adminSession: string): Promise<string | null> {
+	const db = getDbInstance();
+	const session = await db.getSession(adminSession);
+	return session?.data?.user?.id || null;
+}
+
 export const POST: RequestHandler = async ({ request, cookies }: any) => {
 	const adminSession = cookies.get('admin_session');
 
@@ -11,25 +18,12 @@ export const POST: RequestHandler = async ({ request, cookies }: any) => {
 	}
 
 	try {
+		const userId = await getUserIdFromSession(adminSession);
+		if (!userId) {
+			return json({ error: 'Unauthorized' }, { status: 401 });
+		}
+
 		const db = getDbInstance();
-
-		// Verify session exists and is valid
-		const session = await db.getSession(adminSession);
-		if (!session) {
-			return json({ error: 'Unauthorized - Session expired' }, { status: 401 });
-		}
-
-		// Verify admin user exists and session belongs to admin
-		const user = await (db as any).getAdminUserByUsername('admin');
-		if (!user) {
-			return json({ error: 'Unauthorized - Admin user not found' }, { status: 401 });
-		}
-
-		// Validate that the session belongs to the admin user
-		if (session.data.user.username !== 'admin') {
-			return json({ error: 'Unauthorized - Invalid session' }, { status: 401 });
-		}
-
 		const { action, tweetIds } = await request.json();
 
 		if (!action || !tweetIds || !Array.isArray(tweetIds) || tweetIds.length === 0) {

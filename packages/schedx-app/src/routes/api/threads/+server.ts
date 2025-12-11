@@ -6,6 +6,13 @@ import { TwitterAuthService } from '$lib/server/twitterAuth';
 import { TwitterApi } from 'twitter-api-v2';
 import { validateAccountOwnership, validateScheduledDate, validateThreadTweets } from '$lib/validation/accountValidation';
 
+// Helper to get user ID from session
+async function getUserIdFromSession(adminSession: string): Promise<string | null> {
+	const db = getDbInstance();
+	const session = await db.getSession(adminSession);
+	return session?.data?.user?.id || null;
+}
+
 // POST: Create a new thread
 export const POST: RequestHandler = async ({ request, cookies }) => {
 	try {
@@ -17,15 +24,15 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			});
 		}
 
-		const db = getDbInstance();
-		const user = await (db as any).getAdminUserByUsername('admin');
-		if (!user) {
+		const userId = await getUserIdFromSession(adminSession);
+		if (!userId) {
 			return new Response(JSON.stringify({ error: 'Unauthorized' }), {
 				status: 401,
 				headers: { 'Content-Type': 'application/json' }
 			});
 		}
-		const userId = user.id;
+
+		const db = getDbInstance();
 		const body = await request.json();
 
 		const { tweets, scheduledDate, accountId, action, title } = body;
@@ -273,15 +280,15 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 			});
 		}
 
-		const db = getDbInstance();
-		const user = await (db as any).getAdminUserByUsername('admin');
-		if (!user) {
+		const userId = await getUserIdFromSession(adminSession);
+		if (!userId) {
 			return new Response(JSON.stringify({ error: 'Unauthorized' }), {
 				status: 401,
 				headers: { 'Content-Type': 'application/json' }
 			});
 		}
-		const userId = user.id;
+
+		const db = getDbInstance();
 		const status = url.searchParams.get('status');
 
 		const threads = await db.getThreads(userId, status);

@@ -38,14 +38,14 @@
 	<!-- Connected Accounts Section -->
 	<div class="rounded-lg border border-gray-200 bg-white shadow dark:border-gray-700 dark:bg-[#15202B] theme-lightsout:border-gray-800 theme-lightsout:bg-[#111111]">
 		<div class="border-b border-gray-200 px-6 py-4 dark:border-gray-700 theme-lightsout:border-gray-800">
-			<div class="flex items-center justify-between">
+			<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 				<h2 class="flex items-center text-lg font-semibold text-gray-900 dark:text-white theme-lightsout:text-white">
 					<Users class="mr-2 h-5 w-5" />
 					Connected Accounts
 				</h2>
 				<button
 					on:click={handleConnectNewAccount}
-					class="inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+					class="inline-flex w-full items-center justify-center rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:w-auto"
 				>
 					<UserPlus class="mr-2 h-4 w-4" />
 					Connect New Account

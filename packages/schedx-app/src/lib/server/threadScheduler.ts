@@ -71,7 +71,7 @@ export class ThreadSchedulerService {
 			await this.resetStaleProcessingThreads();
 			
 			// Get first admin user (role='admin')
-			const user = await (db as any).getAdminUserByUsername('');
+			const user = await (db as any).getFirstAdminUser();
 			if (!user) {
 				return;
 			}
@@ -130,7 +130,7 @@ export class ThreadSchedulerService {
 	private async resetStaleProcessingThreads(): Promise<void> {
 		const db = getDbInstance();
 		try {
-			const user = await (db as any).getAdminUserByUsername('');
+			const user = await (db as any).getFirstAdminUser();
 			if (!user) return;
 			
 			const allThreads = await db.getThreads(user.id);

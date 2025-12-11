@@ -133,9 +133,9 @@
 
 <div class="space-y-4">
 	<!-- Thread Settings -->
-	<div class="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50">
-		<div class="flex items-center justify-between">
-			<div class="flex items-center gap-4">
+	<div class="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800/50 sm:p-4">
+		<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+			<div class="flex flex-wrap items-center gap-3 sm:gap-4">
 				<label class="flex items-center gap-2">
 					<input
 						type="checkbox"
@@ -148,7 +148,7 @@
 				{#if autoNumbering}
 					<select
 						bind:value={numberingStyle}
-						class="appearance-none rounded-lg border border-gray-300 bg-white px-3 py-1.5 pr-8 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+						class="appearance-none rounded-lg border border-gray-300 bg-white px-2 py-1 pr-7 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:px-3 sm:py-1.5 sm:pr-8"
 						style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 fill=%27none%27 viewBox=%270 0 20 20%27%3E%3Cpath stroke=%27%236b7280%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27 stroke-width=%271.5%27 d=%27M6 8l4 4 4-4%27/%3E%3C/svg%3E'); background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.25em 1.25em;"
 					>
 						<option value="1/5">1/5 Style</option>
@@ -168,15 +168,15 @@
 	<!-- Thread Tweets -->
 	<div class="space-y-3">
 		{#each tweets as tweet, index (tweet.position)}
-			<div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-				<div class="mb-2 flex items-center justify-between">
+			<div class="rounded-lg border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-4">
+				<div class="mb-2 flex flex-wrap items-center justify-between gap-2">
 					<div class="flex items-center gap-2">
 						<GripVertical class="h-4 w-4 text-gray-400" />
 						<span class="text-sm font-medium text-gray-700 dark:text-gray-300">
 							Tweet {index + 1}
 						</span>
 						{#if autoNumbering}
-							<span class="text-xs text-gray-500 dark:text-gray-400">
+							<span class="hidden text-xs text-gray-500 dark:text-gray-400 xs:inline">
 								(will show as: {getNumbering(tweet.position).trim()})
 							</span>
 						{/if}

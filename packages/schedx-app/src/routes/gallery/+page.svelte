@@ -405,7 +405,7 @@
 		<div
 			class="mb-6 rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800"
 		>
-			<div class="flex items-center justify-between">
+			<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 				<div>
 					<h2 class="text-lg font-semibold text-gray-900 dark:text-white">
 						{mediaItems.length} Media {mediaItems.length === 1 ? 'Item' : 'Items'}
@@ -424,26 +424,26 @@
 						{/if}
 					</p>
 				</div>
-				<div class="flex items-center gap-4">
+				<div class="flex flex-wrap items-center gap-2 sm:gap-4">
 					<!-- Media Type Stats -->
 					<div class="flex gap-2">
 						<span
-							class="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-800 dark:bg-blue-900/20 dark:text-blue-200"
+							class="rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800 dark:bg-blue-900/20 dark:text-blue-200 sm:px-3"
 						>
-							{mediaItems.filter((m) => m.type === 'photo' || m.type === 'gif').length} Images
+							{mediaItems.filter((m) => m.type === 'photo' || m.type === 'gif').length} <span class="hidden xs:inline">Images</span><span class="xs:hidden">Img</span>
 						</span>
 						<span
-							class="rounded-full bg-purple-100 px-3 py-1 text-xs font-medium text-purple-800 dark:bg-purple-900/20 dark:text-purple-200"
+							class="rounded-full bg-purple-100 px-2 py-1 text-xs font-medium text-purple-800 dark:bg-purple-900/20 dark:text-purple-200 sm:px-3"
 						>
-							{mediaItems.filter((m) => m.type === 'video').length} Videos
+							{mediaItems.filter((m) => m.type === 'video').length} <span class="hidden xs:inline">Videos</span><span class="xs:hidden">Vid</span>
 						</span>
 					</div>
 
 					<!-- Multi-select Controls -->
-					<div class="flex items-center gap-2">
+					<div class="flex flex-wrap items-center gap-2">
 						<button
 							type="button"
-							class="flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+							class="flex items-center gap-1.5 rounded-lg border border-gray-300 px-2 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 sm:gap-2 sm:px-3 sm:py-2 sm:text-sm"
 							on:click={toggleSelectMode}
 							class:bg-blue-50={isSelectMode}
 							class:border-blue-300={isSelectMode}
@@ -461,17 +461,19 @@
 										/>
 									</svg>
 								</span>
-								Selection Mode
+								<span class="hidden sm:inline">Selection Mode</span>
+								<span class="sm:hidden">Select</span>
 							{:else}
 								<span class="h-4 w-4 rounded border-2 border-gray-300"></span>
-								Select Mode
+								<span class="hidden sm:inline">Select Mode</span>
+								<span class="sm:hidden">Select</span>
 							{/if}
 						</button>
 
 						{#if isSelectMode}
 							<button
 								type="button"
-								class="flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+								class="flex items-center gap-1.5 rounded-lg border border-gray-300 px-2 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 sm:gap-2 sm:px-3 sm:py-2 sm:text-sm"
 								on:click={toggleSelectAll}
 							>
 								{#if isSelectAll}
@@ -486,21 +488,24 @@
 											/>
 										</svg>
 									</span>
-									Deselect All
+									<span class="hidden sm:inline">Deselect All</span>
+									<span class="sm:hidden">None</span>
 								{:else}
 									<span class="h-4 w-4 rounded border-2 border-gray-300"></span>
-									Select All
+									<span class="hidden sm:inline">Select All</span>
+									<span class="sm:hidden">All</span>
 								{/if}
 							</button>
 
 							{#if getSelectedCount() > 0}
 								<button
 									type="button"
-									class="flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+									class="flex items-center gap-1.5 rounded-lg bg-red-600 px-2 py-1.5 text-xs font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 sm:gap-2 sm:px-3 sm:py-2 sm:text-sm"
 									on:click={deleteSelectedMedia}
 								>
 									<Trash2 class="h-4 w-4" />
-									Delete Selected ({getSelectedCount()})
+									<span class="hidden sm:inline">Delete Selected ({getSelectedCount()})</span>
+									<span class="sm:hidden">Del ({getSelectedCount()})</span>
 								</button>
 							{/if}
 						{/if}
