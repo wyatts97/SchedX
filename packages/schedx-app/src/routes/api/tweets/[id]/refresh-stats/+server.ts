@@ -44,25 +44,66 @@ export const POST: RequestHandler = async ({ params, locals }) => {
 		logger.debug({ tweetId: id, twitterTweetId: tweet.twitterTweetId, userId: user.id }, 'Refreshing tweet stats');
 
 		// Fetch fresh stats from Twitter via Rettiwt
-		// Note: Some tweets (especially those with media) may have IDs that need special handling
+		// Note: Rettiwt public API may fail for:
+		// - Very recently posted tweets (not yet indexed)
+		// - Some tweets with media attachments
+		// - Private/protected accounts
 		let tweetDetails;
 		try {
 			tweetDetails = await RettiwtService.getTweetDetails(tweet.twitterTweetId, user.id);
 		} catch (fetchError: any) {
-			logger.error({ 
-				error: fetchError.message, 
-				tweetId: id, 
-				twitterTweetId: tweet.twitterTweetId,
-				userId: user.id 
-			}, 'Rettiwt API failed to fetch tweet details');
+			const errorMsg = fetchError.message || 'Unknown error';
+			logger.warn(`Rettiwt API failed for tweet ${tweet.twitterTweetId}: ${errorMsg}`);
 			
-			// Re-throw with more context
+			// Check if this is a "not found" error - common for new tweets or API limitations
+			if (errorMsg.includes('not found') || errorMsg.includes('deleted')) {
+				// Return current stats from DB instead of failing
+				const currentTweet = rawDb.queryOne(
+					`SELECT likeCount, retweetCount, replyCount, impressionCount, bookmarkCount 
+					 FROM tweets WHERE id = ?`,
+					[id]
+				);
+				
+				return json({
+					success: false,
+					message: 'Tweet stats unavailable from Twitter API. This can happen for recently posted tweets or due to API limitations. Try again in a few minutes.',
+					stats: {
+						likeCount: currentTweet?.likeCount || 0,
+						retweetCount: currentTweet?.retweetCount || 0,
+						replyCount: currentTweet?.replyCount || 0,
+						impressionCount: currentTweet?.impressionCount || 0,
+						bookmarkCount: currentTweet?.bookmarkCount || 0
+					},
+					cached: true
+				});
+			}
+			
+			// Re-throw other errors
 			throw fetchError;
 		}
 		
 		if (!tweetDetails) {
-			logger.warn({ tweetId: id, twitterTweetId: tweet.twitterTweetId }, 'Rettiwt returned null for tweet details');
-			throw error(404, 'Tweet details not available from Twitter');
+			logger.warn(`Rettiwt returned null for tweet ${tweet.twitterTweetId}`);
+			
+			// Return cached stats
+			const currentTweet = rawDb.queryOne(
+				`SELECT likeCount, retweetCount, replyCount, impressionCount, bookmarkCount 
+				 FROM tweets WHERE id = ?`,
+				[id]
+			);
+			
+			return json({
+				success: false,
+				message: 'Tweet details not available. The Twitter API may be temporarily unavailable.',
+				stats: {
+					likeCount: currentTweet?.likeCount || 0,
+					retweetCount: currentTweet?.retweetCount || 0,
+					replyCount: currentTweet?.replyCount || 0,
+					impressionCount: currentTweet?.impressionCount || 0,
+					bookmarkCount: currentTweet?.bookmarkCount || 0
+				},
+				cached: true
+			});
 		}
 
 		// Update the tweet in database with fresh stats

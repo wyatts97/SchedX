@@ -2,6 +2,7 @@
     import TweetPreview from '$lib/components/TweetPreview.svelte';
     import AccountDropdown from '$lib/components/AccountDropdown.svelte';
     import { FileText, Loader2, AlertCircle, Filter, Search, ExternalLink, RefreshCw } from 'lucide-svelte';
+    import { toast } from 'svelte-sonner';
     import type { Tweet as TweetType } from '$lib/stores/dashboardStore';
     import type { UserAccount } from '$lib/types';
 
@@ -12,6 +13,9 @@
     
     // Local tweet stats cache (for immediate UI updates after refresh)
     let tweetStats: Map<string, { likeCount: number; retweetCount: number; replyCount: number; impressionCount: number; bookmarkCount: number }> = new Map();
+    
+    // Version counter to force reactivity when tweetStats changes
+    let statsVersion = 0;
     export let accounts: UserAccount[] = [];
     
     // Transform accounts for dropdown with avatar support
@@ -150,9 +154,20 @@
             // Update local cache with new stats
             tweetStats.set(tweetId, result.stats);
             tweetStats = tweetStats; // Trigger reactivity
+            statsVersion++; // Force re-render of stats
+            
+            // Show info toast if stats are cached (API couldn't fetch fresh data)
+            if (result.cached) {
+                toast.info('Stats unavailable', {
+                    description: 'Twitter API could not fetch fresh stats. Try again in a few minutes.'
+                });
+            }
             
         } catch (error: any) {
             console.error('Failed to refresh tweet stats:', error);
+            toast.error('Refresh failed', {
+                description: error.message || 'Could not refresh tweet stats'
+            });
         } finally {
             refreshingTweets.delete(tweetId);
             refreshingTweets = refreshingTweets; // Trigger reactivity
@@ -202,11 +217,11 @@
         <!-- Tweet List -->
         <div class="max-h-[800px] space-y-4 overflow-y-auto pr-2 scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400 dark:scrollbar-track-gray-800 dark:scrollbar-thumb-gray-600 dark:hover:scrollbar-thumb-gray-500">
             {#if paginatedTweets.length > 0}
-                {#each paginatedTweets as tweet}
+                {#each paginatedTweets as tweet (tweet.id + '-' + statsVersion)}
                     {@const account = tweet.twitterAccountId ? accountById[tweet.twitterAccountId] : null}
                     {#if account}
                         {@const stats = getTweetStats(tweet)}
-                        <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-800">
+                        <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-800 theme-lightsout:border-gray-800 theme-lightsout:bg-black">
                             <div class="tweet-preview-wrapper [&>div]:rounded-none [&>div]:border-0 [&>div]:shadow-none">
                             <TweetPreview
                                 avatarUrl={account.profileImage || '/avatar.png'}
@@ -227,7 +242,7 @@
                                         <button
                                             on:click={() => refreshTweetStats(tweet.id!)}
                                             disabled={refreshingTweets.has(tweet.id!)}
-                                            class="inline-flex items-center justify-center gap-1 rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                                            class="inline-flex items-center justify-center gap-1 rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 theme-lightsout:bg-gray-900 theme-lightsout:text-gray-300 theme-lightsout:hover:bg-gray-800"
                                             title="Refresh engagement stats"
                                         >
                                             <RefreshCw class="h-3.5 w-3.5 {refreshingTweets.has(tweet.id!) ? 'animate-spin' : ''}" />
@@ -236,7 +251,7 @@
                                             href={`https://twitter.com/${account.username}/status/${tweet.twitterTweetId}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            class="inline-flex items-center justify-center gap-1 rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30"
+                                            class="inline-flex items-center justify-center gap-1 rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30 theme-lightsout:bg-blue-900/30 theme-lightsout:text-blue-300 theme-lightsout:hover:bg-blue-900/40"
                                             title="View on Twitter/X"
                                         >
                                             <ExternalLink class="h-3.5 w-3.5" />
@@ -277,21 +292,21 @@
 
         <!-- Pagination -->
         {#if totalPages > 1}
-            <div class="mt-4 flex items-center justify-between border-t border-gray-200 pt-4 dark:border-gray-700">
+            <div class="mt-4 flex items-center justify-between border-t border-gray-200 pt-4 dark:border-gray-700 theme-lightsout:border-gray-800">
                 <button
                     on:click={() => handlePageChange(currentPage - 1)}
                     disabled={currentPage === 1}
-                    class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                    class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 theme-lightsout:border-gray-700 theme-lightsout:bg-gray-900 theme-lightsout:text-gray-300 theme-lightsout:hover:bg-gray-800"
                 >
                     Previous
                 </button>
-                <span class="text-sm text-gray-700 dark:text-gray-300">
+                <span class="text-sm text-gray-700 dark:text-gray-300 theme-lightsout:text-gray-400">
                     Page {currentPage} of {totalPages}
                 </span>
                 <button
                     on:click={() => handlePageChange(currentPage + 1)}
                     disabled={currentPage === totalPages}
-                    class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                    class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 theme-lightsout:border-gray-700 theme-lightsout:bg-gray-900 theme-lightsout:text-gray-300 theme-lightsout:hover:bg-gray-800"
                 >
                     Next
                 </button>

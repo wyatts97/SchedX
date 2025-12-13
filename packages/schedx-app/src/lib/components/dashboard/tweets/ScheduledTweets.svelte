@@ -130,11 +130,11 @@
 				{#each sortedTweets as tweet}
 					{@const account = tweet.twitterAccountId ? accountByProviderId[tweet.twitterAccountId] : undefined}
 					{@const displayDate = getDisplayDate(tweet)}
-					<div class="group overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-800">
+					<div class="group overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-800 theme-lightsout:border-gray-800 theme-lightsout:bg-black">
 						<!-- Status Badge & Actions - Clean horizontal layout -->
-						<div class="flex items-center justify-center gap-2 rounded-t-lg bg-gray-50 px-3 py-2 dark:bg-gray-800/50">
+						<div class="flex items-center justify-center gap-2 rounded-t-lg bg-gray-50 px-3 py-2 dark:bg-gray-800/50 theme-lightsout:bg-gray-900">
 							<!-- Time Badge -->
-							<div class="flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-sm font-medium text-gray-600 shadow-sm ring-1 ring-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:ring-gray-600">
+							<div class="flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-sm font-medium text-gray-600 shadow-sm ring-1 ring-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:ring-gray-600 theme-lightsout:bg-gray-800 theme-lightsout:text-gray-300 theme-lightsout:ring-gray-700">
 								<Clock class="h-4 w-4 text-gray-400" />
 								<span>{getTimeUntil(displayDate)}</span>
 							</div>

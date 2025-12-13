@@ -13,32 +13,14 @@
 	let isLoadingStats = false;
 	let lastFetchTime: Date | null = null;
 	
-	// Horizontal scroll
-	let scrollContainer: HTMLDivElement;
-	let canScrollLeft = false;
-	let canScrollRight = false;
-	let currentCardIndex = 0;
+	// Preline carousel config (stored as variable to avoid Svelte parsing issues)
+	const carouselConfig = JSON.stringify({
+		loadingClasses: "opacity-0",
+		isAutoHeight: true,
+		isCentered: true,
+		isDraggable: true
+	});
 	
-	function updateScrollButtons() {
-		if (!scrollContainer) return;
-		canScrollLeft = scrollContainer.scrollLeft > 0;
-		canScrollRight = scrollContainer.scrollLeft < scrollContainer.scrollWidth - scrollContainer.clientWidth - 1;
-		
-		// Calculate current card index based on scroll position
-		const cardWidth = scrollContainer.scrollWidth / accounts.length;
-		currentCardIndex = Math.round(scrollContainer.scrollLeft / cardWidth);
-	}
-	
-	function scrollLeft() {
-		if (!scrollContainer) return;
-		scrollContainer.scrollBy({ left: -340, behavior: 'smooth' });
-	}
-	
-	function scrollRight() {
-		if (!scrollContainer) return;
-		scrollContainer.scrollBy({ left: 340, behavior: 'smooth' });
-	}
-
 	// Fetch real-time account stats from Rettiwt API
 	async function fetchAccountStats() {
 		if (accounts.length === 0) return;
@@ -78,27 +60,27 @@
 		}
 	}
 
-	// Fetch stats on mount
+	// Fetch stats on mount and init carousel
 	onMount(() => {
 		fetchAccountStats();
-		// Initial check for scroll buttons after a brief delay for DOM to settle
-		setTimeout(updateScrollButtons, 100);
-		
-		// Update scroll buttons on window resize
-		const handleResize = () => updateScrollButtons();
-		window.addEventListener('resize', handleResize);
-		
-		return () => {
-			window.removeEventListener('resize', handleResize);
-		};
+		// Init Preline carousel after DOM renders
+		setTimeout(() => {
+			if (typeof window !== 'undefined' && (window as any).HSCarousel) {
+				(window as any).HSCarousel.autoInit();
+			}
+		}, 100);
 	});
 
 	// Reactive: rebuild stats lookup when accountStats changes
 	$: statsLookup = accountStats;
 	
-	// Update scroll buttons when accounts change
-	$: if (accounts.length > 0) {
-		setTimeout(updateScrollButtons, 100);
+	// Re-init carousel when accounts change
+	$: if (accounts.length > 0 && typeof window !== 'undefined') {
+		setTimeout(() => {
+			if ((window as any).HSCarousel) {
+				(window as any).HSCarousel.autoInit();
+			}
+		}, 150);
 	}
 </script>
 
@@ -122,28 +104,61 @@
 		</button>
 	</div>
 
-	<!-- Account Cards Horizontal Scroll -->
+	<!-- Account Cards - Preline Carousel for Mobile, Grid for Desktop -->
 	{#if accounts && accounts.length > 0}
-		<div class="relative">
-			<!-- Left Arrow -->
-			{#if canScrollLeft}
-				<button
-					on:click={scrollLeft}
-					class="absolute -left-3 top-1/2 z-10 -translate-y-1/2 rounded-full border border-gray-200 bg-white p-2 shadow-lg transition-all hover:bg-gray-50 hover:shadow-xl dark:border-gray-700 dark:bg-slate-800 dark:hover:bg-slate-700 theme-lightsout:border-gray-800 theme-lightsout:bg-gray-900 theme-lightsout:hover:bg-gray-800"
-					aria-label="Scroll left"
-				>
-					<ChevronLeft class="h-5 w-5 text-gray-600 dark:text-gray-300 theme-lightsout:text-gray-400" />
-				</button>
-			{/if}
-			
-			<!-- Scrollable Container -->
-			<div
-				bind:this={scrollContainer}
-				on:scroll={updateScrollButtons}
-				class="flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain scroll-smooth pb-2 [-ms-overflow-style:none] [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+		<!-- Mobile: Preline Carousel (centered, full-width cards) -->
+		<div class="block md:hidden">
+			<div 
+				data-hs-carousel={carouselConfig}
+				class="relative"
 			>
+				<div class="hs-carousel relative w-full overflow-hidden">
+					<div class="hs-carousel-body flex flex-nowrap gap-4 opacity-0 transition-transform duration-700">
+						{#each accounts as account (account.id)}
+							<div class="hs-carousel-slide w-full flex-shrink-0 snap-center px-2">
+								<AccountProfileCard
+									{account}
+									stats={statsLookup.get(account.id || '') || null}
+									{tweets}
+									isLoading={isLoadingStats}
+								/>
+							</div>
+						{/each}
+					</div>
+				</div>
+				
+				<!-- Navigation Arrows -->
+				{#if accounts.length > 1}
+					<button 
+						type="button" 
+						class="hs-carousel-prev hs-carousel-disabled:opacity-50 hs-carousel-disabled:pointer-events-none absolute inset-y-0 start-0 z-10 flex w-10 items-center justify-center text-gray-800 dark:text-white"
+					>
+						<span class="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-slate-800 theme-lightsout:border-gray-800 theme-lightsout:bg-gray-900">
+							<ChevronLeft class="h-5 w-5" />
+						</span>
+						<span class="sr-only">Previous</span>
+					</button>
+					<button 
+						type="button" 
+						class="hs-carousel-next hs-carousel-disabled:opacity-50 hs-carousel-disabled:pointer-events-none absolute inset-y-0 end-0 z-10 flex w-10 items-center justify-center text-gray-800 dark:text-white"
+					>
+						<span class="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-slate-800 theme-lightsout:border-gray-800 theme-lightsout:bg-gray-900">
+							<ChevronRight class="h-5 w-5" />
+						</span>
+						<span class="sr-only">Next</span>
+					</button>
+					
+					<!-- Pagination Dots -->
+					<div class="hs-carousel-pagination mt-4 flex justify-center gap-2"></div>
+				{/if}
+			</div>
+		</div>
+		
+		<!-- Desktop: Horizontal scroll with flex -->
+		<div class="hidden md:block">
+			<div class="flex gap-4 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
 				{#each accounts as account (account.id)}
-					<div class="w-[calc(100vw-3rem)] max-w-[400px] flex-shrink-0 snap-center sm:w-[360px] md:w-[340px] md:snap-align-none lg:w-[320px]">
+					<div class="w-[340px] flex-shrink-0 lg:w-[320px]">
 						<AccountProfileCard
 							{account}
 							stats={statsLookup.get(account.id || '') || null}
@@ -153,36 +168,6 @@
 					</div>
 				{/each}
 			</div>
-			
-			<!-- Mobile Pagination Dots -->
-			{#if accounts.length > 1}
-				<div class="mt-3 flex justify-center gap-2 md:hidden">
-					{#each accounts as _, i}
-						<button
-							type="button"
-							on:click={() => {
-								if (scrollContainer) {
-									const cardWidth = scrollContainer.scrollWidth / accounts.length;
-									scrollContainer.scrollTo({ left: cardWidth * i, behavior: 'smooth' });
-								}
-							}}
-							class="h-2 w-2 rounded-full transition-all {currentCardIndex === i ? 'bg-blue-600 w-4' : 'bg-gray-300 dark:bg-gray-600 theme-lightsout:bg-gray-700'}"
-							aria-label="Go to account {i + 1}"
-						></button>
-					{/each}
-				</div>
-			{/if}
-			
-			<!-- Right Arrow -->
-			{#if canScrollRight}
-				<button
-					on:click={scrollRight}
-					class="absolute -right-3 top-1/2 z-10 -translate-y-1/2 rounded-full border border-gray-200 bg-white p-2 shadow-lg transition-all hover:bg-gray-50 hover:shadow-xl dark:border-gray-700 dark:bg-slate-800 dark:hover:bg-slate-700 theme-lightsout:border-gray-800 theme-lightsout:bg-gray-900 theme-lightsout:hover:bg-gray-800"
-					aria-label="Scroll right"
-				>
-					<ChevronRight class="h-5 w-5 text-gray-600 dark:text-gray-300 theme-lightsout:text-gray-400" />
-				</button>
-			{/if}
 		</div>
 	{:else}
 		<div class="rounded-xl border border-dashed border-gray-300 bg-gray-50 py-12 text-center dark:border-gray-700 dark:bg-slate-800/50 theme-lightsout:border-gray-800 theme-lightsout:bg-gray-900/50">

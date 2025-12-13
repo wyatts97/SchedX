@@ -1357,3 +1357,107 @@ html[data-theme="lightsout"] p.text-xs {
 html[data-theme="lightsout"] *[class*="text-blue"] {
   color: #888888 !important;
 }
+
+/* ============================================
+   LIGHTS-OUT MODE: Gray background overrides
+   Fix for buttons, cards, and interactive elements
+   ============================================ */
+
+/* bg-gray-800 in lights-out mode (used by buttons in dark mode) */
+html[data-theme="lightsout"] .bg-gray-800,
+html[data-theme="lightsout"] .dark\:bg-gray-800 {
+  background-color: #1a1a1a !important;
+}
+
+/* bg-gray-700 in lights-out mode */
+html[data-theme="lightsout"] .bg-gray-700,
+html[data-theme="lightsout"] .dark\:bg-gray-700 {
+  background-color: #222222 !important;
+}
+
+/* bg-gray-600 in lights-out mode */
+html[data-theme="lightsout"] .bg-gray-600,
+html[data-theme="lightsout"] .dark\:bg-gray-600 {
+  background-color: #2a2a2a !important;
+}
+
+/* Hover states for gray backgrounds in lights-out mode */
+html[data-theme="lightsout"] .hover\:bg-gray-100:hover,
+html[data-theme="lightsout"] .hover\:bg-gray-200:hover {
+  background-color: #1a1a1a !important;
+}
+
+html[data-theme="lightsout"] .hover\:bg-gray-700:hover,
+html[data-theme="lightsout"] .dark\:hover\:bg-gray-700:hover {
+  background-color: #2a2a2a !important;
+}
+
+html[data-theme="lightsout"] .hover\:bg-gray-600:hover,
+html[data-theme="lightsout"] .dark\:hover\:bg-gray-600:hover {
+  background-color: #333333 !important;
+}
+
+/* Card and panel backgrounds in lights-out mode */
+html[data-theme="lightsout"] .surface-card,
+html[data-theme="lightsout"] .surface-panel {
+  background-color: #111111 !important;
+  border-color: #222222 !important;
+}
+
+/* Tweet card backgrounds */
+html[data-theme="lightsout"] .dark\:bg-gray-800.rounded-xl,
+html[data-theme="lightsout"] div[class*="dark:bg-gray-800"] {
+  background-color: #111111 !important;
+}
+
+/* Account stat cards (Followers, Following, Tweets boxes) */
+html[data-theme="lightsout"] .grid > div[class*="bg-gradient"],
+html[data-theme="lightsout"] div[class*="from-gray-50"],
+html[data-theme="lightsout"] div[class*="from-gray-900"] {
+  background: #111111 !important;
+  border-color: #333333 !important;
+}
+
+/* Fix gradient backgrounds in lights-out */
+html[data-theme="lightsout"] .from-gray-50,
+html[data-theme="lightsout"] .to-gray-100,
+html[data-theme="lightsout"] .from-gray-900,
+html[data-theme="lightsout"] .to-gray-800 {
+  --tw-gradient-from: #111111 !important;
+  --tw-gradient-to: #111111 !important;
+}
+
+/* Border colors for cards in lights-out */
+html[data-theme="lightsout"] .border-gray-100,
+html[data-theme="lightsout"] .border-gray-700,
+html[data-theme="lightsout"] .dark\:border-gray-700 {
+  border-color: #333333 !important;
+}
+
+/* Text colors - ensure visibility */
+html[data-theme="lightsout"] .text-gray-300,
+html[data-theme="lightsout"] .dark\:text-gray-300 {
+  color: #d1d5db !important;
+}
+
+html[data-theme="lightsout"] .text-gray-400,
+html[data-theme="lightsout"] .dark\:text-gray-400 {
+  color: #9ca3af !important;
+}
+
+/* Overview tab "Coming Soon" cards */
+html[data-theme="lightsout"] .rounded-2xl[class*="border"] {
+  background-color: #111111 !important;
+  border-color: #333333 !important;
+}
+
+/* Fix any white backgrounds that slip through */
+html[data-theme="lightsout"] .bg-white {
+  background-color: #000000 !important;
+}
+
+/* Ensure dark mode variants work in lights-out */
+html[data-theme="lightsout"] [class*="dark:bg-"][class*="15202B"],
+html[data-theme="lightsout"] .dark\:bg-\[#15202B\] {
+  background-color: #000000 !important;
+}

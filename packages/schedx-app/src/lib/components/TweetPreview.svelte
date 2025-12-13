@@ -106,7 +106,7 @@
 </script>
 
 <div
-	class="flex w-full max-w-xl flex-col rounded-xl border border-gray-200 bg-white p-4 shadow dark:border-gray-800 dark:bg-gray-800 relative"
+	class="flex w-full max-w-xl flex-col rounded-xl border border-gray-200 bg-white p-4 shadow dark:border-gray-800 dark:bg-gray-800 theme-lightsout:border-gray-800 theme-lightsout:bg-black relative"
 >
 	<div class="flex justify-between">
 		<div class="flex items-center">
@@ -143,7 +143,7 @@
 
 	{#if validMediaItems && validMediaItems.length > 0}
 		<!-- Twitter/X style media grid -->
-		<div class="mt-3 overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700"
+		<div class="mt-3 overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700 theme-lightsout:border-gray-800"
 			class:grid={validMediaItems.length > 1}
 			class:grid-cols-2={validMediaItems.length > 1}
 			class:gap-0.5={validMediaItems.length > 1}
@@ -153,7 +153,7 @@
 				{@const isSingle = validMediaItems.length === 1}
 				<button
 					type="button"
-					class="relative block w-full cursor-pointer overflow-hidden border-0 bg-gray-100 p-0 dark:bg-gray-800"
+					class="relative block w-full cursor-pointer overflow-hidden border-0 bg-gray-100 p-0 dark:bg-gray-800 theme-lightsout:bg-gray-900"
 					class:aspect-video={isSingle}
 					class:aspect-square={!isSingle}
 					class:row-span-2={validMediaItems.length === 3 && index === 0}
