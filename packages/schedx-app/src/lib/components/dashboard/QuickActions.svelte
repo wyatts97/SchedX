@@ -17,11 +17,16 @@
 	let scrollContainer: HTMLDivElement;
 	let canScrollLeft = false;
 	let canScrollRight = false;
+	let currentCardIndex = 0;
 	
 	function updateScrollButtons() {
 		if (!scrollContainer) return;
 		canScrollLeft = scrollContainer.scrollLeft > 0;
 		canScrollRight = scrollContainer.scrollLeft < scrollContainer.scrollWidth - scrollContainer.clientWidth - 1;
+		
+		// Calculate current card index based on scroll position
+		const cardWidth = scrollContainer.scrollWidth / accounts.length;
+		currentCardIndex = Math.round(scrollContainer.scrollLeft / cardWidth);
 	}
 	
 	function scrollLeft() {
@@ -135,19 +140,38 @@
 			<div
 				bind:this={scrollContainer}
 				on:scroll={updateScrollButtons}
-				class="flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain scroll-smooth pb-2 md:snap-none [-ms-overflow-style:none] [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+				class="flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain scroll-smooth pb-2 [-ms-overflow-style:none] [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
 			>
 				{#each accounts as account (account.id)}
-					<div class="w-[280px] flex-shrink-0 snap-center sm:w-[320px] md:snap-align-none">
+					<div class="w-[calc(100vw-3rem)] max-w-[400px] flex-shrink-0 snap-center sm:w-[360px] md:w-[340px] md:snap-align-none lg:w-[320px]">
 						<AccountProfileCard
 							{account}
-							stats={statsLookup.get(account.id) || null}
+							stats={statsLookup.get(account.id || '') || null}
 							{tweets}
 							isLoading={isLoadingStats}
 						/>
 					</div>
 				{/each}
 			</div>
+			
+			<!-- Mobile Pagination Dots -->
+			{#if accounts.length > 1}
+				<div class="mt-3 flex justify-center gap-2 md:hidden">
+					{#each accounts as _, i}
+						<button
+							type="button"
+							on:click={() => {
+								if (scrollContainer) {
+									const cardWidth = scrollContainer.scrollWidth / accounts.length;
+									scrollContainer.scrollTo({ left: cardWidth * i, behavior: 'smooth' });
+								}
+							}}
+							class="h-2 w-2 rounded-full transition-all {currentCardIndex === i ? 'bg-blue-600 w-4' : 'bg-gray-300 dark:bg-gray-600 theme-lightsout:bg-gray-700'}"
+							aria-label="Go to account {i + 1}"
+						></button>
+					{/each}
+				</div>
+			{/if}
 			
 			<!-- Right Arrow -->
 			{#if canScrollRight}

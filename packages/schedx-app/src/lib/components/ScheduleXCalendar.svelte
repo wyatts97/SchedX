@@ -140,7 +140,7 @@
 				},
 				onRangeUpdate(range) {
 					// Could be used to fetch tweets for the visible range
-					console.log('Range updated:', range);
+					// Range update handled silently - extend for pagination if needed
 				}
 			}
 		});

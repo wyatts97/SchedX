@@ -50,6 +50,11 @@ export interface Tweet {
   templateCategory?: string;
   media?: { url: string; type: 'photo' | 'gif' | 'video' }[];
   queuePosition?: number; // Position in queue (for QUEUED status)
+  // Retry support for failed tweets
+  retryCount?: number; // Number of retry attempts made
+  maxRetries?: number; // Maximum retry attempts (default 3)
+  lastError?: string; // Last error message for debugging
+  nextRetryAt?: Date; // Next retry time (for exponential backoff)
   // Thread support
   isThread?: boolean; // Whether this is part of a thread
   threadId?: string; // ID of the parent thread

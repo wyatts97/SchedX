@@ -19,6 +19,7 @@
 	} from 'lucide-svelte';
 	import type { UserAccount, Tweet } from '$lib/types';
 	import type { AccountStats } from '$lib/types/analytics';
+	import AnimatedCounter from '$lib/components/AnimatedCounter.svelte';
 
 	export let account: UserAccount;
 	export let stats: AccountStats | null = null;
@@ -154,7 +155,7 @@
 						<Users class="h-3.5 w-3.5" />
 					</div>
 					<p class="mt-1 text-lg font-bold text-gray-800 dark:text-white theme-lightsout:text-gray-100">
-						{formatNumber(stats.followers)}
+						<AnimatedCounter value={stats.followers || 0} formatFn={formatNumber} />
 					</p>
 					<p class="text-xs text-gray-500 dark:text-gray-400 theme-lightsout:text-gray-500">Followers</p>
 				</div>
@@ -165,7 +166,7 @@
 						<UserPlus class="h-3.5 w-3.5" />
 					</div>
 					<p class="mt-1 text-lg font-bold text-gray-800 dark:text-white theme-lightsout:text-gray-100">
-						{formatNumber(stats.following)}
+						<AnimatedCounter value={stats.following || 0} formatFn={formatNumber} />
 					</p>
 					<p class="text-xs text-gray-500 dark:text-gray-400 theme-lightsout:text-gray-500">Following</p>
 				</div>
@@ -176,7 +177,7 @@
 						<MessageCircle class="h-3.5 w-3.5" />
 					</div>
 					<p class="mt-1 text-lg font-bold text-gray-800 dark:text-white theme-lightsout:text-gray-100">
-						{formatNumber(stats.tweetsCount)}
+						<AnimatedCounter value={stats.tweetsCount || 0} formatFn={formatNumber} />
 					</p>
 					<p class="text-xs text-gray-500 dark:text-gray-400 theme-lightsout:text-gray-500">Tweets</p>
 				</div>
@@ -195,7 +196,7 @@
 						<div class="flex items-center justify-center gap-1">
 							<Heart class="h-3 w-3 text-red-500" />
 							<span class="text-sm font-semibold text-gray-800 dark:text-white theme-lightsout:text-gray-100">
-								{formatNumber(stats.totalLikes)}
+								<AnimatedCounter value={stats.totalLikes || 0} formatFn={formatNumber} />
 							</span>
 						</div>
 						<p class="text-[10px] text-gray-500 dark:text-gray-400 theme-lightsout:text-gray-500">Likes</p>
@@ -204,7 +205,7 @@
 						<div class="flex items-center justify-center gap-1">
 							<Repeat2 class="h-3 w-3 text-green-500" />
 							<span class="text-sm font-semibold text-gray-800 dark:text-white theme-lightsout:text-gray-100">
-								{formatNumber(stats.totalRetweets)}
+								<AnimatedCounter value={stats.totalRetweets || 0} formatFn={formatNumber} />
 							</span>
 						</div>
 						<p class="text-[10px] text-gray-500 dark:text-gray-400 theme-lightsout:text-gray-500">Retweets</p>
@@ -213,7 +214,7 @@
 						<div class="flex items-center justify-center gap-1">
 							<MessageCircle class="h-3 w-3 text-blue-500" />
 							<span class="text-sm font-semibold text-gray-800 dark:text-white theme-lightsout:text-gray-100">
-								{formatNumber(stats.totalReplies)}
+								<AnimatedCounter value={stats.totalReplies || 0} formatFn={formatNumber} />
 							</span>
 						</div>
 						<p class="text-[10px] text-gray-500 dark:text-gray-400 theme-lightsout:text-gray-500">Replies</p>

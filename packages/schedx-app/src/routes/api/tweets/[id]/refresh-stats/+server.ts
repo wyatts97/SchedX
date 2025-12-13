@@ -44,7 +44,26 @@ export const POST: RequestHandler = async ({ params, locals }) => {
 		logger.debug({ tweetId: id, twitterTweetId: tweet.twitterTweetId, userId: user.id }, 'Refreshing tweet stats');
 
 		// Fetch fresh stats from Twitter via Rettiwt
-		const tweetDetails = await RettiwtService.getTweetDetails(tweet.twitterTweetId, user.id);
+		// Note: Some tweets (especially those with media) may have IDs that need special handling
+		let tweetDetails;
+		try {
+			tweetDetails = await RettiwtService.getTweetDetails(tweet.twitterTweetId, user.id);
+		} catch (fetchError: any) {
+			logger.error({ 
+				error: fetchError.message, 
+				tweetId: id, 
+				twitterTweetId: tweet.twitterTweetId,
+				userId: user.id 
+			}, 'Rettiwt API failed to fetch tweet details');
+			
+			// Re-throw with more context
+			throw fetchError;
+		}
+		
+		if (!tweetDetails) {
+			logger.warn({ tweetId: id, twitterTweetId: tweet.twitterTweetId }, 'Rettiwt returned null for tweet details');
+			throw error(404, 'Tweet details not available from Twitter');
+		}
 
 		// Update the tweet in database with fresh stats
 		rawDb.execute(

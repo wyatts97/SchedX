@@ -1,4 +1,4 @@
-import { getDbInstance } from './db';
+import { getDbInstance, getRawDbInstance } from './db';
 import { TwitterAuthService } from './twitterAuth';
 import { TweetStatus } from '@schedx/shared-lib/types/types';
 import type { Tweet } from '@schedx/shared-lib/types/types';
@@ -6,10 +6,17 @@ import { log } from './logger';
 import { TwitterApi } from 'twitter-api-v2';
 import { readFileSync } from 'fs';
 import path from 'path';
+import { emailNotificationService } from './emailNotificationService';
+
+// Default retry configuration
+const DEFAULT_MAX_RETRIES = 3;
+const BASE_RETRY_DELAY_MS = 60 * 1000; // 1 minute base delay
+const MAX_RETRY_DELAY_MS = 60 * 60 * 1000; // 1 hour max delay
 
 /**
  * Tweet Scheduler Service
  * Processes scheduled tweets and posts them to Twitter
+ * Includes automatic retry logic with exponential backoff for failed tweets
  */
 export class TweetSchedulerService {
 	private static instance: TweetSchedulerService;
@@ -17,6 +24,18 @@ export class TweetSchedulerService {
 	private intervalId: NodeJS.Timeout | null = null;
 
 	private constructor() {}
+
+	/**
+	 * Calculate next retry time using exponential backoff
+	 * Delay doubles with each retry: 1min, 2min, 4min, etc. (capped at 1 hour)
+	 */
+	private calculateNextRetryTime(retryCount: number): Date {
+		const delay = Math.min(
+			BASE_RETRY_DELAY_MS * Math.pow(2, retryCount),
+			MAX_RETRY_DELAY_MS
+		);
+		return new Date(Date.now() + delay);
+	}
 
 	public static getInstance(): TweetSchedulerService {
 		if (!TweetSchedulerService.instance) {
@@ -37,6 +56,14 @@ export class TweetSchedulerService {
 
 		this.isRunning = true;
 		log.info('Tweet scheduler started', { intervalMs });
+
+		// On startup, immediately reset any stale tweets from previous crashes
+		// This ensures quick recovery after server restarts
+		this.resetStaleProcessingTweets().then(() => {
+			log.info('Startup stale tweet check completed');
+		}).catch((error) => {
+			log.error('Error in startup stale tweet check', { error });
+		});
 
 		// Run immediately on start
 		this.processDueTweets().catch((error) => {
@@ -64,25 +91,51 @@ export class TweetSchedulerService {
 	}
 
 	/**
-	 * Process all tweets that are due to be posted
+	 * Process all tweets that are due to be posted (including retries)
 	 */
 	private async processDueTweets(): Promise<void> {
 		try {
 			const db = getDbInstance();
+			const rawDb = getRawDbInstance();
 			
-			// Clean up stale PROCESSING tweets (older than 5 minutes)
-			// These are tweets that were marked as processing but failed/crashed
+			// Clean up stale PROCESSING tweets (older than 2 minutes)
+			// Reduced from 5 minutes for faster recovery after crashes
 			await this.resetStaleProcessingTweets();
 			
+			// Get normally scheduled tweets
 			const dueTweets = await (db as any).findDueTweets();
+			
+			// Also get tweets due for retry (scheduled tweets with nextRetryAt in the past)
+			const now = Date.now();
+			const retryTweets = rawDb.query(
+				`SELECT * FROM tweets 
+				 WHERE status = ? 
+				 AND nextRetryAt IS NOT NULL 
+				 AND nextRetryAt <= ?
+				 AND (retryCount IS NULL OR retryCount < COALESCE(maxRetries, ?))`,
+				[TweetStatus.SCHEDULED, now, DEFAULT_MAX_RETRIES]
+			) || [];
+			
+			// Combine and deduplicate by ID
+			const allTweets = [...dueTweets];
+			const existingIds = new Set(dueTweets.map((t: any) => t.id));
+			for (const retryTweet of retryTweets) {
+				if (!existingIds.has(retryTweet.id)) {
+					allTweets.push(retryTweet);
+				}
+			}
 
-			if (dueTweets.length === 0) {
+			if (allTweets.length === 0) {
 				return;
 			}
 
-			log.info('Processing due tweets', { count: dueTweets.length });
+			log.info('Processing due tweets', { 
+				total: allTweets.length,
+				scheduled: dueTweets.length,
+				retries: retryTweets.length 
+			});
 
-			for (const tweet of dueTweets) {
+			for (const tweet of allTweets) {
 				try {
 					// Idempotency check: Skip if already posted
 					if (tweet.twitterTweetId) {
@@ -102,16 +155,88 @@ export class TweetSchedulerService {
 					
 					await this.postTweet(tweet);
 				} catch (error) {
+					const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+					const currentRetryCount = tweet.retryCount || 0;
+					const maxRetries = tweet.maxRetries ?? DEFAULT_MAX_RETRIES;
+					
 					log.error('Failed to post scheduled tweet', {
 						tweetId: tweet.id,
-						error: error instanceof Error ? error.message : 'Unknown error'
+						error: errorMessage,
+						retryCount: currentRetryCount,
+						maxRetries
 					});
 
-					// Mark tweet as failed
-					await db.updateTweet(tweet.id, {
-						status: TweetStatus.FAILED,
-						updatedAt: new Date()
-					});
+					// Check if we should retry
+					if (currentRetryCount < maxRetries) {
+						const nextRetryAt = this.calculateNextRetryTime(currentRetryCount);
+						
+						log.info('Scheduling tweet for retry', {
+							tweetId: tweet.id,
+							retryCount: currentRetryCount + 1,
+							maxRetries,
+							nextRetryAt
+						});
+
+						// Schedule for retry with exponential backoff
+						const rawDb = getRawDbInstance();
+						rawDb.execute(
+							`UPDATE tweets SET 
+								status = ?, 
+								retryCount = ?, 
+								lastError = ?, 
+								nextRetryAt = ?,
+								updatedAt = ?
+							WHERE id = ?`,
+							[
+								TweetStatus.SCHEDULED,
+								currentRetryCount + 1,
+								errorMessage,
+								nextRetryAt.getTime(),
+								Date.now(),
+								tweet.id
+							]
+						);
+
+						// Send email notification for retry
+						emailNotificationService.notifyTweetFailed(
+							tweet.userId,
+							tweet.id!,
+							tweet.content,
+							errorMessage,
+							currentRetryCount + 1,
+							maxRetries
+						).catch(err => log.error('Failed to send tweet retry notification', { error: err }));
+					} else {
+						// Max retries exceeded, mark as permanently failed
+						log.warn('Max retries exceeded for tweet, marking as failed', {
+							tweetId: tweet.id,
+							retryCount: currentRetryCount,
+							maxRetries
+						});
+						
+						const rawDb = getRawDbInstance();
+						rawDb.execute(
+							`UPDATE tweets SET 
+								status = ?, 
+								lastError = ?,
+								updatedAt = ?
+							WHERE id = ?`,
+							[
+								TweetStatus.FAILED,
+								`Max retries (${maxRetries}) exceeded. Last error: ${errorMessage}`,
+								Date.now(),
+								tweet.id
+							]
+						);
+
+						// Send email notification for max retries exceeded
+						emailNotificationService.notifyMaxRetriesExceeded(
+							tweet.userId,
+							tweet.id!,
+							tweet.content,
+							errorMessage
+						).catch(err => log.error('Failed to send max retries notification', { error: err }));
+					}
 				}
 			}
 		} catch (error) {
@@ -122,29 +247,37 @@ export class TweetSchedulerService {
 	/**
 	 * Reset tweets stuck in PROCESSING status for more than 5 minutes
 	 * This handles cases where the scheduler crashed while processing
+	 * Uses direct SQL query for efficiency instead of fetching all tweets
 	 */
 	private async resetStaleProcessingTweets(): Promise<void> {
-		const db = getDbInstance();
 		try {
-			const allTweets = await (db as any).getAllTweets((await db.getFirstAdminUser())?.id);
-			const now = Date.now();
-			const fiveMinutesAgo = now - 5 * 60 * 1000;
+			const rawDb = getRawDbInstance();
+			// Reduced from 5 minutes to 2 minutes for faster recovery
+			const twoMinutesAgo = Date.now() - 2 * 60 * 1000;
 			
-			const staleTweets = allTweets.filter((t: any) => 
-				t.status === TweetStatus.PROCESSING && 
-				t.updatedAt && 
-				new Date(t.updatedAt).getTime() < fiveMinutesAgo
+			// First, find stale tweets using efficient SQL query
+			const staleTweets = rawDb.query(
+				`SELECT id FROM tweets 
+				 WHERE status = ? 
+				 AND updatedAt IS NOT NULL 
+				 AND updatedAt < ?`,
+				[TweetStatus.PROCESSING, twoMinutesAgo]
 			);
 			
-			if (staleTweets.length > 0) {
+			if (staleTweets && staleTweets.length > 0) {
+				const tweetIds = staleTweets.map((t: any) => t.id);
+				
 				log.warn('Found stale PROCESSING tweets, resetting to SCHEDULED', {
 					count: staleTweets.length,
-					tweetIds: staleTweets.map((t: any) => t.id)
+					tweetIds
 				});
 				
-				for (const tweet of staleTweets) {
-					await db.updateTweetStatus(tweet.id, TweetStatus.SCHEDULED);
-				}
+				// Batch update all stale tweets in a single query
+				const placeholders = tweetIds.map(() => '?').join(',');
+				rawDb.execute(
+					`UPDATE tweets SET status = ?, updatedAt = ? WHERE id IN (${placeholders})`,
+					[TweetStatus.SCHEDULED, Date.now(), ...tweetIds]
+				);
 			}
 		} catch (error) {
 			log.error('Error resetting stale processing tweets', { error });
@@ -232,13 +365,45 @@ export class TweetSchedulerService {
 						
 						const buffer = readFileSync(filepath);
 
-						// Determine media type
-						const twitterMediaType =
-							mediaItem.type === 'video'
-								? 'video/mp4'
-								: mediaItem.type === 'gif'
-									? 'image/gif'
-									: 'image/jpeg';
+						// Determine media type based on file extension for accuracy
+						const ext = filename.split('.').pop()?.toLowerCase() || '';
+						let twitterMediaType: string;
+						
+						if (mediaItem.type === 'video') {
+							// Map video extensions to proper MIME types
+							switch (ext) {
+								case 'webm':
+									twitterMediaType = 'video/webm';
+									break;
+								case 'mov':
+									twitterMediaType = 'video/quicktime';
+									break;
+								case 'mp4':
+								default:
+									twitterMediaType = 'video/mp4';
+									break;
+							}
+						} else if (mediaItem.type === 'gif') {
+							twitterMediaType = 'image/gif';
+						} else {
+							// Map image extensions to proper MIME types
+							switch (ext) {
+								case 'png':
+									twitterMediaType = 'image/png';
+									break;
+								case 'gif':
+									twitterMediaType = 'image/gif';
+									break;
+								case 'webp':
+									twitterMediaType = 'image/webp';
+									break;
+								case 'jpg':
+								case 'jpeg':
+								default:
+									twitterMediaType = 'image/jpeg';
+									break;
+							}
+						}
 
 						// Upload media using OAuth 1.0a client
 						const mediaId = await oauth1Client.v1.uploadMedia(buffer, {
@@ -290,6 +455,15 @@ export class TweetSchedulerService {
 			twitterTweetId: postedTweet.data.id,
 			username: account.username
 		});
+
+		// Send email notification for successful post
+		const tweetUrl = `https://twitter.com/${account.username}/status/${postedTweet.data.id}`;
+		emailNotificationService.notifyTweetPosted(
+			tweet.userId,
+			tweet.id!,
+			tweet.content,
+			tweetUrl
+		).catch(err => log.error('Failed to send tweet posted notification', { error: err }));
 
 		// Handle recurrence if configured
 		if (tweet.recurrenceType && tweet.recurrenceInterval) {

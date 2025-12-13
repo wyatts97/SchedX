@@ -10,6 +10,7 @@ import { userRateLimit, RATE_LIMITS } from '$lib/rate-limiting';
 import { TwitterAuthService } from '$lib/server/twitterAuth';
 import { validateAccountOwnership, validateScheduledDate, validateThreadTweets } from '$lib/validation/accountValidation';
 import { getAdminUserId } from '$lib/server/adminCache';
+import { sanitizeTweetContent } from '$lib/utils/twitter';
 
 // Tweet API validation schema
 const tweetApiSchema = z.object({
@@ -80,10 +81,13 @@ export const POST = userRateLimit(RATE_LIMITS.tweets)(
 
 		log.info('Account validated successfully');
 
+		// Sanitize content to remove problematic characters
+		const sanitizedContent = sanitizeTweetContent(content);
+		
 		// Create tweet object based on action
 		const tweet: Partial<Tweet> = {
 			userId: userId,
-			content: content.trim(),
+			content: sanitizedContent,
 			twitterAccountId: account.providerAccountId, // Use providerAccountId for proper association
 			media: media || [],
 			createdAt: new Date(),
@@ -212,38 +216,7 @@ export const POST = userRateLimit(RATE_LIMITS.tweets)(
 
 						// Get authenticated client with automatic token refresh
 						const twitterAuth = TwitterAuthService.getInstance();
-						const { client: twitterClient, accessToken } = await twitterAuth.getAuthenticatedClient(account, twitterApp);
-
-						// Check if OAuth 1.0a credentials are available for media uploads
-						const hasOAuth1Credentials =
-							(twitterApp as any).consumerKey &&
-							(twitterApp as any).consumerSecret &&
-							(twitterApp as any).accessToken &&
-							(twitterApp as any).accessTokenSecret;
-
-						// Log the exact values being checked for OAuth 1.0a credentials
-						log.info('Checking OAuth 1.0a credentials:', {
-							consumerKey: (twitterApp as any).consumerKey || 'NULL',
-							consumerSecret: (twitterApp as any).consumerSecret || 'NULL',
-							accessToken: (twitterApp as any).accessToken || 'NULL',
-							accessTokenSecret: (twitterApp as any).accessTokenSecret || 'NULL',
-							consumerKeyLength: (twitterApp as any).consumerKey?.length || 0,
-							consumerSecretLength: (twitterApp as any).consumerSecret?.length || 0,
-							accessTokenLength: (twitterApp as any).accessToken?.length || 0,
-							accessTokenSecretLength: (twitterApp as any).accessTokenSecret?.length || 0,
-							hasOAuth1Credentials
-						});
-
-						// Log the Twitter app configuration for debugging
-						log.info('Twitter app configuration for media upload:', {
-							appId: account.twitterAppId,
-							appName: twitterApp?.name,
-							hasClientId: !!twitterApp?.clientId,
-							hasClientSecret: !!twitterApp?.clientSecret,
-							hasOAuth1Credentials,
-							accountId,
-							accessTokenLength: accessToken?.length || 0
-						});
+						const { client: twitterClient } = await twitterAuth.getAuthenticatedClient(account, twitterApp);
 
 						// Verify the client can make API calls
 						try {

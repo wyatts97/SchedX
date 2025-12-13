@@ -1,4 +1,4 @@
-import { getDbInstance } from './db';
+import { getDbInstance, getRawDbInstance } from './db';
 import { TwitterAuthService } from './twitterAuth';
 import { TweetStatus } from '@schedx/shared-lib/types/types';
 import { log } from './logger';
@@ -35,6 +35,13 @@ export class ThreadSchedulerService {
 		this.isRunning = true;
 		log.info('Thread scheduler started', { intervalMs });
 
+		// On startup, immediately reset any stale threads from previous crashes
+		this.resetStaleProcessingThreads().then(() => {
+			log.info('Startup stale thread check completed');
+		}).catch((error) => {
+			log.error('Error in startup stale thread check', { error });
+		});
+
 		// Run immediately on start
 		this.processDueThreads().catch((error) => {
 			log.error('Error in initial thread scheduler run', { error });
@@ -67,7 +74,7 @@ export class ThreadSchedulerService {
 		try {
 			const db = getDbInstance();
 			
-			// Clean up stale PROCESSING threads
+			// Clean up stale PROCESSING threads (older than 2 minutes)
 			await this.resetStaleProcessingThreads();
 			
 			// Get first admin user (role='admin')
@@ -126,32 +133,37 @@ export class ThreadSchedulerService {
 
 	/**
 	 * Reset threads stuck in PROCESSING status for more than 5 minutes
+	 * Uses direct SQL query for efficiency instead of fetching all threads
 	 */
 	private async resetStaleProcessingThreads(): Promise<void> {
-		const db = getDbInstance();
 		try {
-			const user = await (db as any).getFirstAdminUser();
-			if (!user) return;
+			const rawDb = getRawDbInstance();
+			// Reduced from 5 minutes to 2 minutes for faster recovery
+			const twoMinutesAgo = Date.now() - 2 * 60 * 1000;
 			
-			const allThreads = await db.getThreads(user.id);
-			const now = Date.now();
-			const fiveMinutesAgo = now - 5 * 60 * 1000;
-			
-			const staleThreads = allThreads.filter((t: any) => 
-				t.status === TweetStatus.PROCESSING && 
-				t.updatedAt && 
-				new Date(t.updatedAt).getTime() < fiveMinutesAgo
+			// Find stale threads using efficient SQL query
+			const staleThreads = rawDb.query(
+				`SELECT id FROM threads 
+				 WHERE status = ? 
+				 AND updatedAt IS NOT NULL 
+				 AND updatedAt < ?`,
+				[TweetStatus.PROCESSING, twoMinutesAgo]
 			);
 			
-			if (staleThreads.length > 0) {
+			if (staleThreads && staleThreads.length > 0) {
+				const threadIds = staleThreads.map((t: any) => t.id);
+				
 				log.warn('Found stale PROCESSING threads, resetting to SCHEDULED', {
 					count: staleThreads.length,
-					threadIds: staleThreads.map((t: any) => t.id)
+					threadIds
 				});
 				
-				for (const thread of staleThreads) {
-					await db.updateThreadStatus(thread.id, TweetStatus.SCHEDULED);
-				}
+				// Batch update all stale threads in a single query
+				const placeholders = threadIds.map(() => '?').join(',');
+				rawDb.execute(
+					`UPDATE threads SET status = ?, updatedAt = ? WHERE id IN (${placeholders})`,
+					[TweetStatus.SCHEDULED, Date.now(), ...threadIds]
+				);
 			}
 		} catch (error) {
 			log.error('Error resetting stale processing threads', { error });

@@ -80,7 +80,7 @@ export const POST = userRateLimit(RATE_LIMITS.upload)(
 				const maxSizeMB = config.MAX_UPLOAD_SIZE / (1024 * 1024);
 				return json({ error: `File too large. Maximum size is ${maxSizeMB}MB.` }, { status: 400 });
 			}
-			// allowed file types
+			// allowed file types (video/quicktime is iOS MOV format)
 			const allowedTypes = [
 				'image/jpeg',
 				'image/png',
@@ -88,7 +88,8 @@ export const POST = userRateLimit(RATE_LIMITS.upload)(
 				'image/webp',
 				'video/mp4',
 				'video/webm',
-				'video/mov'
+				'video/mov',
+				'video/quicktime'
 			];
 			if (!allowedTypes.includes(file.type)) {
 				return json({ error: 'File type not supported.' }, { status: 400 });

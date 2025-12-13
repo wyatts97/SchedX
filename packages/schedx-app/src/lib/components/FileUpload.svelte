@@ -74,7 +74,7 @@
 
 	// File validation
 	const allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-	const allowedVideoTypes = ['video/mp4', 'video/webm', 'video/mov'];
+	const allowedVideoTypes = ['video/mp4', 'video/webm', 'video/mov', 'video/quicktime'];
 	const allowedTypes = [...allowedImageTypes, ...allowedVideoTypes];
 
 	function validateFile(file: File): { valid: boolean; error?: string } {
@@ -487,7 +487,7 @@
 				bind:this={fileInput}
 				type="file"
 				id="file-input"
-				accept={acceptedTypes.join(',')}
+				accept="image/*,video/*"
 				multiple
 				class="hidden"
 				on:change={(e) => {

@@ -4,19 +4,29 @@ import { redirect } from '@sveltejs/kit';
 import crypto from 'crypto';
 import logger from '$lib/logger';
 
-// Track last cleanup time to avoid running it on every request
+// Track last cleanup time and lock to avoid race conditions
 let lastCleanupTime = 0;
+let cleanupInProgress = false;
 const CLEANUP_INTERVAL = 60 * 60 * 1000; // 1 hour
 
 async function cleanupExpiredSessionsIfNeeded() {
 	const now = Date.now();
-	if (now - lastCleanupTime > CLEANUP_INTERVAL) {
+	
+	// Check if cleanup is needed and not already in progress
+	if (now - lastCleanupTime > CLEANUP_INTERVAL && !cleanupInProgress) {
+		// Set lock immediately to prevent concurrent cleanups
+		cleanupInProgress = true;
+		
 		try {
 			const db = getDbInstance();
 			await db.cleanupExpiredSessions();
 			lastCleanupTime = now;
+			logger.debug('Session cleanup completed successfully');
 		} catch (error) {
 			logger.error('Session cleanup error', { error });
+		} finally {
+			// Always release the lock
+			cleanupInProgress = false;
 		}
 	}
 }

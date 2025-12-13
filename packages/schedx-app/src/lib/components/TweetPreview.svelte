@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Reply, Repeat2, Heart, BarChart2, Bookmark, Share2 } from 'lucide-svelte';
 	import MediaLightbox from './MediaLightbox.svelte';
+	import AnimatedCounter from './AnimatedCounter.svelte';
 	import { onMount } from 'svelte';
 	import logger from '$lib/logger';
 
@@ -200,23 +201,23 @@
 		<div class="theme-dark:text-gray-400 mt-3 flex justify-between text-gray-500 dark:text-gray-400">
 			<div class="group flex cursor-pointer items-center gap-1">
 				<Reply class="h-5 w-5 transition group-hover:text-blue-500" />
-				<span class="ml-1 text-sm">{replies}</span>
+				<span class="ml-1 text-sm"><AnimatedCounter value={replies} /></span>
 			</div>
 			<div class="group flex cursor-pointer items-center gap-1">
 				<Repeat2 class="h-5 w-5 transition group-hover:text-green-500" />
-				<span class="ml-1 text-sm">{retweets}</span>
+				<span class="ml-1 text-sm"><AnimatedCounter value={retweets} /></span>
 			</div>
 			<div class="group flex cursor-pointer items-center gap-1">
 				<Heart class="h-5 w-5 transition group-hover:text-pink-500" />
-				<span class="ml-1 text-sm">{likes}</span>
+				<span class="ml-1 text-sm"><AnimatedCounter value={likes} /></span>
 			</div>
 			<div class="group flex cursor-pointer items-center gap-1">
 				<BarChart2 class="h-5 w-5 transition group-hover:text-blue-400" />
-				<span class="ml-1 text-sm">{views}</span>
+				<span class="ml-1 text-sm"><AnimatedCounter value={views} /></span>
 			</div>
 			<div class="group flex cursor-pointer items-center gap-1">
 				<Bookmark class="h-5 w-5 transition group-hover:text-yellow-500" />
-				<span class="ml-1 text-sm">{bookmarks}</span>
+				<span class="ml-1 text-sm"><AnimatedCounter value={bookmarks} /></span>
 			</div>
 			<div class="group flex cursor-pointer items-center gap-1">
 				<Share2 class="h-5 w-5 transition group-hover:text-blue-400" />

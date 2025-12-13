@@ -7,10 +7,6 @@
 
 	export let tweets: Tweet[] = [];
 	export let accounts: UserAccount[] = [];
-	
-	// Debug logging
-	$: console.log('TweetsTab - Received tweets:', tweets.length, tweets);
-	$: console.log('TweetsTab - Received accounts:', accounts.length, accounts);
 
 	const dispatch = createEventDispatcher();
 
