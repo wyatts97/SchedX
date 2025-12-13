@@ -58,14 +58,14 @@ export default defineConfig(({ mode }) => {
 				external: ['bcryptjs'],
 				output: {
 					// OPTIMIZATION: Manual chunking for better caching
-					manualChunks: {
-						// Vendor chunks - rarely change
-						'vendor-ui': ['preline'],
-						'vendor-charts': ['apexcharts'],
-						'vendor-dates': ['date-fns', 'date-fns-tz', 'air-datepicker'],
-						'vendor-calendar': ['@schedule-x/calendar', '@schedule-x/svelte', '@schedule-x/drag-and-drop'],
-						// Twitter/API deps
-						'vendor-twitter': ['twitter-api-v2', 'rettiwt-api']
+					// Use function form to avoid errors with SSR-external modules
+					manualChunks(id) {
+						if (id.includes('node_modules')) {
+							if (id.includes('preline')) return 'vendor-ui';
+							if (id.includes('apexcharts')) return 'vendor-charts';
+							if (id.includes('date-fns') || id.includes('air-datepicker')) return 'vendor-dates';
+							if (id.includes('@schedule-x')) return 'vendor-calendar';
+						}
 					}
 				}
 			},
