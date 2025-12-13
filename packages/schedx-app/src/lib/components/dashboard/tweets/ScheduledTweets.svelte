@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { autoAnimate } from '@formkit/auto-animate';
 	import { Edit, Calendar as CalendarIcon, List, FileEdit, Trash2, FileText, Filter, Clock } from 'lucide-svelte';
 	import type { Tweet } from '$lib/stores/dashboardStore';
 	import type { UserAccount } from '$lib/types';
@@ -125,7 +126,7 @@
 		</div>
 
 		<!-- Tweet List -->
-		<div class="max-h-[800px] space-y-4 overflow-y-auto pr-2 scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400 dark:scrollbar-track-gray-800 dark:scrollbar-thumb-gray-600 dark:hover:scrollbar-thumb-gray-500">
+		<div use:autoAnimate={{ duration: 250 }} class="max-h-[800px] space-y-4 overflow-y-auto pr-2 scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400 dark:scrollbar-track-gray-800 dark:scrollbar-thumb-gray-600 dark:hover:scrollbar-thumb-gray-500">
 			{#if sortedTweets.length > 0}
 				{#each sortedTweets as tweet}
 					{@const account = tweet.twitterAccountId ? accountByProviderId[tweet.twitterAccountId] : undefined}

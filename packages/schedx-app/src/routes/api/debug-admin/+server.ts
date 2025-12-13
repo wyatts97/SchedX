@@ -3,7 +3,17 @@ import { getDbInstance, ensureDefaultAdminUser } from '$lib/server/db';
 import type { RequestEvent } from '@sveltejs/kit';
 import logger from '$lib/server/logger';
 
-export async function GET({ url }: RequestEvent) {
+export async function GET({ url, locals }: RequestEvent) {
+	// SECURITY: Only allow in development mode AND when authenticated
+	if (process.env.NODE_ENV === 'production') {
+		return json({ error: 'Debug endpoints disabled in production' }, { status: 403 });
+	}
+	
+	// Require authentication even in development
+	if (!locals.isAuthenticated) {
+		return json({ error: 'Unauthorized' }, { status: 401 });
+	}
+
 	try {
 		const action = url.searchParams.get('action');
 		const db = getDbInstance();

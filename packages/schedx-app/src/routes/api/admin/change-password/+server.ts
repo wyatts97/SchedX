@@ -3,6 +3,13 @@ import type { RequestHandler } from '@sveltejs/kit';
 import { getDbInstance } from '$lib/server/db';
 import { verifyPassword, hashPassword } from '$lib/server/auth';
 import logger from '$lib/server/logger';
+import { changePasswordSchema } from '$lib/validation/schemas';
+
+// Common weak passwords to reject
+const COMMON_PASSWORDS = [
+	'password', 'password1', 'password123', '12345678', '123456789',
+	'qwerty123', 'admin123', 'letmein', 'welcome1', 'changeme'
+];
 
 export const POST: RequestHandler = async ({ request, cookies }: any) => {
 	const adminSession = cookies.get('admin_session');
@@ -26,22 +33,40 @@ export const POST: RequestHandler = async ({ request, cookies }: any) => {
 			return json({ error: 'Unauthorized - Admin user not found' }, { status: 401 });
 		}
 
-		const { currentPassword, newPassword } = await request.json();
+		const body = await request.json();
+		
+		// SECURITY: Validate password complexity using Zod schema
+		const validation = changePasswordSchema.safeParse(body);
+		if (!validation.success) {
+			const errors = validation.error.errors.map(e => e.message);
+			return json({ error: errors[0] || 'Invalid input' }, { status: 400 });
+		}
+		
+		const { currentPassword, newPassword } = validation.data;
 
 		// Validate current password
 		const validCurrentPassword = await verifyPassword(currentPassword, user.passwordHash);
 		if (!validCurrentPassword) {
+			logger.warn({ userId: user.id }, 'Failed password change attempt - wrong current password');
 			return json({ error: 'Current password is incorrect' }, { status: 400 });
 		}
 
-		// Validate new password
-		if (!newPassword || newPassword.length < 6) {
-			return json({ error: 'New password must be at least 6 characters long' }, { status: 400 });
+		// SECURITY: Check against common passwords
+		if (COMMON_PASSWORDS.includes(newPassword.toLowerCase())) {
+			return json({ error: 'Password is too common. Please choose a stronger password.' }, { status: 400 });
+		}
+		
+		// SECURITY: Prevent password reuse
+		const isSamePassword = await verifyPassword(newPassword, user.passwordHash);
+		if (isSamePassword) {
+			return json({ error: 'New password must be different from current password' }, { status: 400 });
 		}
 
 		// Hash new password and update
 		const newPasswordHash = await hashPassword(newPassword);
 		await (db as any).updateAdminUserPassword(user.id, newPasswordHash);
+		
+		logger.info({ userId: user.id }, 'Password changed successfully');
 
 		return json({ success: true, message: 'Password changed successfully' });
 	} catch (error) {

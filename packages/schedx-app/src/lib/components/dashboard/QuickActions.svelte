@@ -106,69 +106,93 @@
 
 	<!-- Account Cards - Preline Carousel for Mobile, Grid for Desktop -->
 	{#if accounts && accounts.length > 0}
-		<!-- Mobile: Preline Carousel (centered, full-width cards) -->
-		<div class="block md:hidden">
-			<div 
-				data-hs-carousel={carouselConfig}
-				class="relative"
-			>
-				<div class="hs-carousel relative w-full overflow-hidden">
-					<div class="hs-carousel-body flex flex-nowrap gap-4 opacity-0 transition-transform duration-700">
-						{#each accounts as account (account.id)}
-							<div class="hs-carousel-slide w-full flex-shrink-0 snap-center px-2">
-								<AccountProfileCard
-									{account}
-									stats={statsLookup.get(account.id || '') || null}
-									{tweets}
-									isLoading={isLoadingStats}
-								/>
-							</div>
-						{/each}
-					</div>
-				</div>
-				
-				<!-- Navigation Arrows -->
-				{#if accounts.length > 1}
-					<button 
-						type="button" 
-						class="hs-carousel-prev hs-carousel-disabled:opacity-50 hs-carousel-disabled:pointer-events-none absolute inset-y-0 start-0 z-10 flex w-10 items-center justify-center text-gray-800 dark:text-white"
-					>
-						<span class="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-slate-800 theme-lightsout:border-gray-800 theme-lightsout:bg-gray-900">
-							<ChevronLeft class="h-5 w-5" />
-						</span>
-						<span class="sr-only">Previous</span>
-					</button>
-					<button 
-						type="button" 
-						class="hs-carousel-next hs-carousel-disabled:opacity-50 hs-carousel-disabled:pointer-events-none absolute inset-y-0 end-0 z-10 flex w-10 items-center justify-center text-gray-800 dark:text-white"
-					>
-						<span class="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-slate-800 theme-lightsout:border-gray-800 theme-lightsout:bg-gray-900">
-							<ChevronRight class="h-5 w-5" />
-						</span>
-						<span class="sr-only">Next</span>
-					</button>
-					
-					<!-- Pagination Dots -->
-					<div class="hs-carousel-pagination mt-4 flex justify-center gap-2"></div>
-				{/if}
-			</div>
-		</div>
-		
-		<!-- Desktop: Horizontal scroll with flex -->
-		<div class="hidden md:block">
-			<div class="flex gap-4 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+		<!-- Loading State: Show avatar with spinner ring -->
+		{#if isLoadingStats && accountStats.size === 0}
+			<div class="flex justify-center gap-6 py-8">
 				{#each accounts as account (account.id)}
-					<div class="w-[340px] flex-shrink-0 lg:w-[320px]">
-						<AccountProfileCard
-							{account}
-							stats={statsLookup.get(account.id || '') || null}
-							{tweets}
-							isLoading={isLoadingStats}
-						/>
+					<div class="flex flex-col items-center gap-3">
+						<!-- Avatar with spinner ring -->
+						<div class="relative">
+							<!-- Spinning ring -->
+							<div class="absolute inset-0 animate-spin rounded-full border-4 border-transparent border-t-blue-600"></div>
+							<!-- Avatar -->
+							<img
+								src={account.profileImage || '/avatar.png'}
+								alt={account.displayName || account.username}
+								class="h-20 w-20 rounded-full border-4 border-gray-200 object-cover dark:border-gray-700 theme-lightsout:border-gray-800"
+							/>
+						</div>
+						<span class="text-sm font-medium text-gray-600 dark:text-gray-400 theme-lightsout:text-gray-500">
+							@{account.username}
+						</span>
 					</div>
 				{/each}
 			</div>
-		</div>
+		{:else}
+			<!-- Mobile: Preline Carousel (centered, full-width cards) -->
+			<div class="block md:hidden">
+				<div 
+					data-hs-carousel={carouselConfig}
+					class="relative"
+				>
+					<div class="hs-carousel relative w-full min-h-fit">
+						<div class="hs-carousel-body flex flex-nowrap gap-4 opacity-0 transition-transform duration-700" style="min-height: fit-content;">
+							{#each accounts as account (account.id)}
+								<div class="hs-carousel-slide w-full flex-shrink-0 snap-center px-2" style="height: auto;">
+									<AccountProfileCard
+										{account}
+										stats={statsLookup.get(account.id || '') || null}
+										{tweets}
+										isLoading={isLoadingStats}
+									/>
+								</div>
+							{/each}
+						</div>
+					</div>
+					
+					<!-- Navigation Arrows -->
+					{#if accounts.length > 1}
+						<button 
+							type="button" 
+							class="hs-carousel-prev hs-carousel-disabled:opacity-50 hs-carousel-disabled:pointer-events-none absolute inset-y-0 start-0 z-10 flex w-10 items-center justify-center text-gray-800 dark:text-white"
+						>
+							<span class="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-slate-800 theme-lightsout:border-gray-800 theme-lightsout:bg-gray-900">
+								<ChevronLeft class="h-5 w-5" />
+							</span>
+							<span class="sr-only">Previous</span>
+						</button>
+						<button 
+							type="button" 
+							class="hs-carousel-next hs-carousel-disabled:opacity-50 hs-carousel-disabled:pointer-events-none absolute inset-y-0 end-0 z-10 flex w-10 items-center justify-center text-gray-800 dark:text-white"
+						>
+							<span class="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-slate-800 theme-lightsout:border-gray-800 theme-lightsout:bg-gray-900">
+								<ChevronRight class="h-5 w-5" />
+							</span>
+							<span class="sr-only">Next</span>
+						</button>
+						
+						<!-- Pagination Dots -->
+						<div class="hs-carousel-pagination mt-4 flex justify-center gap-2"></div>
+					{/if}
+				</div>
+			</div>
+		
+			<!-- Desktop: Horizontal scroll with flex -->
+			<div class="hidden md:block">
+				<div class="flex gap-4 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+					{#each accounts as account (account.id)}
+						<div class="w-[340px] flex-shrink-0 lg:w-[320px]">
+							<AccountProfileCard
+								{account}
+								stats={statsLookup.get(account.id || '') || null}
+								{tweets}
+								isLoading={isLoadingStats}
+							/>
+						</div>
+					{/each}
+				</div>
+			</div>
+		{/if}
 	{:else}
 		<div class="rounded-xl border border-dashed border-gray-300 bg-gray-50 py-12 text-center dark:border-gray-700 dark:bg-slate-800/50 theme-lightsout:border-gray-800 theme-lightsout:bg-gray-900/50">
 			<UserPlus class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500 theme-lightsout:text-gray-600" />

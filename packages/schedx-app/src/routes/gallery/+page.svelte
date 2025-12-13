@@ -1,11 +1,13 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
+	import { autoAnimate } from '@formkit/auto-animate';
 	import { Search, X, Trash2, Loader2, CheckCircle, Upload as UploadIcon } from 'lucide-svelte';
 	import MediaLightbox from '$lib/components/MediaLightbox.svelte';
 	import FileUpload from '$lib/components/FileUpload.svelte';
 	import AccountDropdown from '$lib/components/AccountDropdown.svelte';
 	import logger from '$lib/logger';
+	import { debounce } from '$lib/utils/debounce';
 
 	interface MediaItem {
 		id: string;
@@ -81,10 +83,15 @@
 		}
 	}
 
+	// OPTIMIZATION: Debounced fetch to prevent rapid API calls during filter changes
+	const debouncedFetchMedia = debounce(() => {
+		fetchMedia();
+	}, 300);
+
 	// Handle account filter change
 	function handleAccountFilterChange(accountId: string) {
 		selectedAccountId = accountId;
-		fetchMedia();
+		debouncedFetchMedia();
 	}
 
 	// Open lightbox at specific media item
@@ -272,20 +279,28 @@
 		if (browser) {
 			window.addEventListener('keydown', handleKeydown);
 
+			// OPTIMIZATION: Use requestIdleCallback for non-critical Preline init
 			const initPreline = () => {
 				if (typeof window !== 'undefined' && window.HSStaticMethods) {
-					logger.debug('Initializing Gallery page Preline components...');
 					window.HSStaticMethods.autoInit();
 				}
 			};
-			setTimeout(initPreline, 100);
-			setTimeout(initPreline, 500);
-			setTimeout(initPreline, 1000);
+			
+			if ('requestIdleCallback' in window) {
+				(window as any).requestIdleCallback(initPreline);
+			} else {
+				setTimeout(initPreline, 100);
+			}
 
 			return () => {
 				window.removeEventListener('keydown', handleKeydown);
 			};
 		}
+	});
+
+	onDestroy(() => {
+		// OPTIMIZATION: Clean up debounced function
+		debouncedFetchMedia.cancel();
 	});
 </script>
 
@@ -515,7 +530,7 @@
 		</div>
 
 		<!-- Masonry Gallery -->
-		<div class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+		<div use:autoAnimate={{ duration: 200 }} class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
 			{#each Array.from({ length: 4 }, (_, colIndex) => colIndex) as colIndex}
 				<div class="space-y-2">
 					{#each mediaItems.filter((_, index) => index % 4 === colIndex) as media, colMediaIndex}
@@ -561,14 +576,14 @@
 								</div>
 							{/if}
 
-							<!-- Media Preview -->
+							<!-- Media Preview - OPTIMIZED with lazy loading -->
 							{#if media.type === 'video'}
 								<video
 									class="h-auto w-full cursor-pointer object-cover"
 									src={media.url}
 									muted
 									playsinline
-									preload="metadata"
+									preload="none"
 								></video>
 							{:else}
 								<img
@@ -576,6 +591,7 @@
 									src={media.url}
 									alt={media.filename}
 									loading="lazy"
+									decoding="async"
 								/>
 							{/if}
 

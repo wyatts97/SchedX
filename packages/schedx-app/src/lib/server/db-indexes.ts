@@ -11,26 +11,45 @@ export async function createDatabaseIndexes() {
 		logger.info('Creating database indexes...');
 
 		await db.exec(`
+			-- Core tweet indexes
 			CREATE INDEX IF NOT EXISTS user_status_scheduled_idx ON tweets(userId, status, scheduledDate);
 			CREATE INDEX IF NOT EXISTS status_scheduled_idx ON tweets(status, scheduledDate);
 			CREATE INDEX IF NOT EXISTS user_account_status_idx ON tweets(userId, twitterAccountId, status);
 			CREATE INDEX IF NOT EXISTS user_template_idx ON tweets(userId, templateName);
 			CREATE INDEX IF NOT EXISTS user_status_account_idx ON tweets(userId, status, twitterAccountId);
 			CREATE INDEX IF NOT EXISTS created_at_idx ON tweets(createdAt);
+			
+			-- Account indexes
 			CREATE INDEX IF NOT EXISTS user_provider_idx ON accounts(userId, provider);
 			CREATE INDEX IF NOT EXISTS provider_account_id_idx ON accounts(providerAccountId);
 			CREATE INDEX IF NOT EXISTS twitter_app_id_idx ON accounts(twitterAppId);
 			CREATE INDEX IF NOT EXISTS is_default_idx ON accounts(isDefault);
+			
+			-- Twitter app indexes
 			CREATE INDEX IF NOT EXISTS name_idx ON twitter_apps(name);
 			CREATE INDEX IF NOT EXISTS client_id_idx ON twitter_apps(clientId);
+			
+			-- User/session indexes
 			CREATE INDEX IF NOT EXISTS username_idx ON users(username);
 			CREATE INDEX IF NOT EXISTS session_id_idx ON sessions(sessionId);
 			CREATE INDEX IF NOT EXISTS expires_at_idx ON sessions(expiresAt);
+			
+			-- Notification indexes
 			CREATE INDEX IF NOT EXISTS user_status_created_idx ON notifications(userId, status, createdAt);
 			CREATE INDEX IF NOT EXISTS tweet_id_idx ON notifications(tweetId);
 			CREATE INDEX IF NOT EXISTS notifications_created_at_idx ON notifications(createdAt);
+			
+			-- API usage indexes
 			CREATE INDEX IF NOT EXISTS user_month_idx ON api_usage(userId, month);
 			CREATE INDEX IF NOT EXISTS api_usage_created_at_idx ON api_usage(createdAt);
+			
+			-- OPTIMIZATION: Analytics indexes for faster aggregation queries
+			CREATE INDEX IF NOT EXISTS idx_content_analytics_tweet ON content_analytics(tweet_id);
+			CREATE INDEX IF NOT EXISTS idx_content_analytics_engagement ON content_analytics(engagement_score DESC);
+			CREATE INDEX IF NOT EXISTS idx_daily_stats_account_date ON daily_stats(account_id, date);
+			CREATE INDEX IF NOT EXISTS idx_engagement_snapshots_tweet_date ON engagement_snapshots(tweet_id, snapshot_date);
+			CREATE INDEX IF NOT EXISTS idx_tweets_account_status_created ON tweets(twitterAccountId, status, createdAt DESC);
+			CREATE INDEX IF NOT EXISTS idx_tweets_user_status_upper ON tweets(userId, status);
 		`);
 
 		logger.info('Database indexes created successfully');

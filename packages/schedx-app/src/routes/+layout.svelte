@@ -8,6 +8,8 @@
 	import MobileNavbar from '$lib/components/MobileNavbar.svelte';
 	import Footer from '$lib/components/Footer.svelte';
 	import { Toaster } from 'svelte-sonner';
+	import { QueryClientProvider } from '@tanstack/svelte-query';
+	import { queryClient } from '$lib/query/queryClient';
 	import logger from '$lib/logger';
 	
 
@@ -78,6 +80,7 @@
 	});
 </script>
 
+<QueryClientProvider client={queryClient}>
 <div class="theme-lightsout:bg-black flex min-h-screen flex-col bg-gray-50 dark:bg-gray-900">
 	<!-- Check if we're on authentication pages -->
 	{#if $page.url.pathname !== '/login' && !$page.url.pathname.startsWith('/auth/') && $page.url.pathname !== '/signin' && $page.url.pathname !== '/signout' && !$page.url.pathname.startsWith('/admin/login') && $page.url.pathname !== '/logout'}
@@ -143,6 +146,7 @@
 	<!-- Global Toaster (svelte-sonner) -->
 	<Toaster richColors position="top-right" />
 </div>
+</QueryClientProvider>
 
 <!-- Global styles for mobile responsiveness -->
 <style>

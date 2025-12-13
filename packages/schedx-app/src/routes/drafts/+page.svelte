@@ -2,6 +2,7 @@
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
+	import { autoAnimate } from '@formkit/auto-animate';
 	import TweetCreate from '$lib/components/TweetCreate.svelte';
 	import TweetPreview from '$lib/components/TweetPreview.svelte';
 	import { AlertTriangle, CheckCircle, XCircle, FileEdit, Edit, Trash2 } from 'lucide-svelte';
@@ -175,7 +176,7 @@
 	</div>
 
 	{#if data.drafts && data.drafts.length > 0}
-		<div class="mt-8 space-y-4">
+		<div use:autoAnimate={{ duration: 250 }} class="mt-8 space-y-4">
 			{#each data.drafts as draft (draft.id)}
 				{@const account = (data.accounts || []).find((a: any) => a.providerAccountId === draft.twitterAccountId || a.id === draft.twitterAccountId)}
 				{#if account}

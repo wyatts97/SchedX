@@ -2,6 +2,7 @@ import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
 import { getDbInstance } from '$lib/server/db';
 import logger from '$lib/server/logger';
+import { getCachedAnalytics } from '$lib/server/services/analyticsCache';
 
 export const GET: RequestHandler = async ({ cookies }) => {
 	const adminSession = cookies.get('admin_session');
@@ -19,28 +20,38 @@ export const GET: RequestHandler = async ({ cookies }) => {
 
 		const userId = session.data.user.id;
 
-		// Batch all database calls in parallel for better performance
-		const [appsResult, analyticsResult, tweetsResult, accountsResult] = await Promise.all([
+		// OPTIMIZATION: Use cached analytics where possible
+		const [appsResult, tweetsResult, accountsResult] = await Promise.all([
 			db.listTwitterApps().catch(() => ([])),
-			Promise.resolve(computeAnalytics(db, userId)).catch(() => ({})),
 			db.getAllTweets(userId).catch(() => ([])),
 			(db as any).getAllUserAccounts().catch(() => ([]))
 		]);
 
 		// Transform results to match expected format
 		const apps = Array.isArray(appsResult) ? appsResult : [];
-		const analytics = analyticsResult || {};
 		const tweets = Array.isArray(tweetsResult) ? tweetsResult : [];
 		const accounts = Array.isArray(accountsResult) ? accountsResult : [];
+		
+		// OPTIMIZATION: Use cached analytics (1 minute TTL)
+		const analytics = await getCachedAnalytics(
+			'dashboard',
+			userId,
+			async () => computeAnalyticsFromData(tweets, accounts)
+		);
 
-		logger.info(`Dashboard batched data loaded: apps=${apps.length}, tweets=${tweets.length}, accounts=${accounts.length}`);
+		logger.debug(`Dashboard data loaded: apps=${apps.length}, tweets=${tweets.length}, accounts=${accounts.length}`);
 
 		return json({
 			apps: apps || [],
 			analytics: analytics || {},
 			tweets: tweets || [],
 			accounts: accounts || []
-		}, { headers: { 'cache-control': 'no-cache' } });
+		}, { 
+			headers: { 
+				// OPTIMIZATION: Allow short client-side caching (30s) for dashboard data
+				'cache-control': 'private, max-age=30, stale-while-revalidate=60' 
+			} 
+		});
 	} catch (error) {
 		logger.error({ error }, 'Failed to load batched dashboard data');
 		return json(
@@ -56,11 +67,8 @@ export const GET: RequestHandler = async ({ cookies }) => {
 	}
 };
 
-// Extract analytics computation to reuse logic
-async function computeAnalytics(db: any, userId: string) {
-	const tweets = await db.getAllTweets(userId);
-	const accounts = await (db as any).getAllUserAccounts();
-
+// OPTIMIZATION: Compute analytics from already-fetched data (no duplicate DB calls)
+function computeAnalyticsFromData(tweets: any[], accounts: any[]) {
 	const totalTweets = tweets.length;
 	const postedTweets = tweets.filter((t: any) => t.status?.toUpperCase() === 'POSTED').length;
 	const scheduledTweets = tweets.filter((t: any) => t.status?.toUpperCase() === 'SCHEDULED').length;
@@ -68,7 +76,7 @@ async function computeAnalytics(db: any, userId: string) {
 	const draftTweets = tweets.filter((t: any) => t.status?.toUpperCase() === 'DRAFT').length;
 	const successRate = totalTweets > 0 ? Math.round((postedTweets / totalTweets) * 100) : 0;
 
-	const recentActivity = tweets
+	const recentActivity = [...tweets]
 		.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 		.slice(0, 10)
 		.map((tweet: any) => ({

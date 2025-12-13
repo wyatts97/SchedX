@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { autoAnimate } from '@formkit/auto-animate';
     import TweetPreview from '$lib/components/TweetPreview.svelte';
     import AccountDropdown from '$lib/components/AccountDropdown.svelte';
     import { FileText, Loader2, AlertCircle, Filter, Search, ExternalLink, RefreshCw } from 'lucide-svelte';
@@ -215,7 +216,7 @@
         </div>
 
         <!-- Tweet List -->
-        <div class="max-h-[800px] space-y-4 overflow-y-auto pr-2 scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400 dark:scrollbar-track-gray-800 dark:scrollbar-thumb-gray-600 dark:hover:scrollbar-thumb-gray-500">
+        <div use:autoAnimate={{ duration: 250 }} class="max-h-[800px] space-y-4 overflow-y-auto pr-2 scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400 dark:scrollbar-track-gray-800 dark:scrollbar-thumb-gray-600 dark:hover:scrollbar-thumb-gray-500">
             {#if paginatedTweets.length > 0}
                 {#each paginatedTweets as tweet (tweet.id + '-' + statsVersion)}
                     {@const account = tweet.twitterAccountId ? accountById[tweet.twitterAccountId] : null}

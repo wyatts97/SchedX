@@ -4,7 +4,7 @@
 	import { onMount } from 'svelte';
 
 	export let value: number = 0;
-	export let duration: number = 700;
+	export let duration: number = 800;
 	export let formatFn: ((n: number) => string) | null = null;
 
 	// Create a tweened store for smooth animation
@@ -13,17 +13,20 @@
 		easing: cubicOut
 	});
 
-	// Track if component has mounted (for initial animation)
+	// Track the last target value to avoid unnecessary updates
+	let lastTargetValue: number = 0;
 	let mounted = false;
 
 	onMount(() => {
-		// Set initial value without animation
+		// Set initial value without animation on mount
+		lastTargetValue = value;
 		displayValue.set(value, { duration: 0 });
 		mounted = true;
 	});
 
-	// Animate to new value when it changes
-	$: if (mounted && value !== $displayValue) {
+	// Animate to new value when prop changes
+	$: if (mounted && value !== lastTargetValue) {
+		lastTargetValue = value;
 		displayValue.set(value);
 	}
 
@@ -39,10 +42,10 @@
 		if (rounded >= 1000) {
 			return (rounded / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
 		}
-		return rounded.toString();
+		return rounded.toLocaleString();
 	}
 </script>
 
-<span class="tabular-nums transition-colors">
+<span class="inline-block tabular-nums transition-colors">
 	{formatNumber($displayValue)}
 </span>

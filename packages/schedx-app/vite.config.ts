@@ -55,8 +55,26 @@ export default defineConfig(({ mode }) => {
 		},
 		build: {
 			rollupOptions: {
-				external: ['bcryptjs']
-			}
+				external: ['bcryptjs'],
+				output: {
+					// OPTIMIZATION: Manual chunking for better caching
+					manualChunks: {
+						// Vendor chunks - rarely change
+						'vendor-ui': ['preline'],
+						'vendor-charts': ['apexcharts'],
+						'vendor-dates': ['date-fns', 'date-fns-tz', 'air-datepicker'],
+						'vendor-calendar': ['@schedule-x/calendar', '@schedule-x/svelte', '@schedule-x/drag-and-drop'],
+						// Twitter/API deps
+						'vendor-twitter': ['twitter-api-v2', 'rettiwt-api']
+					}
+				}
+			},
+			// OPTIMIZATION: Increase chunk size warning threshold
+			chunkSizeWarningLimit: 600,
+			// OPTIMIZATION: Enable minification
+			minify: 'esbuild',
+			// OPTIMIZATION: Generate source maps only in development
+			sourcemap: process.env.NODE_ENV !== 'production'
 		}
 	};
 });

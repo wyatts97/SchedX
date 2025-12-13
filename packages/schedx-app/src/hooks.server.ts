@@ -15,6 +15,7 @@ import * as cron from 'node-cron';
 let dbInitialized = false;
 let schedulerInitialized = false;
 let initPromise: Promise<void> | null = null;
+let localNetworkWarningLogged = false;
 
 const initDb = async () => {
 	// If already initialized, return immediately
@@ -95,6 +96,16 @@ const corsHandle: Handle = async ({ event, resolve }) => {
 	// SECURITY: Allow local network IPs only if explicitly enabled
 	// This is useful for self-hosted/home lab deployments but should be disabled for production
 	const allowLocalNetwork = process.env.ALLOW_LOCAL_NETWORK === 'true';
+	
+	// SECURITY WARNING: Log when local network access is enabled
+	if (allowLocalNetwork && !localNetworkWarningLogged) {
+		logger.warn({
+			type: 'security_warning',
+			setting: 'ALLOW_LOCAL_NETWORK',
+			message: 'Local network access is ENABLED. Session cookies may be transmitted over HTTP. Only use this for trusted home lab/self-hosted deployments.'
+		}, '⚠️ SECURITY: ALLOW_LOCAL_NETWORK=true - cookies not restricted to HTTPS');
+		localNetworkWarningLogged = true;
+	}
 	
 	if (!isAllowedOrigin && origin && allowLocalNetwork) {
 		const localNetworkPattern = /^https?:\/\/(localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2[0-9]|3[0-1])\.\d{1,3}\.\d{1,3})(:\d+)?$/;
@@ -255,6 +266,64 @@ const errorHandle: Handle = async ({ event, resolve }) => {
 	}
 };
 
+/**
+ * SECURITY: Security headers middleware
+ * Adds important security headers to all responses
+ */
+const securityHeadersHandle: Handle = async ({ event, resolve }) => {
+	const response = await resolve(event);
+	
+	const isProduction = process.env.NODE_ENV === 'production';
+	const allowLocalNetwork = process.env.ALLOW_LOCAL_NETWORK === 'true';
+	
+	// X-Content-Type-Options: Prevent MIME type sniffing
+	response.headers.set('X-Content-Type-Options', 'nosniff');
+	
+	// X-Frame-Options: Prevent clickjacking
+	response.headers.set('X-Frame-Options', 'SAMEORIGIN');
+	
+	// X-XSS-Protection: Enable XSS filtering (legacy, but still useful)
+	response.headers.set('X-XSS-Protection', '1; mode=block');
+	
+	// Referrer-Policy: Control referrer information
+	response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+	
+	// Permissions-Policy: Restrict browser features
+	response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+	
+	// HSTS: Force HTTPS (only in production, not for local network)
+	if (isProduction && !allowLocalNetwork) {
+		response.headers.set(
+			'Strict-Transport-Security',
+			'max-age=31536000; includeSubDomains'
+		);
+	}
+	
+	// Content-Security-Policy: Prevent XSS and other injection attacks
+	// Note: Using report-only first to avoid breaking anything
+	const cspDirectives = [
+		"default-src 'self'",
+		"script-src 'self' 'unsafe-inline' 'unsafe-eval' https://preline.co", // unsafe-inline for Svelte
+		"style-src 'self' 'unsafe-inline'", // unsafe-inline for Tailwind
+		"img-src 'self' data: blob: https://pbs.twimg.com https://abs.twimg.com https://*.twimg.com",
+		"font-src 'self' data:",
+		"connect-src 'self' https://api.twitter.com https://api.x.com",
+		"media-src 'self' blob: https://video.twimg.com",
+		"frame-ancestors 'self'",
+		"base-uri 'self'",
+		"form-action 'self'"
+	];
+	
+	// Use report-only in development to avoid breaking things
+	if (isProduction) {
+		response.headers.set('Content-Security-Policy', cspDirectives.join('; '));
+	} else {
+		response.headers.set('Content-Security-Policy-Report-Only', cspDirectives.join('; '));
+	}
+	
+	return response;
+};
+
 /** @type {import('@sveltejs/kit').Handle} */
 export const handle = sequence(
 	async ({ event, resolve }) => {
@@ -263,6 +332,7 @@ export const handle = sequence(
 	},
 	corsHandle,
 	rateLimitHandle,
+	securityHeadersHandle,
 	loggingHandle,
 	errorHandle,
 	authHandle

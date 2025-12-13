@@ -2,7 +2,16 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from '@sveltejs/kit';
 import logger from '$lib/server/logger';
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
+	// SECURITY: Only allow in development mode AND when authenticated
+	if (process.env.NODE_ENV === 'production') {
+		return json({ error: 'Debug endpoints disabled in production' }, { status: 403 });
+	}
+	
+	if (!locals.isAuthenticated) {
+		return json({ error: 'Unauthorized' }, { status: 401 });
+	}
+	
 	try {
 		const contentLength = request.headers.get('content-length');
 		const sizeInMB = contentLength ? parseInt(contentLength) / (1024 * 1024) : 0;

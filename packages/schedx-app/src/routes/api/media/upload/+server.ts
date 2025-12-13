@@ -7,6 +7,7 @@ import logger from '$lib/server/logger';
 import { createFileValidationMiddleware } from '$lib/validation/middleware';
 import { mediaUploadSchema } from '$lib/validation/schemas';
 import { userRateLimit, RATE_LIMITS } from '$lib/rate-limiting';
+import { optimizeImage } from '$lib/server/imageOptimizer';
 
 // Save tweet media to uploads directory (not avatars)
 // In Docker, uploads are at /app/packages/schedx-app/uploads
@@ -96,13 +97,35 @@ export const POST = userRateLimit(RATE_LIMITS.upload)(
 			}
 			const buffer = Buffer.from(await file.arrayBuffer());
 
-			// Generate unique filename
+			// Generate unique filename with SECURITY: sanitized extension
 			const timestamp = Date.now();
 			const randomString = Math.random().toString(36).substring(2, 15);
-			const extension =
-				path.extname(file.name) || (file.type.startsWith('image/') ? '.jpg' : '.mp4');
-			const filename = `${timestamp}-${randomString}${extension}`;
+			
+			// SECURITY: Map MIME type to safe extension (don't trust user-provided extension)
+			const SAFE_EXTENSIONS: Record<string, string> = {
+				'image/jpeg': '.jpg',
+				'image/png': '.png',
+				'image/gif': '.gif',
+				'image/webp': '.webp',
+				'video/mp4': '.mp4',
+				'video/webm': '.webm',
+				'video/mov': '.mov',
+				'video/quicktime': '.mov'
+			};
+			
+			// SECURITY: Use MIME-based extension, not user-provided filename
+			const extension = SAFE_EXTENSIONS[file.type] || '.bin';
+			
+			// SECURITY: Ensure filename contains only safe characters
+			const filename = `${timestamp}-${randomString}${extension}`.replace(/[^a-zA-Z0-9.-]/g, '');
 			const filepath = path.join(UPLOADS_DIR, filename);
+			
+			// SECURITY: Verify path doesn't escape uploads directory (path traversal prevention)
+			const resolvedPath = path.resolve(filepath);
+			if (!resolvedPath.startsWith(path.resolve(UPLOADS_DIR))) {
+				logger.error('Path traversal attempt detected');
+				return json({ error: 'Invalid filename' }, { status: 400 });
+			}
 
 			// Write file to disk
 			const writeStream = createWriteStream(filepath);
@@ -123,10 +146,29 @@ export const POST = userRateLimit(RATE_LIMITS.upload)(
 			logger.debug(`File saved to: ${filepath}`);
 			logger.debug(`Uploads directory: ${UPLOADS_DIR}`);
 
+			// Optimize image in background (non-blocking for response)
+			let optimizedUrl = url;
+			let thumbnails: Record<string, string> | null = null;
+			
+			if (mediaType === 'photo') {
+				try {
+					const optimization = await optimizeImage(filepath, filename, file.type);
+					if (optimization) {
+						optimizedUrl = optimization.optimizedUrl;
+						thumbnails = optimization.thumbnailUrls;
+						logger.info(`Image optimized: saved ${optimization.savedPercent}% (${(optimization.savedBytes/1024).toFixed(1)}KB)`);
+					}
+				} catch (optError) {
+					logger.warn(`Image optimization skipped for ${filename}: ${optError instanceof Error ? optError.message : 'Unknown error'}`);
+				}
+			}
+
 			// Save metadata with account information
 			const metadata = loadMediaMetadata();
 			metadata[filename] = {
 				url,
+				optimizedUrl,
+				thumbnails,
 				type: mediaType,
 				filename: file.name,
 				uploadedAt: new Date().toISOString(),
@@ -135,7 +177,7 @@ export const POST = userRateLimit(RATE_LIMITS.upload)(
 			};
 			saveMediaMetadata(metadata);
 
-			return json({ url, type: mediaType });
+			return json({ url, optimizedUrl, thumbnails, type: mediaType });
 		} catch (error) {
 			logger.error('Upload error');
 

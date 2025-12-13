@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { autoAnimate } from '@formkit/auto-animate';
+	import { draggable } from '@neodrag/svelte';
 	import { Settings, Calendar as CalendarIcon, Edit, Trash2, GripVertical, Shuffle } from 'lucide-svelte';
 	import { toastStore } from '$lib/stores/toastStore';
 	import AccountDropdown from '$lib/components/AccountDropdown.svelte';
@@ -129,6 +131,55 @@
 		}
 	}
 
+	// Drag-to-reorder functionality
+	let draggedIndex: number | null = null;
+	let dragOverIndex: number | null = null;
+
+	function handleDragStart(index: number) {
+		draggedIndex = index;
+	}
+
+	function handleDragOver(index: number) {
+		if (draggedIndex !== null && draggedIndex !== index) {
+			dragOverIndex = index;
+		}
+	}
+
+	function handleDragEnd() {
+		if (draggedIndex !== null && dragOverIndex !== null && draggedIndex !== dragOverIndex) {
+			// Reorder the array
+			const newTweets = [...queuedTweets];
+			const [removed] = newTweets.splice(draggedIndex, 1);
+			newTweets.splice(dragOverIndex, 0, removed);
+			queuedTweets = newTweets;
+			
+			// Save new order to server
+			saveQueueOrder(newTweets.map(t => t.id));
+		}
+		draggedIndex = null;
+		dragOverIndex = null;
+	}
+
+	async function saveQueueOrder(tweetIds: string[]) {
+		try {
+			const res = await fetch('/api/queue/reorder', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ tweetIds }),
+				credentials: 'same-origin'
+			});
+			if (!res.ok) {
+				throw new Error('Failed to save order');
+			}
+			toastStore.success('Reordered', 'Queue order updated');
+		} catch (e) {
+			toastStore.error('Reorder Failed', 'Failed to save queue order');
+			logger.error('Failed to save queue order:', { error: e });
+			// Refresh to get original order
+			await fetchQueue();
+		}
+	}
+
 	function formatDate(date: string | Date) {
 		return new Date(date).toLocaleString();
 	}
@@ -247,13 +298,19 @@
 					</div>
 				</div>
 			{:else}
-				<div class="space-y-3">
+				<div use:autoAnimate={{ duration: 250 }} class="space-y-3">
 					{#each queuedTweets as tweet, index (tweet.id)}
 						<div
-							class="flex items-start gap-4 rounded-lg border border-gray-200 p-4 transition-all duration-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600"
+							class="flex items-start gap-4 rounded-lg border p-4 transition-all duration-200 {dragOverIndex === index ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600'} {draggedIndex === index ? 'opacity-50' : ''}"
+							draggable="true"
+							on:dragstart={() => handleDragStart(index)}
+							on:dragover|preventDefault={() => handleDragOver(index)}
+							on:dragend={handleDragEnd}
+							on:drop|preventDefault={handleDragEnd}
+							role="listitem"
 						>
 							<!-- Drag Handle -->
-							<div class="flex items-center">
+							<div class="flex cursor-grab items-center active:cursor-grabbing">
 								<GripVertical class="h-5 w-5 text-gray-400" />
 								<span class="ml-2 text-sm font-medium text-gray-500 dark:text-gray-400">
 									#{index + 1}

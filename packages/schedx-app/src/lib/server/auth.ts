@@ -9,6 +9,16 @@ let lastCleanupTime = 0;
 let cleanupInProgress = false;
 const CLEANUP_INTERVAL = 60 * 60 * 1000; // 1 hour
 
+// SECURITY: Session configuration
+const SESSION_CONFIG = {
+	// Sliding window: extend session on activity
+	slidingWindowMs: 7 * 24 * 60 * 60 * 1000, // 7 days of inactivity before expiry
+	// Maximum absolute lifetime (even with activity)
+	maxLifetimeMs: 30 * 24 * 60 * 60 * 1000, // 30 days max
+	// Minimum time between session extension updates (to avoid DB thrashing)
+	extensionThrottleMs: 60 * 60 * 1000, // 1 hour
+};
+
 async function cleanupExpiredSessionsIfNeeded() {
 	const now = Date.now();
 	
@@ -53,6 +63,33 @@ export const handle = async ({ event, resolve }: any) => {
 					avatar: session.data.user.avatar,
 					email: session.data.user.email
 				};
+				
+				// SECURITY: Sliding session expiration
+				// Extend session if user is active (but throttle updates)
+				const now = Date.now();
+				const sessionCreatedAt = session.data.createdAt || now;
+				const lastExtended = session.data.lastExtended || sessionCreatedAt;
+				const sessionAge = now - sessionCreatedAt;
+				const timeSinceExtension = now - lastExtended;
+				
+				// Only extend if:
+				// 1. Session hasn't exceeded max lifetime
+				// 2. Enough time has passed since last extension (throttle)
+				if (
+					sessionAge < SESSION_CONFIG.maxLifetimeMs &&
+					timeSinceExtension > SESSION_CONFIG.extensionThrottleMs
+				) {
+					const newExpiry = new Date(now + SESSION_CONFIG.slidingWindowMs);
+					const updatedData = {
+						...session.data,
+						lastExtended: now
+					};
+					
+					// Update session in background (don't await to avoid blocking request)
+					db.saveSession(sessionId, updatedData, newExpiry).catch(err => {
+						logger.error('Failed to extend session', { error: err });
+					});
+				}
 			} else {
 				// Session not found or expired, clear cookie
 				event.cookies.delete('admin_session', { path: '/' });
@@ -108,18 +145,24 @@ export async function signIn(credentials: { username: string; password: string }
 		}
 
 		const sessionId = crypto.randomUUID();
+		const now = Date.now();
 		const sessionData = {
 			user: {
 				id: user.id,
 				username: user.username,
 				avatar: (user as any).avatar || '/avatar.png',
 				email: (user as any).email || `${user.username}@admin.local`
-			}
+			},
+			// SECURITY: Track session creation and extension times for sliding expiration
+			createdAt: now,
+			lastExtended: now
 		};
 
-		// Set session to expire in 30 days
-		const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+		// SECURITY: Session expires after sliding window of inactivity
+		const expiresAt = new Date(now + SESSION_CONFIG.slidingWindowMs);
 		await db.saveSession(sessionId, sessionData, expiresAt);
+		
+		logger.info(`User logged in successfully: ${user.username}`);
 
 		return { sessionId };
 	} catch (error) {
