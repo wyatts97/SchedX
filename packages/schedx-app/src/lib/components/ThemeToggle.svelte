@@ -63,7 +63,7 @@
 	});
 </script>
 
-<div class="flex items-center gap-1 rounded-full bg-gray-200 p-1 dark:bg-gray-700">
+<div class="flex items-center gap-1 rounded-full bg-gray-200 p-1 dark:bg-gray-700 theme-lightsout:bg-black">
 	<!-- Light Mode Button -->
 	<button
 		class="flex h-8 w-8 items-center justify-center rounded-full transition-all duration-200 {currentPosition ===

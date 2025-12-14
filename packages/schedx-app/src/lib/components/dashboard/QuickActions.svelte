@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { RefreshCw, UserPlus, ChevronLeft, ChevronRight } from 'lucide-svelte';
 	import type { UserAccount, Tweet } from '$lib/types';
 	import type { AccountStats, AccountStatsResponse } from '$lib/types/analytics';
@@ -8,6 +8,9 @@
 
 	export let accounts: UserAccount[] = [];
 	export let tweets: Tweet[] = [];
+	
+	// Track if carousel has initialized
+	let carouselReady = false;
 
 	let accountStats: Map<string, AccountStats> = new Map();
 	let isLoadingStats = false;
@@ -60,15 +63,27 @@
 		}
 	}
 
+	// Initialize carousel and set ready state
+	function initCarousel() {
+		if (typeof window !== 'undefined' && (window as any).HSCarousel) {
+			(window as any).HSCarousel.autoInit();
+			// Mark carousel as ready after a brief delay to ensure init completes
+			setTimeout(() => {
+				carouselReady = true;
+			}, 200);
+		} else {
+			// Preline not available, show content anyway
+			carouselReady = true;
+		}
+	}
+
 	// Fetch stats on mount and init carousel
 	onMount(() => {
 		fetchAccountStats();
-		// Init Preline carousel after DOM renders
-		setTimeout(() => {
-			if (typeof window !== 'undefined' && (window as any).HSCarousel) {
-				(window as any).HSCarousel.autoInit();
-			}
-		}, 100);
+		// Init Preline carousel after DOM renders with multiple attempts
+		setTimeout(initCarousel, 100);
+		setTimeout(initCarousel, 500);
+		setTimeout(initCarousel, 1000);
 	});
 
 	// Reactive: rebuild stats lookup when accountStats changes
@@ -76,11 +91,20 @@
 	
 	// Re-init carousel when accounts change
 	$: if (accounts.length > 0 && typeof window !== 'undefined') {
-		setTimeout(() => {
-			if ((window as any).HSCarousel) {
-				(window as any).HSCarousel.autoInit();
-			}
-		}, 150);
+		tick().then(() => {
+			setTimeout(initCarousel, 150);
+		});
+	}
+	
+	// Get high-resolution profile image URL
+	function getHighResProfileImage(url: string | undefined): string {
+		if (!url) return '/avatar.png';
+		// Twitter profile images can be requested in different sizes
+		// Replace _normal or other size suffixes with _400x400 for higher quality
+		return url
+			.replace(/_normal\./, '_400x400.')
+			.replace(/_bigger\./, '_400x400.')
+			.replace(/_200x200\./, '_400x400.');
 	}
 </script>
 
@@ -115,9 +139,9 @@
 						<div class="relative">
 							<!-- Spinning ring -->
 							<div class="absolute inset-0 animate-spin rounded-full border-4 border-transparent border-t-blue-600"></div>
-							<!-- Avatar -->
+							<!-- Avatar - use HQ image -->
 							<img
-								src={account.profileImage || '/avatar.png'}
+								src={getHighResProfileImage(account.profileImage)}
 								alt={account.displayName || account.username}
 								class="h-20 w-20 rounded-full border-4 border-gray-200 object-cover dark:border-gray-700 theme-lightsout:border-gray-800"
 							/>
@@ -136,7 +160,8 @@
 					class="relative"
 				>
 					<div class="hs-carousel relative w-full min-h-fit">
-						<div class="hs-carousel-body flex flex-nowrap gap-4 opacity-0 transition-transform duration-700" style="min-height: fit-content;">
+						<!-- Add fallback opacity class that removes opacity-0 if carousel doesn't init -->
+						<div class="hs-carousel-body flex flex-nowrap gap-4 transition-transform duration-700" class:opacity-0={!carouselReady} style="min-height: fit-content;">
 							{#each accounts as account (account.id)}
 								<div class="hs-carousel-slide w-full flex-shrink-0 snap-center px-2" style="height: auto;">
 									<AccountProfileCard

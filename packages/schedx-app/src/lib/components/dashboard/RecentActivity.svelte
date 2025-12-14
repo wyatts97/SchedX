@@ -38,7 +38,7 @@
 	}
 </script>
 
-<div class="rounded-lg bg-white shadow dark:bg-gray-800">
+<div class="rounded-lg bg-white shadow dark:bg-gray-800 theme-lightsout:bg-black">
 	<div class="px-4 py-5 sm:p-6">
 		<h3 class="mb-4 text-lg font-medium leading-6 text-gray-900 dark:text-white">
 			Recent Activity

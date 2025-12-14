@@ -11,7 +11,7 @@
 	import { AlertTriangle } from 'lucide-svelte';
 	import { Search, X, CheckCircle } from 'lucide-svelte';
 	import MediaLightbox from '$lib/components/MediaLightbox.svelte';
-	import { constructTweetUrl } from '$lib/utils/twitter';
+	import { constructTweetUrl, getHighResProfileImage } from '$lib/utils/twitter';
 	import { ExternalLink } from 'lucide-svelte';
 	import logger from '$lib/logger';
 
@@ -168,7 +168,7 @@
 							{#if tweet.media[0].type === 'video'}
 								<video
 									class="absolute inset-y-0 right-0 h-full w-32 rounded-e-lg object-cover sm:w-48"
-									src={tweet.media[0].url}
+									src="{tweet.media[0].url}#t=0.1"
 									muted
 									playsinline
 									preload="metadata"
@@ -213,7 +213,7 @@
 									<div class="mb-2 flex items-center gap-3">
 										{#if accountByProviderId[tweet.twitterAccountId].profileImage}
 											<img
-												src={accountByProviderId[tweet.twitterAccountId].profileImage}
+												src={getHighResProfileImage(accountByProviderId[tweet.twitterAccountId].profileImage)}
 												alt={`${accountByProviderId[tweet.twitterAccountId].displayName || accountByProviderId[tweet.twitterAccountId].username} avatar`}
 												class="h-8 w-8 rounded-full object-cover"
 											/>

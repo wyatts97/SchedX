@@ -76,7 +76,7 @@
 <!-- App Selection Modal -->
 {#if showAppSelectionModal}
 	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-		<div class="w-full max-w-md rounded-lg bg-white p-6 shadow-lg dark:bg-gray-800">
+		<div class="w-full max-w-md rounded-lg bg-white p-6 shadow-lg dark:bg-gray-800 theme-lightsout:bg-black">
 			<h2 class="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Select a Twitter App</h2>
 			{#if twitterApps.length > 0}
 				<p class="mb-4 text-gray-600 dark:text-gray-400">
@@ -107,7 +107,7 @@
 				</button>
 			{/if}
 			<button
-				class="mt-4 w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all duration-200 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+				class="mt-4 w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all duration-200 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 theme-lightsout:border-gray-700 theme-lightsout:bg-gray-900 theme-lightsout:text-gray-300 theme-lightsout:hover:bg-gray-800"
 				on:click={() => (showAppSelectionModal = false)}
 			>
 				Cancel

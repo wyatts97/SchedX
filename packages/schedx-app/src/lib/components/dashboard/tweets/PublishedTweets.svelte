@@ -6,6 +6,7 @@
     import { toast } from 'svelte-sonner';
     import type { Tweet as TweetType } from '$lib/stores/dashboardStore';
     import type { UserAccount } from '$lib/types';
+    import { getHighResProfileImage } from '$lib/utils/twitter';
 
     export let tweets: TweetType[] = [];
     
@@ -24,7 +25,7 @@
         id: (account.providerAccountId || account.id) as string,
         username: account.username,
         displayName: (account as any).displayName || account.username,
-        avatarUrl: (account as any).profileImage || undefined
+        avatarUrl: getHighResProfileImage((account as any).profileImage)
     }));
 
     // Filter and sort state
@@ -225,7 +226,7 @@
                         <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-800 theme-lightsout:border-gray-800 theme-lightsout:bg-black">
                             <div class="tweet-preview-wrapper [&>div]:rounded-none [&>div]:border-0 [&>div]:shadow-none">
                             <TweetPreview
-                                avatarUrl={account.profileImage || '/avatar.png'}
+                                avatarUrl={getHighResProfileImage(account.profileImage)}
                                 displayName={account.displayName || account.username}
                                 username={account.username}
                                 content={tweet.content}

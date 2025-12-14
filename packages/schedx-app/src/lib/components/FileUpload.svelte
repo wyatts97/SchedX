@@ -546,7 +546,7 @@
 						{#if showPreview && (media.type === 'image' || media.type === 'photo' || media.type === 'gif') && !media.error}
 							<img src={media.url} alt={media.name} class="h-full w-full object-cover" />
 						{:else if showPreview && media.type === 'video' && !media.error}
-							<video src={media.url} class="h-full w-full object-cover" muted playsinline></video>
+							<video src="{media.url}#t=0.1" class="h-full w-full object-cover" muted playsinline preload="metadata"></video>
 						{:else}
 							<div class="flex h-full w-full items-center justify-center">
 								<Upload class="h-8 w-8 text-gray-400" />
@@ -646,7 +646,7 @@
 								disabled={!selectedGalleryIds.has(media.id) && mediaFiles.length + selectedGalleryIds.size >= maxFiles}
 							>
 								{#if media.type === 'video'}
-									<video src={media.url} class="h-full w-full object-cover"> 
+									<video src="{media.url}#t=0.1" class="h-full w-full object-cover" preload="metadata"> 
 										<track kind="captions" src="" srclang="en" />
 									</video>
 									<div class="absolute inset-0 flex items-center justify-center bg-black/30">

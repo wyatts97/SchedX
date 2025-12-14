@@ -7,6 +7,7 @@
 	import TweetPreview from '$lib/components/TweetPreview.svelte';
 	import AccountDropdown from '$lib/components/AccountDropdown.svelte';
 	import StyledSelect from '$lib/components/StyledSelect.svelte';
+	import { getHighResProfileImage } from '$lib/utils/twitter';
 
 	export let tweets: Tweet[] = [];
 	export let accounts: UserAccount[] = [];
@@ -18,7 +19,7 @@
 		id: (account.providerAccountId || account.id) as string,
 		username: account.username,
 		displayName: (account as any).displayName || account.username,
-		avatarUrl: (account as any).profileImage || undefined
+		avatarUrl: getHighResProfileImage((account as any).profileImage)
 	}));
 
 	// Filter state
@@ -170,7 +171,7 @@
 						{#if account}
 							<div class="tweet-preview-wrapper [&>div]:rounded-none [&>div]:border-0 [&>div]:shadow-none">
 								<TweetPreview
-									avatarUrl={account.profileImage || '/avatar.png'}
+									avatarUrl={getHighResProfileImage(account.profileImage)}
 									displayName={account.displayName || account.username}
 									username={account.username}
 									content={tweet.content}

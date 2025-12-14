@@ -136,7 +136,7 @@
 	}
 </script>
 
-<div class="rounded-lg bg-white shadow dark:bg-gray-800">
+<div class="rounded-lg bg-white shadow dark:bg-gray-800 theme-lightsout:bg-black">
 	<div class="px-4 py-5 sm:p-6">
 		<div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 			<h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">
@@ -213,13 +213,13 @@
 							</p>
 							<div class="flex gap-2">
 								<button
-									class="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+									class="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 theme-lightsout:border-gray-700 theme-lightsout:bg-gray-900 theme-lightsout:text-gray-300 theme-lightsout:hover:bg-gray-800"
 									on:click={() => testAppConnection(app)}
 								>
 									Test
 								</button>
 								<button
-									class="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+									class="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 theme-lightsout:border-gray-700 theme-lightsout:bg-gray-900 theme-lightsout:text-gray-300 theme-lightsout:hover:bg-gray-800"
 									on:click={() => dashboardStore.openAppForm(app)}
 								>
 									Edit

@@ -162,9 +162,10 @@
 					{#if isVideo}
 						<video
 							class="h-full w-full object-cover"
-							src={m.url}
+							src="{m.url}#t=0.1"
 							muted
 							playsinline
+							preload="metadata"
 						></video>
 						<div class="absolute inset-0 flex items-center justify-center bg-black/20">
 							<div class="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 shadow-lg">

@@ -7,6 +7,7 @@
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import MobileNavbar from '$lib/components/MobileNavbar.svelte';
 	import Footer from '$lib/components/Footer.svelte';
+	import PullToRefresh from '$lib/components/PullToRefresh.svelte';
 	import { Toaster } from 'svelte-sonner';
 	import { QueryClientProvider } from '@tanstack/svelte-query';
 	import { queryClient } from '$lib/query/queryClient';
@@ -91,6 +92,9 @@
 		>
 			Skip to main content
 		</a>
+
+		<!-- Pull to Refresh for PWA -->
+		<PullToRefresh />
 
 		<!-- Header with Floating Navbar - Hidden on Desktop -->
 		<div class="lg:hidden">

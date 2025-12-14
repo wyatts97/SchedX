@@ -39,7 +39,7 @@
 	<div class="mb-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
 		<!-- Published Tweets (was Posted, moved to first position) -->
 		<div
-			class="group cursor-default rounded-lg border border-gray-200 bg-white p-6 shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-xl dark:border-gray-700 dark:bg-gray-800"
+			class="group cursor-default rounded-lg border border-gray-200 bg-white p-6 shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-xl dark:border-gray-700 dark:bg-gray-800 theme-lightsout:border-gray-800 theme-lightsout:bg-black"
 		>
 			<div class="flex items-center">
 				<div class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-green-50 dark:bg-green-900/20">
@@ -57,10 +57,10 @@
 		</div>
 
 		<div
-			class="group cursor-default rounded-lg border border-gray-200 bg-white p-6 shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-xl dark:border-gray-700 dark:bg-gray-800"
+			class="group cursor-default rounded-lg border border-gray-200 bg-white p-6 shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-xl dark:border-gray-700 dark:bg-gray-800 theme-lightsout:border-gray-800 theme-lightsout:bg-black"
 		>
 			<div class="flex items-center">
-				<div class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-900/20">
+				<div class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-900/20 theme-lightsout:bg-gray-800">
 					<CalendarIcon class="h-6 w-6 text-blue-600 dark:text-blue-400" />
 				</div>
 				<div class="ml-4 flex-1">
@@ -76,7 +76,7 @@
 
 		<!-- Failed Tweets -->
 		<div
-			class="group cursor-default rounded-lg border border-gray-200 bg-white p-6 shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-xl dark:border-gray-700 dark:bg-gray-800"
+			class="group cursor-default rounded-lg border border-gray-200 bg-white p-6 shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-xl dark:border-gray-700 dark:bg-gray-800 theme-lightsout:border-gray-800 theme-lightsout:bg-black"
 		>
 			<div class="flex items-center">
 				<div class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-red-50 dark:bg-red-900/20">
@@ -92,7 +92,7 @@
 		</div>
 
 		<div
-			class="group cursor-default rounded-lg border border-gray-200 bg-white p-6 shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-xl dark:border-gray-700 dark:bg-gray-800"
+			class="group cursor-default rounded-lg border border-gray-200 bg-white p-6 shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-xl dark:border-gray-700 dark:bg-gray-800 theme-lightsout:border-gray-800 theme-lightsout:bg-black"
 		>
 			<div class="flex items-center">
 				<div class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-purple-50 dark:bg-purple-900/20">

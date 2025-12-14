@@ -4,7 +4,6 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { Edit3 } from 'lucide-svelte';
-	import { adminProfile, fetchAdminProfile } from '$lib/components/adminProfile';
 	import { dashboardStore } from '$lib/stores/dashboardStore';
 	import StatsOverview from '$lib/components/dashboard/StatsOverview.svelte';
 	import TweetsTab from '$lib/components/dashboard/tabs/TweetsTab.svelte';
@@ -222,17 +221,6 @@
 				return;
 			}
 
-			// Load admin profile
-			if (isAuthenticated && isAdmin) {
-				try {
-					await fetchAdminProfile();
-				} catch (error) {
-					logger.error('Failed to fetch admin profile', {
-						error: error instanceof Error ? error.message : error
-					});
-				}
-			}
-
 			// Load dashboard data
 			await loadDashboardData();
 		} catch (error) {
@@ -264,8 +252,7 @@
 					<div class="min-w-0 flex-1">
 						<h1 class="text-2xl font-bold text-gray-900 dark:text-white sm:text-3xl">Dashboard</h1>
 						<p class="mt-1 text-sm text-gray-500 dark:text-gray-400 sm:text-base">
-							Welcome back, {$adminProfile.displayName || 'Administrator'}. Here's what's happening
-							with your tweets today.
+							Welcome back. Here's what's happening with your tweets today.
 						</p>
 					</div>
 					<div class="flex items-center space-x-3">

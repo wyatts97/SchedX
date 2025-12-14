@@ -19,6 +19,22 @@ export const openTweetInNewTab = (username: string, tweetId: string): void => {
 };
 
 /**
+ * Get high-resolution profile image URL from Twitter
+ * Twitter profile images can be requested in different sizes:
+ * _normal (48x48), _bigger (73x73), _200x200, _400x400, or original (remove size suffix)
+ * @param url - The profile image URL (any size)
+ * @returns High-quality 400x400 profile image URL
+ */
+export const getHighResProfileImage = (url: string | undefined): string => {
+	if (!url) return '/avatar.png';
+	// Replace _normal or other size suffixes with _400x400 for higher quality
+	return url
+		.replace(/_normal\./, '_400x400.')
+		.replace(/_bigger\./, '_400x400.')
+		.replace(/_200x200\./, '_400x400.');
+};
+
+/**
  * Sanitizes tweet content to prevent XSS and remove problematic characters
  * @param content - The raw tweet content
  * @returns Sanitized tweet content safe for storage and display

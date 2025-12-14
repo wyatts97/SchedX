@@ -9,13 +9,20 @@ To restore, uncomment the original implementation below.
 
 <script lang="ts">
 	import { BarChart3, Clock, Sparkles } from 'lucide-svelte';
+	import type { DashboardAnalytics, TwitterApp, Tweet, UserAccount } from '$lib/types';
+
+	// Props (unused in placeholder, but needed for type compatibility)
+	export let analytics: DashboardAnalytics | undefined = undefined;
+	export let apps: TwitterApp[] | undefined = undefined;
+	export let tweets: Tweet[] | undefined = undefined;
+	export let accounts: UserAccount[] | undefined = undefined;
 </script>
 
 <!-- Coming Soon Display -->
 <div class="flex min-h-[60vh] items-center justify-center p-6">
 	<div class="max-w-md text-center">
 		<!-- Icon -->
-		<div class="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30 theme-lightsout:bg-blue-900/40">
+		<div class="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30 theme-lightsout:bg-gray-800">
 			<BarChart3 class="h-10 w-10 text-blue-600 dark:text-blue-400 theme-lightsout:text-blue-300" />
 		</div>
 		
