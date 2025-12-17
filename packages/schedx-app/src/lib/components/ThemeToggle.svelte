@@ -64,10 +64,10 @@
 </script>
 
 
-<div class="inline-flex items-center gap-0.5 rounded-full bg-gray-200 px-0.5 py-px dark:bg-gray-700 theme-lightsout:bg-black">
+<div class="theme-toggle-container inline-flex items-center gap-0.5 rounded-full bg-gray-100 px-0.5 dark:bg-gray-700 theme-lightsout:bg-gray-800">
 	<!-- Light Mode Button -->
 	<button
-		class="flex h-3.5 w-3.5 items-center justify-center rounded-full transition-all duration-200 {currentPosition ===
+		class="theme-toggle-btn flex items-center justify-center rounded-full transition-all duration-200 {currentPosition ===
 		0
 			? 'bg-yellow-500 text-black'
 			: 'text-yellow-500 hover:bg-yellow-500/20'}"
@@ -76,12 +76,12 @@
 		aria-label="Switch to light mode"
 		data-hs-theme-click-value="light"
 	>
-		<Sun class="h-2.5 w-2.5" />
+		<Sun size={14} strokeWidth={2} />
 	</button>
 
 	<!-- Dark Mode Button (Twitter blue) -->
 	<button
-		class="flex h-3.5 w-3.5 items-center justify-center rounded-full transition-all duration-200 {currentPosition ===
+		class="theme-toggle-btn flex items-center justify-center rounded-full transition-all duration-200 {currentPosition ===
 		1
 			? 'bg-blue-500 text-white'
 			: 'text-blue-500 hover:bg-blue-500/20'}"
@@ -90,12 +90,12 @@
 		aria-label="Switch to dark mode"
 		data-hs-theme-click-value="dark"
 	>
-		<Circle class="h-2.5 w-2.5" />
+		<Circle size={14} strokeWidth={2} />
 	</button>
 
 	<!-- Lightsout Mode Button (true black) -->
 	<button
-		class="flex h-3.5 w-3.5 items-center justify-center rounded-full transition-all duration-200 {currentPosition ===
+		class="theme-toggle-btn flex items-center justify-center rounded-full transition-all duration-200 {currentPosition ===
 		2
 			? 'bg-gray-900 text-white'
 			: 'text-gray-900 hover:bg-gray-900/20'}"
@@ -104,6 +104,30 @@
 		aria-label="Switch to lightsout mode"
 		data-hs-theme-click-value="lightsout"
 	>
-		<Moon class="h-2.5 w-2.5" />
+		<Moon size={14} strokeWidth={2} />
 	</button>
 </div>
+
+<style>
+	.theme-toggle-container {
+		height: 24px !important;
+		max-height: 24px !important;
+		min-height: 24px !important;
+		padding-top: 2px !important;
+		padding-bottom: 2px !important;
+	}
+	.theme-toggle-btn {
+		width: 20px !important;
+		height: 20px !important;
+		min-width: 20px !important;
+		min-height: 20px !important;
+		max-width: 20px !important;
+		max-height: 20px !important;
+		padding: 0 !important;
+	}
+	.theme-toggle-btn :global(svg) {
+		width: 14px !important;
+		height: 14px !important;
+		flex-shrink: 0;
+	}
+</style>
