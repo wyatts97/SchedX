@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
-	import { Mail, ChevronRight, Sparkles, Database, Bell } from 'lucide-svelte';
+	import { Mail, ChevronRight, Sparkles, Database, Bell, Globe } from 'lucide-svelte';
 
 	let loading = true;
 	let error = '';
@@ -348,6 +348,33 @@
 								</h3>
 								<p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
 									Get instant alerts on your device when tweets are posted or fail
+								</p>
+							</div>
+						</div>
+						<ChevronRight class="h-5 w-5 text-gray-400" />
+					</div>
+				</div>
+			</a>
+
+			<!-- Timezone Settings Card -->
+			<a
+				href="/admin/settings/timezone"
+				class="block rounded-lg bg-white shadow transition-all duration-200 hover:shadow-md dark:bg-gray-800"
+			>
+				<div class="px-4 py-5 sm:p-6">
+					<div class="flex items-center justify-between">
+						<div class="flex items-center space-x-4">
+							<div
+								class="flex h-12 w-12 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/20"
+							>
+								<Globe class="h-6 w-6 text-green-600 dark:text-green-400" />
+							</div>
+							<div>
+								<h3 class="text-lg font-medium text-gray-900 dark:text-white">
+									Timezone
+								</h3>
+								<p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+									Set your timezone for accurate tweet scheduling
 								</p>
 							</div>
 						</div>

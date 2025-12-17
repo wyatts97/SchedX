@@ -12,7 +12,7 @@
 	import { QueryClientProvider } from '@tanstack/svelte-query';
 	import { queryClient } from '$lib/query/queryClient';
 	import logger from '$lib/logger';
-	
+	import { syncTimezone } from '$lib/utils/timezone';
 
 	let theme: string = 'light';
 
@@ -45,6 +45,17 @@
 			};
 			setTimeout(initPreline, 100);
 			setTimeout(initPreline, 1000);
+		}
+
+		// Auto-detect and sync timezone (runs once on first load)
+		const timezoneKey = 'timezone_synced';
+		if (!sessionStorage.getItem(timezoneKey)) {
+			syncTimezone().then(() => {
+				sessionStorage.setItem(timezoneKey, 'true');
+				logger.debug('Timezone synced');
+			}).catch((err) => {
+				logger.error('Failed to sync timezone:', err);
+			});
 		}
 
 		// Theme logic

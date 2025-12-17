@@ -410,6 +410,22 @@ export class DatabaseClient {
     return user?.rettiwt_api_key || null;
   }
 
+  async getUserTimezone(userId: string): Promise<string> {
+    const user = this.db.queryOne<{ timezone: string | null }>(
+      'SELECT timezone FROM users WHERE id = ?',
+      [userId]
+    );
+    return user?.timezone || 'UTC';
+  }
+
+  async updateUserTimezone(userId: string, timezone: string): Promise<void> {
+    const now = this.db.now();
+    this.db.execute(
+      'UPDATE users SET timezone = ?, updatedAt = ? WHERE id = ?',
+      [timezone, now, userId]
+    );
+  }
+
   // ============================================
   // ACCOUNT METHODS (OAuth Connections)
   // ============================================

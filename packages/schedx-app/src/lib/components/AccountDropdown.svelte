@@ -72,7 +72,7 @@
 
 	{#if isOpen}
 		<ul
-			class="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-gray-200 bg-white py-1 text-base shadow-lg focus:outline-none dark:border-gray-700 dark:bg-[#192734] theme-lightsout:border-gray-800 theme-lightsout:bg-[#111111] sm:text-sm"
+			class="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-gray-200 bg-white py-1 text-base shadow-lg focus:outline-none dark:border-gray-700 dark:bg-[#192734] theme-lightsout:border-gray-800 theme-lightsout:bg-[#111111] sm:text-sm"
 			role="listbox"
 		>
 			<!-- All Accounts Option -->
@@ -127,8 +127,9 @@
 </div>
 
 <style>
-	/* Ensure dropdown appears above other elements */
+	/* Ensure dropdown container has proper stacking context */
 	.account-dropdown {
-		z-index: 10;
+		position: relative;
+		z-index: 20;
 	}
 </style>

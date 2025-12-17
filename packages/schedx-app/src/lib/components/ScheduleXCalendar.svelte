@@ -11,6 +11,7 @@
 	import TweetPreview from '$lib/components/TweetPreview.svelte';
 	import TweetCreate from '$lib/components/TweetCreate.svelte';
 	import { browser } from '$app/environment';
+	import { getStoredOrDetectedTimezone } from '$lib/utils/timezone';
 
 	const dispatch = createEventDispatcher();
 
@@ -62,21 +63,26 @@
 				const account = accounts.find(a => a.providerAccountId === tweet.twitterAccountId);
 				const scheduledDate = new Date(tweet.scheduledDate);
 				
-				// Create Temporal ZonedDateTime from the scheduled date
-				const zonedDateTime = Temporal.ZonedDateTime.from({
-					year: scheduledDate.getFullYear(),
-					month: scheduledDate.getMonth() + 1,
-					day: scheduledDate.getDate(),
-					hour: scheduledDate.getHours(),
-					minute: scheduledDate.getMinutes(),
-					timeZone: Temporal.Now.timeZoneId()
-				});
+				// Format date as ISO string with timezone for Schedule-X
+				// Schedule-X expects format like: '2024-07-06T14:00:00[America/Chicago]'
+				// Use user's stored timezone preference, falling back to browser detection
+				const timeZone = browser ? getStoredOrDetectedTimezone() : Temporal.Now.timeZoneId();
+				const year = scheduledDate.getFullYear();
+				const month = String(scheduledDate.getMonth() + 1).padStart(2, '0');
+				const day = String(scheduledDate.getDate()).padStart(2, '0');
+				const hours = String(scheduledDate.getHours()).padStart(2, '0');
+				const minutes = String(scheduledDate.getMinutes()).padStart(2, '0');
+				
+				// Create properly formatted datetime string
+				const dateTimeString = `${year}-${month}-${day}T${hours}:${minutes}:00[${timeZone}]`;
+				const startDateTime = Temporal.ZonedDateTime.from(dateTimeString);
+				const endDateTime = startDateTime.add({ minutes: 15 });
 
 				return {
 					id: tweet.id || `temp-${Date.now()}-${index}`, // Ensure ID is always a string
 					title: `${account?.username || 'Unknown'}: ${tweet.content.substring(0, 50)}${tweet.content.length > 50 ? '...' : ''}`,
-					start: zonedDateTime,
-					end: zonedDateTime.add({ minutes: 15 }), // 15 minute duration for display
+					start: startDateTime,
+					end: endDateTime,
 					calendarId: tweet.twitterAccountId || 'default',
 					_tweet: tweet, // Store full tweet data
 					_account: account
@@ -340,26 +346,26 @@
 						createdAt={new Date(selectedTweet.scheduledDate)}
 						hideActions={true}
 						showXLogo={false}
-					>
-						<svelte:fragment slot="actions">
-							<button
-								type="button"
-								on:click={handleEdit}
-								class="inline-flex items-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20 transition-colors hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/30 dark:hover:bg-blue-500/20"
-							>
-								<Edit class="h-4 w-4" />
-								Edit Tweet
-							</button>
-							<button
-								type="button"
-								on:click={handleDelete}
-								class="inline-flex items-center gap-2 rounded-full bg-red-50 px-4 py-2 text-sm font-medium text-red-700 ring-1 ring-inset ring-red-600/20 transition-colors hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:ring-red-500/30 dark:hover:bg-red-500/20"
-							>
-								<Trash2 class="h-4 w-4" />
-								Delete Tweet
-							</button>
-						</svelte:fragment>
-					</TweetPreview>
+					/>
+					<!-- Action buttons below tweet preview for better mobile layout -->
+					<div class="mt-4 flex flex-wrap gap-2 border-t border-gray-200 pt-4 dark:border-gray-700">
+						<button
+							type="button"
+							on:click={handleEdit}
+							class="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-blue-50 px-4 py-2.5 text-sm font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20 transition-colors hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/30 dark:hover:bg-blue-500/20 sm:flex-none"
+						>
+							<Edit class="h-4 w-4" />
+							Edit Tweet
+						</button>
+						<button
+							type="button"
+							on:click={handleDelete}
+							class="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-red-50 px-4 py-2.5 text-sm font-medium text-red-700 ring-1 ring-inset ring-red-600/20 transition-colors hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:ring-red-500/30 dark:hover:bg-red-500/20 sm:flex-none"
+						>
+							<Trash2 class="h-4 w-4" />
+							Delete Tweet
+						</button>
+					</div>
 				{/if}
 			</div>
 		</div>
