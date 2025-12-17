@@ -63,10 +63,11 @@
 	});
 </script>
 
-<div class="flex items-center gap-1 rounded-full bg-gray-200 p-1 dark:bg-gray-700 theme-lightsout:bg-black">
+
+<div class="inline-flex items-center gap-0.5 rounded-full bg-gray-200 px-0.5 py-px dark:bg-gray-700 theme-lightsout:bg-black">
 	<!-- Light Mode Button -->
 	<button
-		class="flex h-8 w-8 items-center justify-center rounded-full transition-all duration-200 {currentPosition ===
+		class="flex h-3.5 w-3.5 items-center justify-center rounded-full transition-all duration-200 {currentPosition ===
 		0
 			? 'bg-yellow-500 text-black'
 			: 'text-yellow-500 hover:bg-yellow-500/20'}"
@@ -75,12 +76,12 @@
 		aria-label="Switch to light mode"
 		data-hs-theme-click-value="light"
 	>
-		<Sun class="h-4 w-4" />
+		<Sun class="h-2.5 w-2.5" />
 	</button>
 
 	<!-- Dark Mode Button (Twitter blue) -->
 	<button
-		class="flex h-8 w-8 items-center justify-center rounded-full transition-all duration-200 {currentPosition ===
+		class="flex h-3.5 w-3.5 items-center justify-center rounded-full transition-all duration-200 {currentPosition ===
 		1
 			? 'bg-blue-500 text-white'
 			: 'text-blue-500 hover:bg-blue-500/20'}"
@@ -89,12 +90,12 @@
 		aria-label="Switch to dark mode"
 		data-hs-theme-click-value="dark"
 	>
-		<Circle class="h-4 w-4" />
+		<Circle class="h-2.5 w-2.5" />
 	</button>
 
 	<!-- Lightsout Mode Button (true black) -->
 	<button
-		class="flex h-8 w-8 items-center justify-center rounded-full transition-all duration-200 {currentPosition ===
+		class="flex h-3.5 w-3.5 items-center justify-center rounded-full transition-all duration-200 {currentPosition ===
 		2
 			? 'bg-gray-900 text-white'
 			: 'text-gray-900 hover:bg-gray-900/20'}"
@@ -103,6 +104,6 @@
 		aria-label="Switch to lightsout mode"
 		data-hs-theme-click-value="lightsout"
 	>
-		<Moon class="h-4 w-4" />
+		<Moon class="h-2.5 w-2.5" />
 	</button>
 </div>

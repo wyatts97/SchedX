@@ -304,9 +304,10 @@ const securityHeadersHandle: Handle = async ({ event, resolve }) => {
 	const cspDirectives = [
 		"default-src 'self'",
 		"script-src 'self' 'unsafe-inline' 'unsafe-eval' https://preline.co", // unsafe-inline for Svelte
-		"style-src 'self' 'unsafe-inline'", // unsafe-inline for Tailwind
+		"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com", // unsafe-inline for Tailwind, Google Fonts
+		"style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com", // Explicit style-src-elem for stylesheets
 		"img-src 'self' data: blob: https://pbs.twimg.com https://abs.twimg.com https://*.twimg.com",
-		"font-src 'self' data:",
+		"font-src 'self' data: https://fonts.gstatic.com", // Google Fonts
 		"connect-src 'self' https://api.twitter.com https://api.x.com",
 		"media-src 'self' blob: https://video.twimg.com",
 		"frame-ancestors 'self'",

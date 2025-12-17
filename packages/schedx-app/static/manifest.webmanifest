@@ -1,16 +1,50 @@
 {
-  "name": "SchedX",
+  "name": "SchedX - Twitter Scheduler",
   "short_name": "SchedX",
+  "description": "Schedule and manage your Twitter posts with ease",
   "start_url": "/",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "background_color": "#ffffff",
-  "theme_color": "#ffffff",
+  "theme_color": "#1DA1F2",
+  "categories": ["social", "productivity"],
   "icons": [
     {
       "src": "/app-icon-light.png",
       "sizes": "256x256",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/app-icon-light.png",
+      "sizes": "256x256",
+      "type": "image/png",
+      "purpose": "maskable"
     }
-  ]
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "New Tweet",
+      "short_name": "New",
+      "description": "Create a new scheduled tweet",
+      "url": "/post",
+      "icons": [{ "src": "/app-icon-light.png", "sizes": "256x256" }]
+    },
+    {
+      "name": "Scheduled",
+      "short_name": "Queue",
+      "description": "View scheduled tweets",
+      "url": "/scheduled",
+      "icons": [{ "src": "/app-icon-light.png", "sizes": "256x256" }]
+    }
+  ],
+  "share_target": {
+    "action": "/post",
+    "method": "POST",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": {
+      "text": "text"
+    }
+  }
 }

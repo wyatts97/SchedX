@@ -303,6 +303,32 @@ export async function runMigrations(db: SqliteDatabase): Promise<void> {
     }
   });
 
+  // Migration 003: Add unique index on twitterTweetId to prevent double posting
+  try {
+    db.execute(`CREATE UNIQUE INDEX IF NOT EXISTS idx_tweets_twitter_tweet_id_unique 
+                ON tweets(twitterTweetId) WHERE twitterTweetId IS NOT NULL`);
+    db.execute(`CREATE UNIQUE INDEX IF NOT EXISTS idx_threads_twitter_thread_id_unique 
+                ON threads(twitterThreadId) WHERE twitterThreadId IS NOT NULL`);
+  } catch (error) {
+    // Index may already exist, ignore error
+    console.log('Note: Unique indexes may already exist');
+  }
+
+  // Migration 004: Push notification subscriptions table
+  db.execute(`CREATE TABLE IF NOT EXISTS push_subscriptions (
+    id TEXT PRIMARY KEY,
+    userId TEXT NOT NULL,
+    endpoint TEXT NOT NULL,
+    p256dh TEXT NOT NULL,
+    auth TEXT NOT NULL,
+    createdAt INTEGER NOT NULL,
+    updatedAt INTEGER NOT NULL,
+    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE(userId, endpoint)
+  )`);
+  db.execute(`CREATE INDEX IF NOT EXISTS idx_push_subscriptions_userId ON push_subscriptions(userId)`);
+  db.execute(`CREATE INDEX IF NOT EXISTS idx_push_subscriptions_endpoint ON push_subscriptions(endpoint)`);
+
   console.log('✅ Database migrations completed');
 }
 

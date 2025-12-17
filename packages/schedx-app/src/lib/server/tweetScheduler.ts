@@ -7,6 +7,7 @@ import { TwitterApi } from 'twitter-api-v2';
 import { readFileSync } from 'fs';
 import path from 'path';
 import { emailNotificationService } from './emailNotificationService';
+import { pushNotificationService } from './pushNotificationService';
 
 // Default retry configuration
 const DEFAULT_MAX_RETRIES = 3;
@@ -91,6 +92,28 @@ export class TweetSchedulerService {
 	}
 
 	/**
+	 * Atomically claim a tweet for processing
+	 * Returns true if claim was successful, false if tweet was already claimed/processed
+	 */
+	private claimTweetForProcessing(tweetId: string): boolean {
+		const rawDb = getRawDbInstance();
+		const now = Date.now();
+		
+		// Atomic update: only succeeds if tweet is still SCHEDULED and not already posted
+		const result = rawDb.execute(
+			`UPDATE tweets 
+			 SET status = ?, updatedAt = ? 
+			 WHERE id = ? 
+			 AND status = ? 
+			 AND twitterTweetId IS NULL`,
+			[TweetStatus.PROCESSING, now, tweetId, TweetStatus.SCHEDULED]
+		);
+		
+		// If changes === 1, we successfully claimed the tweet
+		return result.changes === 1;
+	}
+
+	/**
 	 * Process all tweets that are due to be posted (including retries)
 	 */
 	private async processDueTweets(): Promise<void> {
@@ -150,8 +173,16 @@ export class TweetSchedulerService {
 						continue;
 					}
 					
-					// Mark as PROCESSING immediately to prevent race conditions
-					await db.updateTweetStatus(tweet.id, TweetStatus.PROCESSING);
+					// Atomically claim the tweet for processing
+					// This prevents race conditions where multiple scheduler instances
+					// or overlapping intervals try to process the same tweet
+					const claimed = this.claimTweetForProcessing(tweet.id);
+					if (!claimed) {
+						log.info('Tweet already claimed by another process, skipping', {
+							tweetId: tweet.id
+						});
+						continue;
+					}
 					
 					await this.postTweet(tweet);
 				} catch (error) {
@@ -464,6 +495,13 @@ export class TweetSchedulerService {
 			tweet.content,
 			tweetUrl
 		).catch(err => log.error('Failed to send tweet posted notification', { error: err }));
+
+		// Send push notification for successful post
+		pushNotificationService.notifyTweetPosted(
+			tweet.userId,
+			tweet.id!,
+			tweetUrl
+		).catch(err => log.error('Failed to send push notification for posted tweet', { error: err }));
 
 		// Handle recurrence if configured
 		if (tweet.recurrenceType && tweet.recurrenceInterval) {

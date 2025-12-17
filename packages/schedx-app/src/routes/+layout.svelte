@@ -107,7 +107,7 @@
 		<!-- Main Content -->
 		<main
 			id="main-content"
-			class="min-w-0 flex-1 lg:pl-72 lg:pt-4"
+			class="min-w-0 flex-1 lg:pl-56 lg:pt-4"
 			aria-label="Main content"
 		>
 			<div class="max-w-full px-4 py-6 sm:px-6 lg:px-8">

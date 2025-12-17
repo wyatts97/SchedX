@@ -8,14 +8,14 @@
 </script>
 
 <!-- Desktop Sidebar Only -->
-<div class="fixed start-4 top-4 z-50 hidden w-64 lg:block">
+<div class="fixed start-4 top-4 z-50 hidden w-48 lg:block">
 	<!-- Floating Sidebar -->
 	<div id="hs-application-sidebar" class="w-full" role="navigation" aria-label="Main navigation">
 		<!-- Floating Sidebar Content -->
 		<div class="relative z-40 flex flex-col">
 			<!-- Floating Sidebar Panel -->
 			<div
-				class="sidebar h-full w-64 flex flex-col bg-white shadow-sidebar dark:bg-[#15202B] theme-lightsout:bg-[#111111] relative overflow-hidden rounded-2xl border border-gray-200/50 bg-white/80 shadow-xl backdrop-blur-md dark:border-gray-700/50 dark:bg-gray-800/80 dark:shadow-gray-900/20 theme-lightsout:border-gray-800/50"
+				class="sidebar h-full w-48 flex flex-col bg-white shadow-sidebar dark:bg-[#15202B] theme-lightsout:bg-[#111111] relative overflow-hidden rounded-2xl border border-gray-200/50 bg-white/80 shadow-xl backdrop-blur-md dark:border-gray-700/50 dark:bg-gray-800/80 dark:shadow-gray-900/20 theme-lightsout:border-gray-800/50"
 			>
 				<div class="relative flex flex-col overflow-visible">
 					<!-- Header -->
@@ -28,7 +28,7 @@
 							href="/"
 							aria-label="SchedX"
 						>
-							<span class="schedx-logo text-2xl text-[#1DA1F2] dark:text-[#26313E] theme-lightsout:text-white">
+							<span class="schedx-logo text-2xl text-[#1DA1F2] dark:text-[#f8fbffcf] theme-lightsout:text-white">
 								SCHEDX
 							</span>
 						</a>
@@ -47,8 +47,8 @@
 										<a
 											class="focus:outline-hidden flex items-center gap-x-3.5 rounded-xl px-3 py-2.5 text-sm transition-all duration-200 {currentPath ===
 											item.href
-												? 'bg-blue-100 text-blue-700 font-semibold shadow-sm dark:bg-gray-700/50 dark:text-gray-200 theme-lightsout:!bg-[#2a2a2a] theme-lightsout:!text-gray-100 theme-lightsout:!shadow-none'
-												: 'text-gray-700 hover:bg-gray-100/80 focus:bg-gray-100/80 dark:text-gray-300 dark:hover:bg-gray-700/80 dark:focus:bg-gray-700/80 theme-lightsout:!text-gray-300 theme-lightsout:hover:!bg-[#1a1a1a] theme-lightsout:focus:!bg-[#1a1a1a]'}"
+												? 'bg-blue-100 text-blue-700 font-semibold shadow-sm dark:bg-gray-700/50 dark:text-gray-200 theme-lightsout:!bg-[#222222] theme-lightsout:!text-gray-100 theme-lightsout:!shadow-none'
+												: 'text-gray-700 hover:bg-gray-100/80 focus:bg-gray-100/80 dark:text-gray-300 dark:hover:bg-gray-700/80 dark:focus:bg-gray-700/80 theme-lightsout:!bg-transparent theme-lightsout:!text-gray-300 theme-lightsout:hover:!bg-[#222222] theme-lightsout:focus:!bg-[#222222]'}"
 											href={item.href}
 											title={item.description}
 										>
@@ -76,21 +76,21 @@
 
 					<!-- Footer -->
 					<div
-						class="theme-lightsout:border-gray-800/50 border-t border-gray-200/50 p-4 dark:border-gray-700/50"
+						class="theme-lightsout:border-gray-800/50 border-t border-gray-200/50 px-2 py-2 dark:border-gray-700/50"
 					>
-						<div class="flex items-center justify-between">
+						<div class="flex w-full items-center justify-center gap-1.5">
 							<!-- Theme Toggle -->
 							<ThemeToggle />
 
 							<!-- Admin Settings Link -->
 							<a
 								href="/admin/settings"
-								class="inline-flex size-8 items-center justify-center rounded-full transition-all hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:hover:bg-gray-700 theme-lightsout:hover:bg-gray-800"
+								class="inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full transition-all hover:bg-gray-100 focus:outline-none dark:hover:bg-gray-700 theme-lightsout:hover:bg-gray-800"
 								aria-label="Admin Settings"
 								title="Admin Settings"
 							>
 								<svg
-									class="h-5 w-5 text-gray-500 dark:text-[#374151] theme-lightsout:text-white"
+									class="h-3.5 w-3.5 text-gray-500 dark:text-gray-400 theme-lightsout:text-white"
 									xmlns="http://www.w3.org/2000/svg"
 									width="24"
 									height="24"

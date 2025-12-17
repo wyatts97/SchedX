@@ -68,6 +68,28 @@ export class ThreadSchedulerService {
 	}
 
 	/**
+	 * Atomically claim a thread for processing
+	 * Returns true if claim was successful, false if thread was already claimed/processed
+	 */
+	private claimThreadForProcessing(threadId: string): boolean {
+		const rawDb = getRawDbInstance();
+		const now = Date.now();
+		
+		// Atomic update: only succeeds if thread is still SCHEDULED and not already posted
+		const result = rawDb.execute(
+			`UPDATE threads 
+			 SET status = ?, updatedAt = ? 
+			 WHERE id = ? 
+			 AND status = ? 
+			 AND twitterThreadId IS NULL`,
+			[TweetStatus.PROCESSING, now, threadId, TweetStatus.SCHEDULED]
+		);
+		
+		// If changes === 1, we successfully claimed the thread
+		return result.changes === 1;
+	}
+
+	/**
 	 * Process all threads that are due to be posted
 	 */
 	private async processDueThreads(): Promise<void> {
@@ -112,8 +134,16 @@ export class ThreadSchedulerService {
 						continue;
 					}
 					
-					// Mark as PROCESSING immediately to prevent race conditions
-					await db.updateThreadStatus(thread.id, TweetStatus.PROCESSING);
+					// Atomically claim the thread for processing
+					// This prevents race conditions where multiple scheduler instances
+					// or overlapping intervals try to process the same thread
+					const claimed = this.claimThreadForProcessing(thread.id);
+					if (!claimed) {
+						log.info('Thread already claimed by another process, skipping', {
+							threadId: thread.id
+						});
+						continue;
+					}
 					
 					await this.postThread(thread);
 				} catch (error) {

@@ -45,6 +45,7 @@
     "@schedx/shared-lib": "*",
     "@tanstack/svelte-query": "^6.0.10",
     "@types/node-cron": "^3.0.11",
+    "@types/web-push": "^3.6.4",
     "air-datepicker": "^3.5.3",
     "apexcharts": "^5.3.5",
     "autoprefixer": "^10.4.21",
@@ -69,6 +70,7 @@
     "sveltekit-superforms": "2.27.0",
     "temporal-polyfill": "^0.3.0",
     "twitter-api-v2": "^1.24.0",
+    "web-push": "^3.6.7",
     "zod": "^3.25.67"
   },
   "overrides": {

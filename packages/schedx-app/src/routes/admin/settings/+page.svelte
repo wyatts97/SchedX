@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
-	import { Mail, ChevronRight, Sparkles, Database } from 'lucide-svelte';
+	import { Mail, ChevronRight, Sparkles, Database, Bell } from 'lucide-svelte';
 
 	let loading = true;
 	let error = '';
@@ -131,7 +131,7 @@
 							<input
 								id="username"
 								type="text"
-								class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
+								class="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm shadow-sm transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-700/50 dark:text-white dark:placeholder-gray-400 dark:focus:border-blue-400"
 								bind:value={profileForm.username}
 								minlength="3"
 								maxlength="20"
@@ -149,7 +149,7 @@
 							<input
 								id="email"
 								type="email"
-								class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
+								class="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm shadow-sm transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-700/50 dark:text-white dark:placeholder-gray-400 dark:focus:border-blue-400"
 								bind:value={profileForm.email}
 								placeholder="Enter email address"
 							/>
@@ -194,7 +194,7 @@
 							<input
 								id="currentPassword"
 								type="password"
-								class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
+								class="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm shadow-sm transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-700/50 dark:text-white dark:placeholder-gray-400 dark:focus:border-blue-400"
 								bind:value={passwordForm.currentPassword}
 								required
 								placeholder="Enter current password"
@@ -212,7 +212,7 @@
 							<input
 								id="newPassword"
 								type="password"
-								class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
+								class="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm shadow-sm transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-700/50 dark:text-white dark:placeholder-gray-400 dark:focus:border-blue-400"
 								bind:value={passwordForm.newPassword}
 								required
 								placeholder="Enter new password"
@@ -227,7 +227,7 @@
 							<input
 								id="confirmPassword"
 								type="password"
-								class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
+								class="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm shadow-sm transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-700/50 dark:text-white dark:placeholder-gray-400 dark:focus:border-blue-400"
 								bind:value={passwordForm.confirmPassword}
 								required
 								placeholder="Confirm new password"
@@ -321,6 +321,33 @@
 								</h3>
 								<p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
 									Optional Twitter cookie for enhanced analytics and restricted content access
+								</p>
+							</div>
+						</div>
+						<ChevronRight class="h-5 w-5 text-gray-400" />
+					</div>
+				</div>
+			</a>
+
+			<!-- Push Notifications Card -->
+			<a
+				href="/admin/settings/notifications"
+				class="block rounded-lg bg-white shadow transition-all duration-200 hover:shadow-md dark:bg-gray-800"
+			>
+				<div class="px-4 py-5 sm:p-6">
+					<div class="flex items-center justify-between">
+						<div class="flex items-center space-x-4">
+							<div
+								class="flex h-12 w-12 items-center justify-center rounded-lg bg-orange-100 dark:bg-orange-900/20"
+							>
+								<Bell class="h-6 w-6 text-orange-600 dark:text-orange-400" />
+							</div>
+							<div>
+								<h3 class="text-lg font-medium text-gray-900 dark:text-white">
+									Push Notifications
+								</h3>
+								<p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+									Get instant alerts on your device when tweets are posted or fail
 								</p>
 							</div>
 						</div>

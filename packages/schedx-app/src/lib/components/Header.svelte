@@ -31,7 +31,7 @@
 				aria-label="SchedX - Click to refresh"
 				on:click={handleLogoClick}
 			>
-				<span class="schedx-logo text-2xl text-[#1DA1F2] dark:text-[#26313E] theme-lightsout:text-white">
+				<span class="schedx-logo text-2xl text-[#1DA1F2] dark:text-gray-300 theme-lightsout:text-white">
 					SCHEDX
 				</span>
 			</a>
@@ -53,7 +53,7 @@
 				title="Admin Settings"
 			>
 				<svg
-					class="h-5 w-5 text-gray-500 dark:text-[#374151] theme-lightsout:text-white"
+					class="h-5 w-5 text-gray-500 dark:text-gray-400 theme-lightsout:text-white"
 					xmlns="http://www.w3.org/2000/svg"
 					width="24"
 					height="24"
