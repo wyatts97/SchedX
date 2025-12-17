@@ -148,6 +148,7 @@ export async function unsubscribeFromPush(): Promise<{ success: boolean; error?:
 
 /**
  * Check if currently subscribed to push notifications
+ * Uses timeout to prevent hanging on mobile browsers
  */
 export async function isSubscribed(): Promise<boolean> {
 	if (!isPushSupported()) {
@@ -155,7 +156,26 @@ export async function isSubscribed(): Promise<boolean> {
 	}
 
 	try {
-		const registration = await navigator.serviceWorker.ready;
+		// Use a timeout to prevent hanging if service worker isn't ready
+		const timeoutPromise = new Promise<null>((_, reject) => {
+			setTimeout(() => reject(new Error('Timeout')), 3000);
+		});
+
+		// Check if there's an active service worker registration first
+		const registrations = await navigator.serviceWorker.getRegistrations();
+		if (registrations.length === 0) {
+			return false;
+		}
+
+		const registration = await Promise.race([
+			navigator.serviceWorker.ready,
+			timeoutPromise
+		]);
+
+		if (!registration) {
+			return false;
+		}
+
 		const subscription = await registration.pushManager.getSubscription();
 		return subscription !== null;
 	} catch {

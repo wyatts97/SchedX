@@ -71,9 +71,17 @@
 				console.error('Failed to check push config:', e);
 			}
 
-			// Check subscription status
+			// Check subscription status with timeout to prevent hanging
 			if (pushSupported) {
-				subscribed = await isSubscribed();
+				try {
+					// Set a maximum wait time for subscription check
+					const subscriptionCheck = isSubscribed();
+					const timeout = new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 5000));
+					subscribed = await Promise.race([subscriptionCheck, timeout]);
+				} catch (e) {
+					console.error('Failed to check subscription status:', e);
+					subscribed = false;
+				}
 			}
 
 			// Load preferences from localStorage
@@ -372,11 +380,42 @@ VAPID_SUBJECT=mailto:your@email.com</pre>
 						<p class="mt-1 text-sm text-red-700 dark:text-red-400">
 							You have blocked notifications for this site. To enable them:
 						</p>
-						<ol class="mt-2 list-inside list-decimal space-y-1 text-sm text-red-700 dark:text-red-400">
-							<li>Click the lock/info icon in your browser's address bar</li>
-							<li>Find "Notifications" in the permissions</li>
-							<li>Change it from "Block" to "Allow"</li>
-							<li>Refresh this page</li>
+						{#if browser && /Android/i.test(navigator.userAgent)}
+							<p class="mt-2 text-sm font-medium text-red-700 dark:text-red-400">On Android:</p>
+							<ol class="mt-1 list-inside list-decimal space-y-1 text-sm text-red-700 dark:text-red-400">
+								<li>Tap the <strong>three dots menu</strong> (⋮) in Chrome</li>
+								<li>Go to <strong>Settings → Site settings → Notifications</strong></li>
+								<li>Find this site and change to <strong>Allow</strong></li>
+								<li>Alternatively, tap the lock icon in the address bar</li>
+								<li>Refresh this page</li>
+							</ol>
+						{:else}
+							<ol class="mt-2 list-inside list-decimal space-y-1 text-sm text-red-700 dark:text-red-400">
+								<li>Click the lock/info icon in your browser's address bar</li>
+								<li>Find "Notifications" in the permissions</li>
+								<li>Change it from "Block" to "Allow"</li>
+								<li>Refresh this page</li>
+							</ol>
+						{/if}
+					</div>
+				</div>
+			</div>
+		{/if}
+
+		<!-- Android PWA Recommendation -->
+		{#if !isInstalled && browser && /Android/i.test(navigator.userAgent) && !installPrompt}
+			<div class="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
+				<div class="flex items-start">
+					<Smartphone class="mr-3 mt-0.5 h-5 w-5 flex-shrink-0 text-blue-600 dark:text-blue-400" />
+					<div>
+						<h3 class="font-medium text-blue-800 dark:text-blue-300">Tip: Install as App for Best Experience</h3>
+						<p class="mt-1 text-sm text-blue-700 dark:text-blue-400">
+							For the most reliable push notifications on Android, install SchedX as an app:
+						</p>
+						<ol class="mt-2 list-inside list-decimal space-y-1 text-sm text-blue-700 dark:text-blue-400">
+							<li>Tap the <strong>three dots menu</strong> (⋮) in Chrome</li>
+							<li>Tap <strong>"Install app"</strong> or <strong>"Add to Home screen"</strong></li>
+							<li>Open SchedX from your home screen</li>
 						</ol>
 					</div>
 				</div>
