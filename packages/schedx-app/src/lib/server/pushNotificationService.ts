@@ -172,10 +172,11 @@ export class PushNotificationService {
 	/**
 	 * Send notification when a tweet is posted successfully
 	 */
-	public async notifyTweetPosted(userId: string, tweetId: string, tweetUrl: string): Promise<void> {
+	public async notifyTweetPosted(userId: string, tweetId: string, tweetUrl: string, accountUsername?: string): Promise<void> {
+		const accountInfo = accountUsername ? ` for @${accountUsername}` : '';
 		await this.sendToUser(userId, {
 			title: '✅ Tweet Posted!',
-			body: 'Your scheduled tweet has been posted successfully.',
+			body: `Your scheduled tweet${accountInfo} has been posted successfully.`,
 			url: tweetUrl,
 			tag: `tweet-posted-${tweetId}`,
 			actions: [
@@ -187,10 +188,11 @@ export class PushNotificationService {
 	/**
 	 * Send notification when a tweet fails to post
 	 */
-	public async notifyTweetFailed(userId: string, tweetId: string, error: string): Promise<void> {
+	public async notifyTweetFailed(userId: string, tweetId: string, error: string, accountUsername?: string): Promise<void> {
+		const accountInfo = accountUsername ? ` for @${accountUsername}` : '';
 		await this.sendToUser(userId, {
 			title: '❌ Tweet Failed',
-			body: `Your scheduled tweet failed to post: ${error}`,
+			body: `Your scheduled tweet${accountInfo} failed to post: ${error}`,
 			url: `/scheduled?highlight=${tweetId}`,
 			tag: `tweet-failed-${tweetId}`,
 			actions: [
@@ -202,10 +204,11 @@ export class PushNotificationService {
 	/**
 	 * Send notification for upcoming scheduled tweet
 	 */
-	public async notifyUpcomingTweet(userId: string, tweetId: string, minutesUntil: number): Promise<void> {
+	public async notifyUpcomingTweet(userId: string, tweetId: string, minutesUntil: number, accountUsername?: string): Promise<void> {
+		const accountInfo = accountUsername ? ` for @${accountUsername}` : '';
 		await this.sendToUser(userId, {
 			title: '⏰ Tweet Scheduled Soon',
-			body: `Your tweet will be posted in ${minutesUntil} minutes.`,
+			body: `Your tweet${accountInfo} will be posted in ${minutesUntil} minutes.`,
 			url: `/scheduled?highlight=${tweetId}`,
 			tag: `tweet-upcoming-${tweetId}`
 		});
@@ -214,10 +217,11 @@ export class PushNotificationService {
 	/**
 	 * Send notification for thread posted
 	 */
-	public async notifyThreadPosted(userId: string, threadId: string, tweetUrl: string): Promise<void> {
+	public async notifyThreadPosted(userId: string, threadId: string, tweetUrl: string, accountUsername?: string): Promise<void> {
+		const accountInfo = accountUsername ? ` for @${accountUsername}` : '';
 		await this.sendToUser(userId, {
 			title: '✅ Thread Posted!',
-			body: 'Your scheduled thread has been posted successfully.',
+			body: `Your scheduled thread${accountInfo} has been posted successfully.`,
 			url: tweetUrl,
 			tag: `thread-posted-${threadId}`,
 			actions: [

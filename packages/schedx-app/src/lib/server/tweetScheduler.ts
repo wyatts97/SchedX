@@ -158,7 +158,14 @@ export class TweetSchedulerService {
 				retries: retryTweets.length 
 			});
 
+			// Pre-fetch all accounts for username lookup in error handlers
+			const allAccounts = await db.getAllUserAccounts();
+
 			for (const tweet of allTweets) {
+				// Get account info for this tweet (used in notifications)
+				const tweetAccount = allAccounts.find((acc: any) => acc.providerAccountId === tweet.twitterAccountId);
+				const accountUsername = tweetAccount?.username;
+
 				try {
 					// Idempotency check: Skip if already posted
 					if (tweet.twitterTweetId) {
@@ -194,7 +201,8 @@ export class TweetSchedulerService {
 						tweetId: tweet.id,
 						error: errorMessage,
 						retryCount: currentRetryCount,
-						maxRetries
+						maxRetries,
+						account: accountUsername
 					});
 
 					// Check if we should retry
@@ -237,6 +245,14 @@ export class TweetSchedulerService {
 							currentRetryCount + 1,
 							maxRetries
 						).catch(err => log.error('Failed to send tweet retry notification', { error: err }));
+
+						// Send push notification for retry
+						pushNotificationService.notifyTweetFailed(
+							tweet.userId,
+							tweet.id!,
+							`Retry ${currentRetryCount + 1}/${maxRetries}: ${errorMessage}`,
+							accountUsername
+						).catch(err => log.error('Failed to send push notification for tweet retry', { error: err }));
 					} else {
 						// Max retries exceeded, mark as permanently failed
 						log.warn('Max retries exceeded for tweet, marking as failed', {
@@ -267,6 +283,14 @@ export class TweetSchedulerService {
 							tweet.content,
 							errorMessage
 						).catch(err => log.error('Failed to send max retries notification', { error: err }));
+
+						// Send push notification for permanent failure
+						pushNotificationService.notifyTweetFailed(
+							tweet.userId,
+							tweet.id!,
+							`Max retries exceeded: ${errorMessage}`,
+							accountUsername
+						).catch(err => log.error('Failed to send push notification for max retries', { error: err }));
 					}
 				}
 			}
@@ -500,7 +524,8 @@ export class TweetSchedulerService {
 		pushNotificationService.notifyTweetPosted(
 			tweet.userId,
 			tweet.id!,
-			tweetUrl
+			tweetUrl,
+			account.username
 		).catch(err => log.error('Failed to send push notification for posted tweet', { error: err }));
 
 		// Handle recurrence if configured
