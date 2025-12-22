@@ -460,25 +460,109 @@
 
 	/* Dark mode support */
 	:global(.dark .sx__calendar-wrapper) {
-		background-color: rgb(31 41 55);
-		color: rgb(243 244 246);
-		border-color: rgb(55 65 81);
+		background-color: rgb(31 41 55) !important;
+		color: rgb(243 244 246) !important;
+		border-color: rgb(55 65 81) !important;
+	}
+
+	:global(.dark .sx__calendar) {
+		background-color: rgb(31 41 55) !important;
+	}
+
+	:global(.dark .sx__month-grid-wrapper) {
+		background-color: rgb(31 41 55) !important;
 	}
 
 	:global(.dark .sx__month-grid-day) {
-		border-color: rgb(55 65 81);
+		background-color: rgb(31 41 55) !important;
+		border-color: rgb(55 65 81) !important;
+		color: rgb(209 213 219) !important;
+	}
+
+	:global(.dark .sx__month-grid-day--outside-month) {
+		background-color: rgb(17 24 39) !important;
+		color: rgb(107 114 128) !important;
 	}
 
 	:global(.dark .sx__month-grid-day:hover) {
-		background-color: rgb(55 65 81);
+		background-color: rgb(55 65 81) !important;
+	}
+
+	:global(.dark .sx__month-grid-day__header) {
+		color: rgb(156 163 175) !important;
+	}
+
+	:global(.dark .sx__month-grid-day__header-date) {
+		color: rgb(243 244 246) !important;
+	}
+
+	:global(.dark .sx__month-agenda-wrapper) {
+		background-color: rgb(31 41 55) !important;
 	}
 
 	:global(.dark .sx__calendar-header) {
-		border-bottom-color: rgb(55 65 81);
+		background-color: rgb(31 41 55) !important;
+		border-bottom-color: rgb(55 65 81) !important;
+		color: rgb(243 244 246) !important;
+	}
+
+	:global(.dark .sx__calendar-header *) {
+		color: rgb(243 244 246) !important;
+	}
+
+	:global(.dark .sx__date-picker-button) {
+		background-color: rgb(55 65 81) !important;
+		color: rgb(243 244 246) !important;
+		border-color: rgb(75 85 99) !important;
+	}
+
+	:global(.dark .sx__date-picker-button:hover) {
+		background-color: rgb(75 85 99) !important;
+	}
+
+	:global(.dark .sx__view-selection) {
+		background-color: rgb(55 65 81) !important;
+		border-color: rgb(75 85 99) !important;
+	}
+
+	:global(.dark .sx__view-selection-item) {
+		color: rgb(209 213 219) !important;
 	}
 
 	:global(.dark .sx__view-selection-item:hover) {
-		background-color: rgb(55 65 81);
+		background-color: rgb(75 85 99) !important;
+	}
+
+	:global(.dark .sx__view-selection-item--active) {
+		background-color: rgb(59 130 246) !important;
+		color: white !important;
+	}
+
+	:global(.dark .sx__week-grid) {
+		background-color: rgb(31 41 55) !important;
+	}
+
+	:global(.dark .sx__week-grid__day) {
+		background-color: rgb(31 41 55) !important;
+		border-color: rgb(55 65 81) !important;
+	}
+
+	:global(.dark .sx__week-grid__day-name) {
+		color: rgb(156 163 175) !important;
+	}
+
+	:global(.dark .sx__time-grid-day) {
+		background-color: rgb(31 41 55) !important;
+		border-color: rgb(55 65 81) !important;
+	}
+
+	:global(.dark .sx__time-axis) {
+		background-color: rgb(31 41 55) !important;
+		color: rgb(156 163 175) !important;
+	}
+
+	:global(.dark .sx__day-grid) {
+		background-color: rgb(31 41 55) !important;
 	}
 
 	:global(.dark .sx__event) {
@@ -487,6 +571,167 @@
 
 	:global(.dark .sx__event:hover) {
 		opacity: 1;
+	}
+
+	:global(.dark .sx__chevron-wrapper svg) {
+		color: rgb(209 213 219) !important;
+		fill: rgb(209 213 219) !important;
+	}
+
+	:global(.dark .sx__today-button) {
+		background-color: rgb(55 65 81) !important;
+		color: rgb(243 244 246) !important;
+		border-color: rgb(75 85 99) !important;
+	}
+
+	:global(.dark .sx__today-button:hover) {
+		background-color: rgb(75 85 99) !important;
+	}
+
+	:global(.dark .sx__forward-backward-navigation button) {
+		color: rgb(209 213 219) !important;
+	}
+
+	:global(.dark .sx__forward-backward-navigation button:hover) {
+		background-color: rgb(55 65 81) !important;
+	}
+
+	/* Lights-out mode support (even darker) */
+	:global(.lights-out .sx__calendar-wrapper) {
+		background-color: rgb(0 0 0) !important;
+		color: rgb(229 231 235) !important;
+		border-color: rgb(38 38 38) !important;
+	}
+
+	:global(.lights-out .sx__calendar) {
+		background-color: rgb(0 0 0) !important;
+	}
+
+	:global(.lights-out .sx__month-grid-wrapper) {
+		background-color: rgb(0 0 0) !important;
+	}
+
+	:global(.lights-out .sx__month-grid-day) {
+		background-color: rgb(0 0 0) !important;
+		border-color: rgb(38 38 38) !important;
+		color: rgb(209 213 219) !important;
+	}
+
+	:global(.lights-out .sx__month-grid-day--outside-month) {
+		background-color: rgb(10 10 10) !important;
+		color: rgb(82 82 82) !important;
+	}
+
+	:global(.lights-out .sx__month-grid-day:hover) {
+		background-color: rgb(38 38 38) !important;
+	}
+
+	:global(.lights-out .sx__month-grid-day__header) {
+		color: rgb(115 115 115) !important;
+	}
+
+	:global(.lights-out .sx__month-grid-day__header-date) {
+		color: rgb(229 231 235) !important;
+	}
+
+	:global(.lights-out .sx__month-agenda-wrapper) {
+		background-color: rgb(0 0 0) !important;
+	}
+
+	:global(.lights-out .sx__calendar-header) {
+		background-color: rgb(0 0 0) !important;
+		border-bottom-color: rgb(38 38 38) !important;
+		color: rgb(229 231 235) !important;
+	}
+
+	:global(.lights-out .sx__calendar-header *) {
+		color: rgb(229 231 235) !important;
+	}
+
+	:global(.lights-out .sx__date-picker-button) {
+		background-color: rgb(23 23 23) !important;
+		color: rgb(229 231 235) !important;
+		border-color: rgb(38 38 38) !important;
+	}
+
+	:global(.lights-out .sx__date-picker-button:hover) {
+		background-color: rgb(38 38 38) !important;
+	}
+
+	:global(.lights-out .sx__view-selection) {
+		background-color: rgb(23 23 23) !important;
+		border-color: rgb(38 38 38) !important;
+	}
+
+	:global(.lights-out .sx__view-selection-item) {
+		color: rgb(163 163 163) !important;
+	}
+
+	:global(.lights-out .sx__view-selection-item:hover) {
+		background-color: rgb(38 38 38) !important;
+	}
+
+	:global(.lights-out .sx__view-selection-item--active) {
+		background-color: rgb(59 130 246) !important;
+		color: white !important;
+	}
+
+	:global(.lights-out .sx__week-grid) {
+		background-color: rgb(0 0 0) !important;
+	}
+
+	:global(.lights-out .sx__week-grid__day) {
+		background-color: rgb(0 0 0) !important;
+		border-color: rgb(38 38 38) !important;
+	}
+
+	:global(.lights-out .sx__week-grid__day-name) {
+		color: rgb(115 115 115) !important;
+	}
+
+	:global(.lights-out .sx__time-grid-day) {
+		background-color: rgb(0 0 0) !important;
+		border-color: rgb(38 38 38) !important;
+	}
+
+	:global(.lights-out .sx__time-axis) {
+		background-color: rgb(0 0 0) !important;
+		color: rgb(115 115 115) !important;
+	}
+
+	:global(.lights-out .sx__day-grid) {
+		background-color: rgb(0 0 0) !important;
+	}
+
+	:global(.lights-out .sx__event) {
+		opacity: 0.9;
+	}
+
+	:global(.lights-out .sx__event:hover) {
+		opacity: 1;
+	}
+
+	:global(.lights-out .sx__chevron-wrapper svg) {
+		color: rgb(163 163 163) !important;
+		fill: rgb(163 163 163) !important;
+	}
+
+	:global(.lights-out .sx__today-button) {
+		background-color: rgb(23 23 23) !important;
+		color: rgb(229 231 235) !important;
+		border-color: rgb(38 38 38) !important;
+	}
+
+	:global(.lights-out .sx__today-button:hover) {
+		background-color: rgb(38 38 38) !important;
+	}
+
+	:global(.lights-out .sx__forward-backward-navigation button) {
+		color: rgb(163 163 163) !important;
+	}
+
+	:global(.lights-out .sx__forward-backward-navigation button:hover) {
+		background-color: rgb(38 38 38) !important;
 	}
 
 	/* Mobile responsive adjustments */
