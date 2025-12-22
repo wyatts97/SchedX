@@ -49,6 +49,9 @@
 		return map;
 	}, {} as Record<string, string>);
 
+	// Get the user's timezone once for consistency
+	$: userTimezone = browser ? getStoredOrDetectedTimezone() : 'UTC';
+
 	// Convert tweets to Schedule-X events format
 	function tweetsToEvents(tweets: Tweet[]) {
 		return tweets
@@ -61,21 +64,14 @@
 			})
 			.map((tweet, index) => {
 				const account = accounts.find(a => a.providerAccountId === tweet.twitterAccountId);
+				
+				// The scheduledDate is stored as UTC timestamp in the database
+				// We need to create a Temporal.Instant from the UTC time, then convert to user's timezone
 				const scheduledDate = new Date(tweet.scheduledDate);
+				const utcInstant = Temporal.Instant.fromEpochMilliseconds(scheduledDate.getTime());
 				
-				// Format date as ISO string with timezone for Schedule-X
-				// Schedule-X expects format like: '2024-07-06T14:00:00[America/Chicago]'
-				// Use user's stored timezone preference, falling back to browser detection
-				const timeZone = browser ? getStoredOrDetectedTimezone() : Temporal.Now.timeZoneId();
-				const year = scheduledDate.getFullYear();
-				const month = String(scheduledDate.getMonth() + 1).padStart(2, '0');
-				const day = String(scheduledDate.getDate()).padStart(2, '0');
-				const hours = String(scheduledDate.getHours()).padStart(2, '0');
-				const minutes = String(scheduledDate.getMinutes()).padStart(2, '0');
-				
-				// Create properly formatted datetime string
-				const dateTimeString = `${year}-${month}-${day}T${hours}:${minutes}:00[${timeZone}]`;
-				const startDateTime = Temporal.ZonedDateTime.from(dateTimeString);
+				// Convert UTC instant to the user's timezone
+				const startDateTime = utcInstant.toZonedDateTimeISO(userTimezone);
 				const endDateTime = startDateTime.add({ minutes: 15 });
 
 				return {
@@ -114,6 +110,7 @@
 
 		calendarApp = createCalendar({
 			locale: 'en-US',
+			timezone: userTimezone as any, // Use admin's timezone for display (cast needed for dynamic timezone)
 			firstDayOfWeek: 1, // Sunday
 			views: [
 				createViewMonthGrid(),
@@ -124,6 +121,10 @@
 			defaultView: 'month-grid',
 			events: events,
 			calendars: calendars,
+			weekOptions: {
+				// Use 12-hour format (e.g., "2 PM" instead of "14:00")
+				timeAxisFormatOptions: { hour: 'numeric', hour12: true }
+			},
 			plugins: [
 				createDragAndDropPlugin(15) // 15 minute intervals
 			],
@@ -154,14 +155,23 @@
 
 	// Handle reschedule via drag and drop
 	function handleReschedule(tweet: Tweet, newStart: any) {
-		// Convert Temporal to Date
-		const newDate = new Date(
-			newStart.year,
-			newStart.month - 1,
-			newStart.day,
-			newStart.hour,
-			newStart.minute
-		);
+		// newStart is a Temporal.ZonedDateTime in the user's timezone
+		// Convert it to a UTC Date for storage
+		let newDate: Date;
+		
+		if (newStart.toInstant) {
+			// It's a Temporal.ZonedDateTime - convert to UTC via Instant
+			newDate = new Date(newStart.toInstant().epochMilliseconds);
+		} else {
+			// Fallback: construct date from components (assumes user's timezone)
+			newDate = new Date(
+				newStart.year,
+				newStart.month - 1,
+				newStart.day,
+				newStart.hour,
+				newStart.minute
+			);
+		}
 
 		dispatch('reschedule', {
 			tweetId: tweet.id,

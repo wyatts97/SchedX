@@ -902,6 +902,27 @@ export class DatabaseClient {
     );
   }
 
+  /**
+   * Atomically claim a tweet for processing to prevent double-posting
+   * Returns true if claim was successful, false if tweet was already claimed/processed
+   */
+  claimTweetForProcessing(tweetId: string): boolean {
+    const now = this.db.now();
+    
+    // Atomic update: only succeeds if tweet is still SCHEDULED and not already posted
+    const result = this.db.execute(
+      `UPDATE tweets 
+       SET status = ?, updatedAt = ? 
+       WHERE id = ? 
+       AND status = ? 
+       AND twitterTweetId IS NULL`,
+      [TweetStatus.PROCESSING, now, tweetId, TweetStatus.SCHEDULED]
+    );
+    
+    // If changes === 1, we successfully claimed the tweet
+    return result.changes === 1;
+  }
+
   async updateTweet(tweetId: string, updates: Partial<any>): Promise<void> {
     const now = this.db.now();
     const updateFields: string[] = [];

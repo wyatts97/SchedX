@@ -6,12 +6,21 @@
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import logger from '$lib/logger';
+	import { superForm } from 'sveltekit-superforms';
 
-	let username = '';
-	let password = '';
+	export let data;
+
+	// Initialize Superforms with server data
+	const { form, errors, message, submitting, enhance } = superForm(data.form, {
+		// Redirect on success is handled by server
+		resetForm: false,
+		// Show validation errors on blur
+		validationMethod: 'onblur',
+		// Clear errors when user starts typing
+		clearOnSubmit: 'errors-and-message'
+	});
+
 	let showPassword = false;
-	let loading = false;
-	let error = '';
 
 	onMount(() => {
 		// Initialize Preline components
@@ -34,40 +43,6 @@
 			goto('/');
 		}
 	});
-
-	async function handleLogin() {
-		if (!username || !password) {
-			error = 'Please enter both username and password';
-			return;
-		}
-
-		loading = true;
-		error = '';
-
-		try {
-			const formData = new FormData();
-			formData.append('username', username);
-			formData.append('password', password);
-
-			const response = await fetch('/api/login', {
-				method: 'POST',
-				body: formData
-			});
-
-			const result = await response.json();
-
-			if (response.ok) {
-				// Redirect to dashboard on success
-				window.location.href = '/';
-			} else {
-				error = result.error || 'Login failed';
-			}
-		} catch (err) {
-			error = 'Network error. Please try again.';
-		} finally {
-			loading = false;
-		}
-	}
 
 	function togglePassword() {
 		showPassword = !showPassword;
@@ -96,8 +71,8 @@
 				</p>
 			</div>
 
-			<!-- Login Form -->
-			<form on:submit|preventDefault={handleLogin} class="space-y-6">
+			<!-- Login Form - Using Superforms -->
+			<form method="POST" use:enhance class="space-y-6">
 				<!-- Username Field -->
 				<div>
 					<label
@@ -108,13 +83,17 @@
 					</label>
 					<input
 						id="username"
+						name="username"
 						type="text"
-						bind:value={username}
-						class="block w-full rounded-lg border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+						bind:value={$form.username}
+						class="block w-full rounded-lg border px-3 py-2 placeholder-gray-400 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 {$errors.username ? 'border-red-500' : 'border-gray-300'}"
 						placeholder="Enter your username"
-						required
-						disabled={loading}
+						aria-invalid={$errors.username ? 'true' : undefined}
+						disabled={$submitting}
 					/>
+					{#if $errors.username}
+						<p class="mt-1 text-sm text-red-500">{$errors.username}</p>
+					{/if}
 				</div>
 
 				<!-- Password Field -->
@@ -128,18 +107,19 @@
 					<div class="relative">
 						<input
 							id="password"
+							name="password"
 							type={showPassword ? 'text' : 'password'}
-							bind:value={password}
-							class="block w-full rounded-lg border border-gray-300 px-3 py-2 pr-10 placeholder-gray-400 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+							bind:value={$form.password}
+							class="block w-full rounded-lg border px-3 py-2 pr-10 placeholder-gray-400 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 {$errors.password ? 'border-red-500' : 'border-gray-300'}"
 							placeholder="Enter your password"
-							required
-							disabled={loading}
+							aria-invalid={$errors.password ? 'true' : undefined}
+							disabled={$submitting}
 						/>
 						<button
 							type="button"
 							on:click={togglePassword}
 							class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-							disabled={loading}
+							disabled={$submitting}
 						>
 							{#if showPassword}
 								<EyeOff class="h-5 w-5" />
@@ -148,14 +128,17 @@
 							{/if}
 						</button>
 					</div>
+					{#if $errors.password}
+						<p class="mt-1 text-sm text-red-500">{$errors.password}</p>
+					{/if}
 				</div>
 
-				<!-- Error Message -->
-				{#if error}
+				<!-- Error Message from Server -->
+				{#if $message}
 					<div
 						class="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400"
 					>
-						<span>{error}</span>
+						<span>{$message}</span>
 					</div>
 				{/if}
 
@@ -163,16 +146,16 @@
 				<button
 					type="submit"
 					class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-					disabled={loading}
+					disabled={$submitting}
 				>
-					{#if loading}
+					{#if $submitting}
 						<span
 							class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"
 						></span>
 					{:else}
 						<LogIn class="h-5 w-5" />
 					{/if}
-					{loading ? 'Signing in...' : 'Sign In'}
+					{$submitting ? 'Signing in...' : 'Sign In'}
 				</button>
 			</form>
 

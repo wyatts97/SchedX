@@ -36,6 +36,13 @@ RUN npm run build -w @schedx/shared-lib && \
 # Stage 3: Production Runtime
 FROM node:22-bullseye-slim AS runner
 
+# Install ffmpeg for video thumbnail generation
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && \
+    apt-get install -y --no-install-recommends ffmpeg && \
+    rm -rf /var/lib/apt/lists/*
+
 # Create non-root user
 RUN groupadd -r schedx && useradd -r -g schedx schedx
 
@@ -53,8 +60,8 @@ COPY --from=builder --chown=schedx:schedx /app/node_modules ./node_modules
 # Copy built packages
 COPY --from=builder --chown=schedx:schedx /app/packages ./packages
 
-# Create data directories with proper permissions
-RUN mkdir -p /app/packages/schedx-app/uploads /data && \
+# Create data directories with proper permissions (including video-thumbnails)
+RUN mkdir -p /app/packages/schedx-app/uploads /app/packages/schedx-app/uploads/video-thumbnails /data && \
     chown -R schedx:schedx /app/packages/schedx-app/uploads /data
 
 # Switch to non-root user

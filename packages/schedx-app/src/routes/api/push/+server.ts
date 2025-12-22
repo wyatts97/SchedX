@@ -3,9 +3,9 @@ import type { RequestHandler } from './$types';
 import { pushNotificationService } from '$lib/server/pushNotificationService';
 
 /**
- * GET /api/push - Get VAPID public key for client subscription
+ * GET /api/push - Get VAPID public key and subscription status
  */
-export const GET: RequestHandler = async ({ locals }) => {
+export const GET: RequestHandler = async ({ locals, url }) => {
 	const session = await locals.auth();
 	if (!session?.user) {
 		return json({ error: 'Unauthorized' }, { status: 401 });
@@ -13,6 +13,22 @@ export const GET: RequestHandler = async ({ locals }) => {
 
 	const publicKey = pushNotificationService.getPublicKey();
 	const enabled = pushNotificationService.isEnabled();
+
+	// If status query param is present, return subscription details
+	if (url.searchParams.get('status') === 'true') {
+		const subscriptionCount = pushNotificationService.getSubscriptionCount(session.user.id);
+		const subscriptions = pushNotificationService.getSubscriptions(session.user.id);
+		
+		return json({
+			enabled,
+			publicKey: enabled ? publicKey : null,
+			subscriptionCount,
+			subscriptions: subscriptions.map(s => ({
+				endpoint: s.endpoint.substring(0, 60) + '...',
+				createdAt: new Date(s.createdAt).toISOString()
+			}))
+		});
+	}
 
 	return json({
 		enabled,

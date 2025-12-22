@@ -125,8 +125,15 @@ export class PushNotificationService {
 			[userId]
 		) as any[];
 
+		// Log subscription count at info level for debugging
+		log.info('Sending push notification to user', { 
+			userId, 
+			subscriptionCount: subscriptions?.length || 0,
+			title: payload.title 
+		});
+
 		if (!subscriptions || subscriptions.length === 0) {
-			log.debug('No push subscriptions found for user', { userId });
+			log.warn('No push subscriptions found for user - user may need to enable notifications on their devices', { userId });
 			return;
 		}
 
@@ -153,6 +160,7 @@ export class PushNotificationService {
 					notificationPayload
 				);
 				log.debug('Push notification sent', { userId, endpoint: sub.endpoint });
+				log.info('Push notification sent successfully', { userId, endpoint: sub.endpoint.substring(0, 50) + '...' });
 			} catch (error: any) {
 				// Handle expired or invalid subscriptions
 				if (error.statusCode === 404 || error.statusCode === 410) {
@@ -167,6 +175,33 @@ export class PushNotificationService {
 				}
 			}
 		}
+	}
+
+	/**
+	 * Get subscription count for a user (for debugging)
+	 */
+	public getSubscriptionCount(userId: string): number {
+		const rawDb = getRawDbInstance();
+		const result = rawDb.queryOne(
+			'SELECT COUNT(*) as count FROM push_subscriptions WHERE userId = ?',
+			[userId]
+		) as { count: number } | null;
+		return result?.count || 0;
+	}
+
+	/**
+	 * Get all subscriptions for a user (for debugging/admin)
+	 */
+	public getSubscriptions(userId: string): Array<{ endpoint: string; createdAt: number }> {
+		const rawDb = getRawDbInstance();
+		const subscriptions = rawDb.query(
+			'SELECT endpoint, createdAt FROM push_subscriptions WHERE userId = ?',
+			[userId]
+		) as any[];
+		return subscriptions.map(s => ({
+			endpoint: s.endpoint,
+			createdAt: s.createdAt
+		}));
 	}
 
 	/**

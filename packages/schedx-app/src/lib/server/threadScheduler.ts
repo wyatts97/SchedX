@@ -283,13 +283,43 @@ export class ThreadSchedulerService {
 							const response = await fetch(mediaItem.url);
 							const buffer = await response.arrayBuffer();
 
-							// Determine media type
-							const twitterMediaType =
-								mediaItem.type === 'video'
-									? 'video/mp4'
-									: mediaItem.type === 'gif'
-										? 'image/gif'
-										: 'image/jpeg';
+							// Determine media type based on file extension for accuracy
+							const ext = mediaItem.url.split('.').pop()?.toLowerCase() || '';
+							let twitterMediaType: string;
+							
+							if (mediaItem.type === 'video') {
+								switch (ext) {
+									case 'webm':
+										twitterMediaType = 'video/webm';
+										break;
+									case 'mov':
+										twitterMediaType = 'video/quicktime';
+										break;
+									case 'mp4':
+									default:
+										twitterMediaType = 'video/mp4';
+										break;
+								}
+							} else if (mediaItem.type === 'gif') {
+								twitterMediaType = 'image/gif';
+							} else {
+								switch (ext) {
+									case 'png':
+										twitterMediaType = 'image/png';
+										break;
+									case 'gif':
+										twitterMediaType = 'image/gif';
+										break;
+									case 'webp':
+										twitterMediaType = 'image/webp';
+										break;
+									case 'jpg':
+									case 'jpeg':
+									default:
+										twitterMediaType = 'image/jpeg';
+										break;
+								}
+							}
 
 							// Upload media using OAuth 1.0a client
 							const mediaId = await oauth1Client.v1.uploadMedia(Buffer.from(buffer), {

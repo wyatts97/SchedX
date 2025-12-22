@@ -1,6 +1,73 @@
 import { z } from 'zod';
 import { browser } from '$app/environment';
 
+// ============================================
+// Superforms-compatible schemas
+// These schemas are designed to work with sveltekit-superforms
+// ============================================
+
+/**
+ * Tweet creation form schema for Superforms
+ * Used in TweetCreate component with proper client-side validation
+ */
+export const createTweetFormSchema = z.object({
+	content: z.string()
+		.min(1, 'Tweet content cannot be empty')
+		.max(280, 'Tweet content cannot exceed 280 characters'),
+	accountId: z.string().min(1, 'Please select an account'),
+	scheduledDate: z.string().optional(), // ISO string for form handling
+	action: z.enum(['publish', 'draft', 'schedule', 'queue']).default('draft')
+});
+
+export type CreateTweetFormData = z.infer<typeof createTweetFormSchema>;
+
+/**
+ * Twitter App settings form schema for Superforms
+ */
+export const twitterAppFormSchema = z.object({
+	name: z.string().min(1, 'App name is required').max(100, 'App name too long'),
+	clientId: z.string().min(1, 'Client ID is required'),
+	clientSecret: z.string().min(1, 'Client secret is required'),
+	consumerKey: z.string().optional(),
+	consumerSecret: z.string().optional(),
+	accessToken: z.string().optional(),
+	accessTokenSecret: z.string().optional(),
+	callbackUrl: z.string().url('Must be a valid URL')
+});
+
+export type TwitterAppFormData = z.infer<typeof twitterAppFormSchema>;
+
+/**
+ * Login form schema for Superforms
+ */
+export const loginFormSchema = z.object({
+	username: z.string()
+		.min(1, 'Username is required')
+		.max(50, 'Username must be less than 50 characters'),
+	password: z.string().min(1, 'Password is required')
+});
+
+export type LoginFormData = z.infer<typeof loginFormSchema>;
+
+/**
+ * Change password form schema for Superforms
+ */
+export const changePasswordFormSchema = z.object({
+	currentPassword: z.string().min(1, 'Current password is required'),
+	newPassword: z.string()
+		.min(8, 'Password must be at least 8 characters')
+		.regex(/[A-Z]/, 'Must contain uppercase letter')
+		.regex(/[a-z]/, 'Must contain lowercase letter')
+		.regex(/[0-9]/, 'Must contain a number')
+		.regex(/[^A-Za-z0-9]/, 'Must contain a special character'),
+	confirmPassword: z.string().min(1, 'Please confirm your password')
+}).refine((data) => data.newPassword === data.confirmPassword, {
+	message: "Passwords don't match",
+	path: ['confirmPassword']
+});
+
+export type ChangePasswordFormData = z.infer<typeof changePasswordFormSchema>;
+
 // Common validation patterns
 const uuidSchema = z.string().uuid();
 const emailSchema = z.string().email();

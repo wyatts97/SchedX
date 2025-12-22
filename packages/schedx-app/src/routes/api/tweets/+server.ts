@@ -290,15 +290,45 @@ export const POST = userRateLimit(RATE_LIMITS.tweets)(
 
 										const buffer = await response.arrayBuffer();
 
-										// Determine media type for Twitter API v1.1 (by logical type)
-										let twitterMediaType: 'image/jpeg' | 'image/png' | 'image/gif' | 'video/mp4' = 'image/jpeg';
+										// Determine media type for Twitter API v1.1 based on file extension
+										// This is more accurate than relying on the logical type
+										const ext = mediaItem.url.split('.').pop()?.toLowerCase() || '';
+										let twitterMediaType: string;
+										
 										if (mediaItem.type === 'video') {
-											twitterMediaType = 'video/mp4';
+											// Map video extensions to proper MIME types
+											switch (ext) {
+												case 'webm':
+													twitterMediaType = 'video/webm';
+													break;
+												case 'mov':
+													twitterMediaType = 'video/quicktime';
+													break;
+												case 'mp4':
+												default:
+													twitterMediaType = 'video/mp4';
+													break;
+											}
 										} else if (mediaItem.type === 'gif') {
 											twitterMediaType = 'image/gif';
 										} else {
-											// photo -> default to JPEG
-											twitterMediaType = 'image/jpeg';
+											// Map image extensions to proper MIME types
+											switch (ext) {
+												case 'png':
+													twitterMediaType = 'image/png';
+													break;
+												case 'gif':
+													twitterMediaType = 'image/gif';
+													break;
+												case 'webp':
+													twitterMediaType = 'image/webp';
+													break;
+												case 'jpg':
+												case 'jpeg':
+												default:
+													twitterMediaType = 'image/jpeg';
+													break;
+											}
 										}
 
 										// Upload media using OAuth 1.0a client (v1.1 API)

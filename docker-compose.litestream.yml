@@ -49,37 +49,10 @@ services:
     networks:
       - schedx-network
 
-  scheduler:
-    build:
-      context: .
-      dockerfile: Dockerfile.litestream
-    command: npm start -w @schedx/scheduler
-    env_file:
-      - .env.docker
-    environment:
-      - DOCKER=true
-      - NODE_ENV=production
-    volumes:
-      - uploads-data:/app/packages/schedx-app/uploads
-      - db-data:/data
-      - backup-data:/backups
-    healthcheck:
-      test: ["CMD", "pgrep", "node"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 40s
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
-        reservations:
-          cpus: '0.25'
-          memory: 256M
-    networks:
-      - schedx-network
+  # NOTE: The scheduler is now built into the app (TweetSchedulerService in hooks.server.ts)
+  # This provides push notifications, email notifications, and retry logic all in one container.
+  # The separate schedx-scheduler package is kept for potential future horizontal scaling
+  # but is not needed for typical self-hosted deployments.
 
 volumes:
   db-data:

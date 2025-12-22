@@ -8,6 +8,7 @@ import { createFileValidationMiddleware } from '$lib/validation/middleware';
 import { mediaUploadSchema } from '$lib/validation/schemas';
 import { userRateLimit, RATE_LIMITS } from '$lib/rate-limiting';
 import { optimizeImage } from '$lib/server/imageOptimizer';
+import { generateVideoThumbnail } from '$lib/server/videoThumbnail';
 
 // Save tweet media to uploads directory (not avatars)
 // In Docker, uploads are at /app/packages/schedx-app/uploads
@@ -146,9 +147,10 @@ export const POST = userRateLimit(RATE_LIMITS.upload)(
 			logger.debug(`File saved to: ${filepath}`);
 			logger.debug(`Uploads directory: ${UPLOADS_DIR}`);
 
-			// Optimize image in background (non-blocking for response)
+			// Optimize image or generate video thumbnail
 			let optimizedUrl = url;
 			let thumbnails: Record<string, string> | null = null;
+			let videoThumbnail: string | null = null;
 			
 			if (mediaType === 'photo') {
 				try {
@@ -161,6 +163,17 @@ export const POST = userRateLimit(RATE_LIMITS.upload)(
 				} catch (optError) {
 					logger.warn(`Image optimization skipped for ${filename}: ${optError instanceof Error ? optError.message : 'Unknown error'}`);
 				}
+			} else if (mediaType === 'video') {
+				// Generate video thumbnail in background
+				try {
+					const thumbResult = await generateVideoThumbnail(filepath, filename);
+					if (thumbResult) {
+						videoThumbnail = thumbResult.thumbnailUrl;
+						logger.info(`Video thumbnail generated: ${videoThumbnail}`);
+					}
+				} catch (thumbError) {
+					logger.warn(`Video thumbnail generation skipped for ${filename}: ${thumbError instanceof Error ? thumbError.message : 'Unknown error'}`);
+				}
 			}
 
 			// Save metadata with account information
@@ -169,6 +182,7 @@ export const POST = userRateLimit(RATE_LIMITS.upload)(
 				url,
 				optimizedUrl,
 				thumbnails,
+				videoThumbnail,
 				type: mediaType,
 				filename: file.name,
 				uploadedAt: new Date().toISOString(),
@@ -177,7 +191,7 @@ export const POST = userRateLimit(RATE_LIMITS.upload)(
 			};
 			saveMediaMetadata(metadata);
 
-			return json({ url, optimizedUrl, thumbnails, type: mediaType });
+			return json({ url, optimizedUrl, thumbnails, videoThumbnail, type: mediaType });
 		} catch (error) {
 			logger.error('Upload error');
 

@@ -11,11 +11,13 @@
 		size: number;
 		uploaded?: boolean;
 		error?: string;
+		videoThumbnail?: string; // Server-generated video thumbnail
 	}
 
 	interface UploadResponse {
 		url: string;
 		type: 'photo' | 'gif' | 'video';
+		videoThumbnail?: string;
 	}
 
 	interface UploadError {
@@ -356,7 +358,8 @@
 								url: uploadedFile.url,
 								type: uploadedFile.type,
 								uploaded: true,
-								error: undefined
+								error: undefined,
+								videoThumbnail: uploadedFile.videoThumbnail
 							};
 							mediaFiles[mediaFileIndex] = updatedMediaFile;
 						}
@@ -546,7 +549,33 @@
 						{#if showPreview && (media.type === 'image' || media.type === 'photo' || media.type === 'gif') && !media.error}
 							<img src={media.url} alt={media.name} class="h-full w-full object-cover" />
 						{:else if showPreview && media.type === 'video' && !media.error}
-							<video src="{media.url}#t=0.1" class="h-full w-full object-cover" muted playsinline preload="metadata"></video>
+							<div class="relative h-full w-full">
+								{#if media.videoThumbnail}
+									<!-- Use server-generated thumbnail -->
+									<img src={media.videoThumbnail} alt={media.name} class="h-full w-full object-cover" />
+								{:else}
+									<!-- Fallback to video element for thumbnail (first frame to match Twitter) -->
+									<video 
+										src="{media.url}#t=0" 
+										class="h-full w-full object-cover" 
+										muted 
+										playsinline 
+										preload="auto"
+										on:loadeddata={(e) => {
+											const video = e.currentTarget;
+											video.currentTime = 0;
+										}}
+									></video>
+								{/if}
+								<!-- Video play icon overlay -->
+								<div class="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none">
+									<div class="flex h-8 w-8 items-center justify-center rounded-full bg-white/80 shadow">
+										<svg class="ml-0.5 h-4 w-4 text-gray-900" fill="currentColor" viewBox="0 0 20 20">
+											<path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+										</svg>
+									</div>
+								</div>
+							</div>
 						{:else}
 							<div class="flex h-full w-full items-center justify-center">
 								<Upload class="h-8 w-8 text-gray-400" />
@@ -646,7 +675,17 @@
 								disabled={!selectedGalleryIds.has(media.id) && mediaFiles.length + selectedGalleryIds.size >= maxFiles}
 							>
 								{#if media.type === 'video'}
-									<video src="{media.url}#t=0.1" class="h-full w-full object-cover" preload="metadata"> 
+									<video 
+										src="{media.url}#t=0.5" 
+										class="h-full w-full object-cover" 
+										muted
+										playsinline
+										preload="auto"
+										on:loadeddata={(e) => {
+											const video = e.currentTarget;
+											video.currentTime = 0.5;
+										}}
+									> 
 										<track kind="captions" src="" srclang="en" />
 									</video>
 									<div class="absolute inset-0 flex items-center justify-center bg-black/30">

@@ -15,6 +15,25 @@ export class TweetProcessor {
   }
 
   /**
+   * Atomically claim a tweet for processing to prevent double-posting
+   * Returns true if claim was successful, false if tweet was already claimed/processed
+   */
+  private async claimTweetForProcessing(tweetId: string): Promise<boolean> {
+    try {
+      // Use the database client's raw execute to perform atomic update
+      // Only succeeds if tweet is still SCHEDULED and not already posted
+      const result = await (this.dbClient as any).claimTweetForProcessing(tweetId);
+      return result;
+    } catch (error) {
+      log.error('Error claiming tweet for processing', { 
+        tweetId, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
+      return false;
+    }
+  }
+
+  /**
    * Get email service for a user based on their Resend settings
    */
   private async getEmailServiceForUser(userId: string): Promise<EmailService | null> {
@@ -83,14 +102,45 @@ export class TweetProcessor {
       
       const buffer = await response.arrayBuffer();
       
-      // Determine media type for Twitter API v1.1
-      let twitterMediaType: 'image/jpeg' | 'image/png' | 'image/gif' | 'video/mp4' = 'image/jpeg';
+      // Determine media type for Twitter API v1.1 based on file extension
+      // This is more accurate than relying on the logical type
+      const ext = mediaUrl.split('.').pop()?.toLowerCase() || '';
+      let twitterMediaType: string;
+      
       if (mediaType === 'video') {
-        twitterMediaType = 'video/mp4';
+        // Map video extensions to proper MIME types
+        switch (ext) {
+          case 'webm':
+            twitterMediaType = 'video/webm';
+            break;
+          case 'mov':
+            twitterMediaType = 'video/quicktime';
+            break;
+          case 'mp4':
+          default:
+            twitterMediaType = 'video/mp4';
+            break;
+        }
       } else if (mediaType === 'gif') {
         twitterMediaType = 'image/gif';
-      } else if (mediaType === 'png') {
-        twitterMediaType = 'image/png';
+      } else {
+        // Map image extensions to proper MIME types
+        switch (ext) {
+          case 'png':
+            twitterMediaType = 'image/png';
+            break;
+          case 'gif':
+            twitterMediaType = 'image/gif';
+            break;
+          case 'webp':
+            twitterMediaType = 'image/webp';
+            break;
+          case 'jpg':
+          case 'jpeg':
+          default:
+            twitterMediaType = 'image/jpeg';
+            break;
+        }
       }
       
       // Upload media using OAuth 1.0a client (v1.1 API)
@@ -163,6 +213,26 @@ export class TweetProcessor {
 
       for (const tweet of tweets) {
         try {
+          // Idempotency check: Skip if already posted
+          if (tweet.twitterTweetId) {
+            log.warn('Tweet already has twitterTweetId, skipping', {
+              tweetId: tweet.id,
+              twitterTweetId: tweet.twitterTweetId
+            });
+            continue;
+          }
+
+          // Atomically claim the tweet for processing
+          // This prevents race conditions where multiple scheduler instances
+          // or overlapping intervals try to process the same tweet
+          const claimed = await this.claimTweetForProcessing(tweet.id!);
+          if (!claimed) {
+            log.info('Tweet already claimed by another process, skipping', {
+              tweetId: tweet.id
+            });
+            continue;
+          }
+
           log.info(`Posting tweet for user ${userId}`, { 
             userId, 
             tweetId: tweet.id,

@@ -21,6 +21,7 @@
 	let permissionStatus: NotificationPermission = 'default';
 	let subscribed = false;
 	let serverEnabled = false;
+	let totalDevices = 0; // Total devices subscribed across all browsers/devices
 
 	// Notification preferences (stored in localStorage for now)
 	let preferences = {
@@ -60,12 +61,13 @@
 				installPrompt = e;
 			});
 
-			// Check server configuration
+			// Check server configuration and subscription count
 			try {
-				const res = await fetch('/api/push');
+				const res = await fetch('/api/push?status=true');
 				if (res.ok) {
 					const data = await res.json();
 					serverEnabled = data.enabled;
+					totalDevices = data.subscriptionCount || 0;
 				}
 			} catch (e) {
 				console.error('Failed to check push config:', e);
@@ -112,6 +114,17 @@
 				subscribed = true;
 				permissionStatus = getPermissionStatus();
 				success = 'Push notifications enabled! You will now receive alerts on this device.';
+				
+				// Refresh device count
+				try {
+					const res = await fetch('/api/push?status=true');
+					if (res.ok) {
+						const data = await res.json();
+						totalDevices = data.subscriptionCount || 0;
+					}
+				} catch (e) {
+					console.error('Failed to refresh device count:', e);
+				}
 			} else {
 				error = result.error || 'Failed to enable push notifications';
 			}
@@ -290,6 +303,17 @@
 					</div>
 					<span class={subscribed ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}>
 						{subscribed ? '✓ Subscribed' : 'Not Subscribed'}
+					</span>
+				</div>
+
+				<!-- Total Devices -->
+				<div class="flex items-center justify-between">
+					<div class="flex items-center">
+						<Smartphone class="mr-3 h-5 w-5 text-gray-500" />
+						<span class="text-gray-700 dark:text-gray-300">Total Devices Subscribed</span>
+					</div>
+					<span class={totalDevices > 0 ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}>
+						{totalDevices} {totalDevices === 1 ? 'device' : 'devices'}
 					</span>
 				</div>
 
