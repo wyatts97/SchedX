@@ -6,7 +6,7 @@
 
 	export let trends: TrendData;
 
-	let followerChartEl: HTMLElement;
+	let followerChartEl: HTMLCanvasElement;
 	let followerChart: any;
 	
 	// Track observer and mounted state for proper cleanup
@@ -223,7 +223,9 @@
 				</div>
 			</div>
 			<div class="relative">
-				<div bind:this={followerChartEl} class="follower-chart-container"></div>
+				<div class="h-[240px]">
+					<canvas bind:this={followerChartEl}></canvas>
+				</div>
 				<!-- Avatars positioned at end of lines -->
 				{#if trends.followerGrowth && trends.followerGrowth.length > 0 && trends.followerGrowth.some(a => a.data && a.data.length > 0)}
 					<div class="absolute right-0 top-0 flex h-full flex-col justify-around pr-2">

@@ -9,13 +9,16 @@ import { TweetSchedulerService } from '$lib/server/tweetScheduler';
 import { ThreadSchedulerService } from '$lib/server/threadScheduler';
 import { RettiwtEngagementSyncService } from '$lib/server/rettiwtEngagementSync';
 import { DataCleanupService } from '$lib/server/services/dataCleanupService';
-import * as cron from 'node-cron';
+import { Cron } from 'croner';
 
 // Initialize database and ensure default admin user
 let dbInitialized = false;
 let schedulerInitialized = false;
 let initPromise: Promise<void> | null = null;
 let localNetworkWarningLogged = false;
+
+// Store cron job references for cleanup on shutdown
+const cronJobs: Cron[] = [];
 
 const initDb = async () => {
 	// If already initialized, return immediately
@@ -53,7 +56,9 @@ const initDb = async () => {
 				engagementSync.start(); // Runs daily at 3 AM using Rettiwt-API
 				
 				// Schedule weekly data cleanup (Sunday at 2 AM UTC)
-				cron.schedule('0 2 * * 0', async () => {
+				const cleanupCronJob = new Cron('0 2 * * 0', {
+					timezone: 'Etc/UTC'
+				}, async () => {
 					logger.info('Starting scheduled data cleanup');
 					try {
 						const cleanupService = DataCleanupService.getInstance();
@@ -65,9 +70,10 @@ const initDb = async () => {
 					} catch (error) {
 						logger.error({ error }, 'Scheduled data cleanup failed');
 					}
-				}, {
-					timezone: 'Etc/UTC'
 				});
+				
+				// Store cron job reference for cleanup
+				cronJobs.push(cleanupCronJob);
 				
 				schedulerInitialized = true;
 				logger.info('Tweet, thread, engagement sync, and data cleanup schedulers initialized');
@@ -338,3 +344,27 @@ export const handle = sequence(
 	errorHandle,
 	authHandle
 );
+
+/**
+ * Graceful shutdown handler
+ * Cleans up cron jobs and other resources when server is shutting down
+ */
+function gracefulShutdown(signal: string) {
+	logger.info({ signal }, 'Received shutdown signal, cleaning up...');
+	
+	// Stop all cron jobs
+	cronJobs.forEach((job, index) => {
+		try {
+			job.stop();
+			logger.debug({ index }, 'Stopped cron job');
+		} catch (error) {
+			logger.error({ error, index }, 'Error stopping cron job');
+		}
+	});
+	
+	logger.info('Cleanup complete, exiting');
+}
+
+// Register shutdown handlers
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));

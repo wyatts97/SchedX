@@ -1,6 +1,13 @@
 /** @type {import('tailwindcss').Config} */
 export default {
 	content: ['./src/**/*.{html,js,svelte,ts}', './node_modules/preline/dist/*.js'],
+	future: {
+		hoverOnlyWhenSupported: true,
+		respectDefaultRingColorOpacity: true
+	},
+	experimental: {
+		optimizeUniversalDefaults: true
+	},
 	theme: {
 		extend: {
 			colors: {

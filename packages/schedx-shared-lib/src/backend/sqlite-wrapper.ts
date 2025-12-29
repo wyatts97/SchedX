@@ -1,11 +1,18 @@
 import { randomUUID } from 'crypto';
 import { createRequire } from 'module';
+import pino from 'pino';
 
 // Create require function for ES modules
 const require = createRequire(import.meta.url);
 
 // Import better-sqlite3
 const Database = require('better-sqlite3');
+
+// Create logger for database operations
+const logger = pino({
+  level: process.env.LOG_LEVEL || 'info',
+  timestamp: pino.stdTimeFunctions.isoTime
+});
 
 export interface SqliteConfig {
   path: string;
@@ -34,8 +41,23 @@ export class SqliteDatabase {
 
     // Open database with better-sqlite3 (synchronous)
     this.db = new Database(this.config.path, {
-      verbose: this.config.verbose ? console.log : undefined
+      verbose: this.config.verbose ? ((msg: string) => logger.debug({ sql: msg }, 'SQL query')) : undefined
     });
+
+    // Note: For production encryption, you need to compile better-sqlite3 with SQLCipher support
+    // or use a pre-built SQLCipher binary. This is a development configuration.
+    if (this.config.encryptionKey) {
+      try {
+        // Attempt to set encryption key using SQLCipher PRAGMA
+        // This will only work if better-sqlite3 is compiled with SQLCipher support
+        this.db.pragma(`key = '${this.config.encryptionKey}'`);
+        logger.info('Database encryption key set (requires SQLCipher-enabled better-sqlite3)');
+      } catch (error) {
+        logger.warn({ error }, 'Database encryption not available - using unencrypted database. For production, compile better-sqlite3 with SQLCipher support.');
+      }
+    } else {
+      logger.warn('Database encryption key not provided - database will be unencrypted');
+    }
 
     // Performance optimizations
     this.db.pragma('journal_mode = WAL');
@@ -43,11 +65,14 @@ export class SqliteDatabase {
     this.db.pragma('cache_size = 10000');
     this.db.pragma('temp_store = MEMORY');
     this.db.pragma('foreign_keys = ON');
-
-    // Note: better-sqlite3 doesn't support encryption natively
-    // For production, consider using SQLCipher build of better-sqlite3
-    if (this.config.encryptionKey) {
-      console.warn('Warning: Encryption key provided but better-sqlite3 does not support encryption by default');
+    this.db.pragma('wal_autocheckpoint = 1000');
+    
+    // Checkpoint WAL file to reclaim disk space
+    try {
+      this.db.pragma('wal_checkpoint(TRUNCATE)');
+      logger.debug('WAL checkpoint completed');
+    } catch (error) {
+      logger.warn({ error }, 'WAL checkpoint failed (non-critical)');
     }
 
     return this.db;

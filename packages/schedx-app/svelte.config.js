@@ -13,7 +13,13 @@ const config = {
 		// See https://svelte.dev/docs/kit/adapters for more information about adapters.
 		adapter: adapter({
 			// Increase body size limit for file uploads
-			bodySizeLimit: parseInt(process.env.BODY_SIZE_LIMIT) || 20485760
+			bodySizeLimit: parseInt(process.env.BODY_SIZE_LIMIT) || 20485760,
+			// Enable precompression for production
+			precompress: {
+				brotli: true,
+				gzip: true,
+				files: ['html', 'js', 'json', 'css', 'svg', 'xml']
+			}
 		}),
 		csrf: {
 			// Disable CSRF origin check for Docker/self-hosted deployments

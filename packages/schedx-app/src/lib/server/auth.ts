@@ -1,8 +1,12 @@
 import { getDbInstance } from './db';
-import bcrypt from 'bcrypt';
+import { hash, verify } from '@node-rs/argon2';
 import { redirect } from '@sveltejs/kit';
 import crypto from 'crypto';
 import logger from '$lib/logger';
+
+// For backward compatibility with existing bcrypt hashes
+// Will be lazily loaded only when needed
+let bcrypt: any = null;
 
 // Track last cleanup time and lock to avoid race conditions
 let lastCleanupTime = 0;
@@ -132,10 +136,46 @@ export async function signIn(credentials: { username: string; password: string }
 			return { error: 'Invalid credentials' };
 		}
 
-		const isPasswordValid = await bcrypt.compare(credentials.password, user.passwordHash);
+		// Try argon2 verification first (new hashes)
+		let isPasswordValid = false;
+		let needsRehash = false;
+
+		try {
+			isPasswordValid = await verify(user.passwordHash, credentials.password);
+		} catch (error) {
+			// If argon2 verification fails, hash might be bcrypt (legacy)
+			// Lazily load bcrypt only when needed
+			if (!bcrypt) {
+				bcrypt = (await import('bcrypt')).default;
+			}
+			
+			try {
+				isPasswordValid = await bcrypt.compare(credentials.password, user.passwordHash);
+				// If bcrypt verification succeeds, flag for rehashing to argon2
+				if (isPasswordValid) {
+					needsRehash = true;
+					logger.info('Legacy bcrypt hash detected, will migrate to argon2', { username: user.username });
+				}
+			} catch (bcryptError) {
+				logger.error('Password verification failed for both argon2 and bcrypt', { error: bcryptError });
+				isPasswordValid = false;
+			}
+		}
 
 		if (!isPasswordValid) {
 			return { error: 'Invalid credentials' };
+		}
+
+		// Migrate bcrypt hash to argon2 on successful login
+		if (needsRehash) {
+			try {
+				const newHash = await hash(credentials.password);
+				await db.updateUserPassword(user.id, newHash);
+				logger.info('Successfully migrated password hash from bcrypt to argon2', { username: user.username });
+			} catch (rehashError) {
+				// Don't fail login if rehashing fails, just log it
+				logger.error('Failed to migrate password hash to argon2', { error: rehashError, username: user.username });
+			}
 		}
 
 		// Ensure user has a valid ID
@@ -182,9 +222,24 @@ export async function signOut(sessionId: string) {
 
 // Helper functions for password hashing
 export async function hashPassword(password: string): Promise<string> {
-	return await bcrypt.hash(password, 10);
+	// Use argon2 for all new password hashes
+	return await hash(password);
 }
 
 export async function verifyPassword(password: string, hashedPassword: string): Promise<boolean> {
-	return await bcrypt.compare(password, hashedPassword);
+	// Try argon2 first (new hashes)
+	try {
+		return await verify(hashedPassword, password);
+	} catch (error) {
+		// Fallback to bcrypt for legacy hashes
+		if (!bcrypt) {
+			bcrypt = (await import('bcrypt')).default;
+		}
+		try {
+			return await bcrypt.compare(password, hashedPassword);
+		} catch (bcryptError) {
+			logger.error('Password verification failed', { error: bcryptError });
+			return false;
+		}
+	}
 }

@@ -410,6 +410,18 @@ export class DatabaseClient {
     return user?.rettiwt_api_key || null;
   }
 
+  /**
+   * Get Rettiwt API key from any of the user's Twitter accounts
+   * Used by RettiwtService for authenticated API access
+   */
+  async getAccountRettiwtApiKey(userId: string): Promise<string | null> {
+    const account = this.db.queryOne<{ rettiwt_api_key: string | null }>(
+      'SELECT rettiwt_api_key FROM accounts WHERE userId = ? AND provider = ? AND rettiwt_api_key IS NOT NULL LIMIT 1',
+      [userId, 'twitter']
+    );
+    return account?.rettiwt_api_key || null;
+  }
+
   async getUserTimezone(userId: string): Promise<string> {
     const user = this.db.queryOne<{ timezone: string | null }>(
       'SELECT timezone FROM users WHERE id = ?',
@@ -905,11 +917,18 @@ export class DatabaseClient {
   /**
    * Atomically claim a tweet for processing to prevent double-posting
    * Returns true if claim was successful, false if tweet was already claimed/processed
+   * 
+   * CRITICAL: This method checks both status AND twitterTweetId in a single atomic operation
+   * to eliminate race conditions where multiple processes might try to post the same tweet
    */
   claimTweetForProcessing(tweetId: string): boolean {
     const now = this.db.now();
     
-    // Atomic update: only succeeds if tweet is still SCHEDULED and not already posted
+    // Atomic update: only succeeds if ALL conditions are met:
+    // 1. Tweet status is SCHEDULED (not already processing/posted/failed)
+    // 2. Tweet has no twitterTweetId (hasn't been posted yet)
+    // 3. Tweet ID matches (correct tweet)
+    // This eliminates the race condition window between checking twitterTweetId and claiming
     const result = this.db.execute(
       `UPDATE tweets 
        SET status = ?, updatedAt = ? 
@@ -920,6 +939,7 @@ export class DatabaseClient {
     );
     
     // If changes === 1, we successfully claimed the tweet
+    // If changes === 0, tweet was already claimed/posted or doesn't exist
     return result.changes === 1;
   }
 

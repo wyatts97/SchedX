@@ -5,7 +5,7 @@
  * Stores data in SQLite for dashboard analytics without hitting API limits.
  */
 
-import cron from 'node-cron';
+import { Cron } from 'croner';
 import logger from '$lib/server/logger';
 import { collectAllAccountsStats } from '$lib/server/services/analyticsCollector';
 import { generateAllInsights } from '$lib/server/services/insightGenerator';
@@ -114,11 +114,11 @@ export function initializeDailyAnalyticsCron() {
 	// Schedule: Every day at 2:00 AM UTC
 	const cronExpression = '0 2 * * *';
 	
-	const job = cron.schedule(cronExpression, async () => {
-		await runDailyAnalyticsCollection();
-	}, {
+	const job = new Cron(cronExpression, {
 		timezone: 'UTC'
-	} as any); // node-cron types are incomplete
+	}, async () => {
+		await runDailyAnalyticsCollection();
+	});
 
 	logger.info(
 		{ schedule: cronExpression, timezone: 'UTC' },

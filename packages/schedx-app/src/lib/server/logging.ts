@@ -1,14 +1,14 @@
 import pino from 'pino';
+import type { LoggerOptions } from 'pino';
 import { randomUUID } from 'crypto';
 
 // Get log level from environment
 const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
-const NODE_ENV = process.env.NODE_ENV || 'development';
+const NODE_ENV = process.env.NODE_ENV || 'production';
+const isDevelopment = NODE_ENV !== 'production';
 
-/**
- * Create enhanced Pino logger with structured logging
- */
-export const logger = pino({
+// Build logger options
+const loggerOptions: LoggerOptions = {
 	level: LOG_LEVEL,
 	formatters: {
 		level: (label) => {
@@ -22,20 +22,30 @@ export const logger = pino({
 			};
 		}
 	},
-	timestamp: pino.stdTimeFunctions.isoTime,
-	...(NODE_ENV === 'development'
-		? {
-				transport: {
-					target: 'pino-pretty',
-					options: {
-						colorize: true,
-						translateTime: 'HH:MM:ss Z',
-						ignore: 'pid,hostname'
-					}
-				}
-		  }
-		: {})
-});
+	timestamp: pino.stdTimeFunctions.isoTime
+};
+
+// Only add pino-pretty transport in development (when it's available)
+if (isDevelopment) {
+	try {
+		require.resolve('pino-pretty');
+		loggerOptions.transport = {
+			target: 'pino-pretty',
+			options: {
+				colorize: true,
+				translateTime: 'HH:MM:ss Z',
+				ignore: 'pid,hostname'
+			}
+		};
+	} catch {
+		// pino-pretty not available, use JSON logging
+	}
+}
+
+/**
+ * Create enhanced Pino logger with structured logging
+ */
+export const logger = pino(loggerOptions);
 
 /**
  * Request context for correlation IDs

@@ -1,8 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
-	import BiggerPicture from 'bigger-picture';
-	import 'bigger-picture/css';
 
 	interface MediaItem {
 		id: string;
@@ -15,15 +13,30 @@
 
 	export let mediaItems: MediaItem[] = [];
 	
-	let bp: ReturnType<typeof BiggerPicture> | null = null;
+	let bp: any = null;
+	let BiggerPicture: any = null;
 
 	onMount(() => {
 		if (!browser) return;
 
-		// Initialize BiggerPicture
-		bp = BiggerPicture({
-			target: document.body,
-		});
+		// Lazy load bigger-picture library
+		(async () => {
+			try {
+				const [module] = await Promise.all([
+					import('bigger-picture'),
+					// @ts-ignore - CSS import for side effects
+					import('bigger-picture/css')
+				]);
+				BiggerPicture = module.default;
+				
+				// Initialize BiggerPicture
+				bp = BiggerPicture({
+					target: document.body,
+				});
+			} catch (error) {
+				console.error('Failed to load BiggerPicture:', error);
+			}
+		})();
 
 		return () => {
 			// Cleanup if needed

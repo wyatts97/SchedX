@@ -2,7 +2,7 @@ import { getDbInstance } from './db';
 import { TwitterAuthService } from './twitterAuth';
 import { log } from './logger';
 import type { Tweet } from '@schedx/shared-lib/types/types';
-import * as cron from 'node-cron';
+import { Cron } from 'croner';
 
 /**
  * Engagement Sync Service
@@ -13,7 +13,7 @@ import * as cron from 'node-cron';
 export class EngagementSyncService {
 	private static instance: EngagementSyncService;
 	private isRunning = false;
-	private cronJob: cron.ScheduledTask | null = null;
+	private cronJob: Cron | null = null;
 
 	private constructor() {}
 
@@ -37,13 +37,13 @@ export class EngagementSyncService {
 		log.info('Engagement sync scheduler started - will run daily at 3 AM');
 
 		// Run daily at 3:00 AM (cron format: minute hour day month weekday)
-		this.cronJob = cron.schedule('0 3 * * *', () => {
+		this.cronJob = new Cron('0 3 * * *', {
+			timezone: 'Etc/UTC' // Use UTC timezone
+		}, () => {
 			log.info('Running scheduled engagement sync (daily at 3 AM)');
 			this.syncAllEngagement().catch((error) => {
 				log.error('Error in scheduled engagement sync', { error });
 			});
-		}, {
-			timezone: 'Etc/UTC' // Use UTC timezone
 		});
 	}
 

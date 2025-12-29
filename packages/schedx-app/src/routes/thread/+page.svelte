@@ -108,7 +108,7 @@
 			Select Account
 		</span>
 		<AccountDropdown
-			accounts={data.accounts.map(acc => ({
+			accounts={data.accounts.map((acc: typeof data.accounts[number]) => ({
 				id: acc.id,
 				username: acc.username,
 				displayName: acc.displayName || acc.username,

@@ -5,7 +5,7 @@ import { DATABASE_PATH, DB_ENCRYPTION_KEY, AUTH_SECRET, CRON_SCHEDULE } from './
 import { TweetProcessor } from './tweetProcessor.js';
 import { log } from './logger.js';
 import { startHealthServer } from './health-server.js';
-import cron from 'node-cron';
+import { Cron } from 'croner';
 
 // Initialize database client with SQLite
 const dbClient = DatabaseClient.getInstance(DATABASE_PATH, DB_ENCRYPTION_KEY, AUTH_SECRET);
@@ -59,7 +59,7 @@ if (process.argv.includes('runOnce')) {
   startHealthServer();
   
   // Schedule the cron job for posting tweets
-  cron.schedule(CRON_SCHEDULE, () => {
+  new Cron(CRON_SCHEDULE, () => {
     log.info(`Cron job triggered with schedule: ${CRON_SCHEDULE}`, { cronSchedule: CRON_SCHEDULE });
     processTweets();
   });

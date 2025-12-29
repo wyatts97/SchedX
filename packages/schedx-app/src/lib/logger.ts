@@ -1,22 +1,12 @@
 import pino from 'pino';
+import type { LoggerOptions } from 'pino';
 import { dev } from '$app/environment';
 import { browser } from '$app/environment';
 
-// Enhanced logger configuration with structured logging
-const logger = pino({
+// Build logger options - avoid referencing pino-pretty in production builds
+const loggerOptions: LoggerOptions = {
 	name: 'schedx-app',
 	level: dev ? 'debug' : 'info',
-	transport: dev
-		? {
-				target: 'pino-pretty',
-				options: {
-					colorize: true,
-					translateTime: 'yyyy-mm-dd HH:MM:ss',
-					ignore: 'pid,hostname',
-					messageFormat: '{levelLabel} - {msg}'
-				}
-			}
-		: undefined,
 	// Enhanced formatters for production
 	formatters: {
 		level: (label) => ({ level: label }),
@@ -45,7 +35,29 @@ const logger = pino({
 		}
 	},
 	timestamp: () => `,"time":"${new Date().toISOString()}"`
-});
+};
+
+// Only add pino-pretty transport in development (when it's available)
+// This check happens at runtime to avoid bundling pino-pretty reference in production
+if (dev && !browser) {
+	try {
+		require.resolve('pino-pretty');
+		loggerOptions.transport = {
+			target: 'pino-pretty',
+			options: {
+				colorize: true,
+				translateTime: 'yyyy-mm-dd HH:MM:ss',
+				ignore: 'pid,hostname',
+				messageFormat: '{levelLabel} - {msg}'
+			}
+		};
+	} catch {
+		// pino-pretty not available, use JSON logging
+	}
+}
+
+// Enhanced logger configuration with structured logging
+const logger = pino(loggerOptions);
 
 // Enhanced logging methods with automatic context
 const createEnhancedLogger = () => {

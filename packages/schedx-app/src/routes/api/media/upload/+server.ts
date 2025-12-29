@@ -8,7 +8,8 @@ import { createFileValidationMiddleware } from '$lib/validation/middleware';
 import { mediaUploadSchema } from '$lib/validation/schemas';
 import { userRateLimit, RATE_LIMITS } from '$lib/rate-limiting';
 import { optimizeImage } from '$lib/server/imageOptimizer';
-import { generateVideoThumbnail } from '$lib/server/videoThumbnail';
+// Video thumbnails handled client-side (see Dockerfile comment)
+// import { generateVideoThumbnail } from '$lib/server/videoThumbnail';
 
 // Save tweet media to uploads directory (not avatars)
 // In Docker, uploads are at /app/packages/schedx-app/uploads
@@ -128,16 +129,60 @@ export const POST = userRateLimit(RATE_LIMITS.upload)(
 				return json({ error: 'Invalid filename' }, { status: 400 });
 			}
 
-			// Write file to disk
-			const writeStream = createWriteStream(filepath);
-			writeStream.write(buffer);
-			writeStream.end();
-
-			// Wait for write to complete
-			await new Promise<void>((resolve, reject) => {
-				writeStream.on('finish', () => resolve());
-				writeStream.on('error', reject);
-			});
+			// Write file to disk with comprehensive error handling
+			let writeStream: ReturnType<typeof createWriteStream> | null = null;
+			
+			try {
+				writeStream = createWriteStream(filepath);
+				
+				// Set up error handler before writing
+				const writePromise = new Promise<void>((resolve, reject) => {
+					writeStream!.on('finish', () => {
+						logger.debug({ filepath }, 'File write completed successfully');
+						resolve();
+					});
+					
+					writeStream!.on('error', (error) => {
+						logger.error({ error, filepath }, 'File write stream error');
+						reject(error);
+					});
+				});
+				
+				// Write buffer to stream
+				const writeSuccess = writeStream.write(buffer);
+				if (!writeSuccess) {
+					logger.warn({ filepath }, 'Write buffer full, waiting for drain');
+					await new Promise<void>((resolve) => writeStream!.once('drain', resolve));
+				}
+				
+				// End the stream
+				writeStream.end();
+				
+				// Wait for write to complete
+				await writePromise;
+				
+			} catch (writeError: any) {
+				// Clean up partial file on error
+				if (writeStream) {
+					writeStream.destroy();
+				}
+				
+				// Handle specific error types
+				if (writeError.code === 'ENOSPC') {
+					logger.error({ filepath }, 'Disk full - no space left on device');
+					return json({ error: 'Server storage is full. Please contact administrator.' }, { status: 507 });
+				} else if (writeError.code === 'EACCES' || writeError.code === 'EPERM') {
+					logger.error({ filepath, error: writeError }, 'Permission denied writing file');
+					return json({ error: 'Server permission error. Please contact administrator.' }, { status: 500 });
+				} else if (writeError.code === 'EROFS') {
+					logger.error({ filepath }, 'Read-only file system');
+					return json({ error: 'Server storage is read-only. Please contact administrator.' }, { status: 500 });
+				}
+				
+				// Generic write error
+				logger.error({ error: writeError, filepath }, 'Failed to write file to disk');
+				throw writeError;
+			}
 
 			// Generate URL for the uploaded file
 			const url = `/uploads/${filename}`;
@@ -164,16 +209,9 @@ export const POST = userRateLimit(RATE_LIMITS.upload)(
 					logger.warn(`Image optimization skipped for ${filename}: ${optError instanceof Error ? optError.message : 'Unknown error'}`);
 				}
 			} else if (mediaType === 'video') {
-				// Generate video thumbnail in background
-				try {
-					const thumbResult = await generateVideoThumbnail(filepath, filename);
-					if (thumbResult) {
-						videoThumbnail = thumbResult.thumbnailUrl;
-						logger.info(`Video thumbnail generated: ${videoThumbnail}`);
-					}
-				} catch (thumbError) {
-					logger.warn(`Video thumbnail generation skipped for ${filename}: ${thumbError instanceof Error ? thumbError.message : 'Unknown error'}`);
-				}
+				// Video thumbnails handled client-side (ffmpeg removed from Docker to save ~100MB)
+				// Server-side thumbnail generation disabled
+				logger.info(`Video uploaded: ${filename} (thumbnails handled client-side)`);
 			}
 
 			// Save metadata with account information

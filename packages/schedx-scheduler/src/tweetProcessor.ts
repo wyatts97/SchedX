@@ -213,22 +213,15 @@ export class TweetProcessor {
 
       for (const tweet of tweets) {
         try {
-          // Idempotency check: Skip if already posted
-          if (tweet.twitterTweetId) {
-            log.warn('Tweet already has twitterTweetId, skipping', {
-              tweetId: tweet.id,
-              twitterTweetId: tweet.twitterTweetId
-            });
-            continue;
-          }
-
           // Atomically claim the tweet for processing
           // This prevents race conditions where multiple scheduler instances
           // or overlapping intervals try to process the same tweet
+          // The claim operation checks BOTH status=SCHEDULED AND twitterTweetId IS NULL atomically
           const claimed = await this.claimTweetForProcessing(tweet.id!);
           if (!claimed) {
-            log.info('Tweet already claimed by another process, skipping', {
-              tweetId: tweet.id
+            log.info('Tweet already claimed/posted by another process, skipping', {
+              tweetId: tweet.id,
+              reason: 'Either already processing, posted, or has twitterTweetId'
             });
             continue;
           }

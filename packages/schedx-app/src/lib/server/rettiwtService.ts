@@ -24,15 +24,12 @@ export class RettiwtService {
 		try {
 			const db = getDbInstance();
 			
-			// Get API key from any of the user's Twitter accounts
-			const account = (db as any)['db'].queryOne(
-				'SELECT rettiwt_api_key FROM accounts WHERE userId = ? AND provider = ? AND rettiwt_api_key IS NOT NULL LIMIT 1',
-				[userId, 'twitter']
-			);
+			// Get API key from any of the user's Twitter accounts using proper method
+			const encryptedApiKey = await db.getAccountRettiwtApiKey(userId);
 
-			if (account?.rettiwt_api_key) {
+			if (encryptedApiKey) {
 				// Decrypt the stored API key
-				const decryptedApiKey = CookieEncryption.decrypt(account.rettiwt_api_key);
+				const decryptedApiKey = CookieEncryption.decrypt(encryptedApiKey);
 				
 				logger.debug({ userId }, 'Creating authenticated Rettiwt instance with user API key');
 				

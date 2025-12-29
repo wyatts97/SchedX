@@ -1,0 +1,89 @@
+version: 2
+updates:
+  # Root workspace dependencies
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "wyatts97"
+    labels:
+      - "dependencies"
+      - "automated"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+
+  # App workspace dependencies
+  - package-ecosystem: "npm"
+    directory: "/packages/schedx-app"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "wyatts97"
+    labels:
+      - "dependencies"
+      - "app"
+      - "automated"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+
+  # Scheduler workspace dependencies
+  - package-ecosystem: "npm"
+    directory: "/packages/schedx-scheduler"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "wyatts97"
+    labels:
+      - "dependencies"
+      - "scheduler"
+      - "automated"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+
+  # Shared library workspace dependencies
+  - package-ecosystem: "npm"
+    directory: "/packages/schedx-shared-lib"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "wyatts97"
+    labels:
+      - "dependencies"
+      - "shared-lib"
+      - "automated"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "wyatts97"
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "automated"
+    commit-message:
+      prefix: "ci"

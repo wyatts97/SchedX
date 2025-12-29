@@ -5,7 +5,7 @@
 	import { createDragAndDropPlugin } from '@schedule-x/drag-and-drop';
 	import type { CalendarApp } from '@schedule-x/calendar';
 	import '@schedule-x/theme-default/dist/index.css';
-	import 'temporal-polyfill/global';
+	import { Temporal } from 'temporal-polyfill';
 	import type { Tweet } from '@schedx/shared-lib/types/types';
 	import { Edit, Trash2, Plus, X } from 'lucide-svelte';
 	import TweetPreview from '$lib/components/TweetPreview.svelte';

@@ -1,6 +1,6 @@
 import { DatabaseClient } from './db-sqlite.js';
 import { runMigrations, seedDefaultAdmin } from './migrations/runner.js';
-import bcrypt from 'bcrypt';
+import { hash } from '@node-rs/argon2';
 
 /**
  * Initialize SQLite database with schema and default admin user
@@ -18,8 +18,8 @@ export async function initializeDatabase(
   // Run migrations to create tables
   await runMigrations(db['db']); // Access private db property
   
-  // Hash admin password
-  const hashedPassword = await bcrypt.hash(adminPassword, 10);
+  // Hash admin password with argon2
+  const hashedPassword = await hash(adminPassword);
   
   // Seed default admin user
   await seedDefaultAdmin(db['db'], adminEmail, hashedPassword);

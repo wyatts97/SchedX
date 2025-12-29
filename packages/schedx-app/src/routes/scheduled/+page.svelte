@@ -9,11 +9,14 @@
 	import TweetPreview from '$lib/components/TweetPreview.svelte';
 	import AccountDropdown from '$lib/components/AccountDropdown.svelte';
 	import { AlertTriangle, CheckCircle, XCircle, Edit, Trash2, X, Calendar as CalendarIcon } from 'lucide-svelte'; // Icon for warning/alert messages
-	import ScheduleXCalendar from '$lib/components/ScheduleXCalendar.svelte';
 	import type { Tweet } from '@schedx/shared-lib/types/types';
 
 	export let data: PageData;
 	export let form: ActionData | null | undefined = null;
+
+	// Lazy load calendar component
+	let ScheduleXCalendar: any = null;
+	let calendarLoading = true;
 
 	let selectedAccountId: string =
 		data.selectedAccountId ??
@@ -29,7 +32,7 @@
 	let showEditTweetModal = false;
 	let editingTweet: Tweet | null = null;
 
-	onMount(() => {
+	onMount(async () => {
 		if (browser) {
 			const initPreline = () => {
 				if (typeof window !== 'undefined' && window.HSStaticMethods) {
@@ -39,6 +42,16 @@
 			setTimeout(initPreline, 100);
 			setTimeout(initPreline, 500);
 			setTimeout(initPreline, 1000);
+
+			// Lazy load calendar component after initial page render
+			try {
+				const module = await import('$lib/components/ScheduleXCalendar.svelte');
+				ScheduleXCalendar = module.default;
+				calendarLoading = false;
+			} catch (error) {
+				console.error('Failed to load calendar component:', error);
+				calendarLoading = false;
+			}
 		}
 	});
 
@@ -198,7 +211,7 @@
 					Filter by Account
 				</span>
 				<AccountDropdown
-					accounts={data.accounts.map(acc => ({
+					accounts={data.accounts.map((acc: typeof data.accounts[number]) => ({
 						id: acc.providerAccountId,
 						username: acc.username,
 						displayName: acc.displayName || acc.username,
@@ -212,15 +225,25 @@
 		</div>
 	{/if}
 
-	<!-- Schedule-X Calendar Component - Always show for debugging -->
-	<ScheduleXCalendar 
-		tweets={data.tweets || []}
-		accounts={data.accounts || []}
-		selectedAccountFilter={selectedAccountId}
-		on:editTweet={(e) => handleEditTweet(e.detail)}
-		on:deleteTweet={(e) => handleDelete(e.detail.id)}
-		on:reschedule={(e) => handleReschedule(e.detail)}
-	/>
+	<!-- Schedule-X Calendar Component - Lazy loaded -->
+	{#if calendarLoading}
+		<div class="flex items-center justify-center p-12 bg-white dark:bg-gray-800 rounded-lg shadow">
+			<div class="text-center">
+				<div class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
+				<p class="mt-4 text-sm text-gray-600 dark:text-gray-400">Loading calendar...</p>
+			</div>
+		</div>
+	{:else if ScheduleXCalendar}
+		<svelte:component 
+			this={ScheduleXCalendar}
+			tweets={data.tweets || []}
+			accounts={data.accounts || []}
+			selectedAccountFilter={selectedAccountId}
+			on:editTweet={(e: CustomEvent<Tweet>) => handleEditTweet(e.detail)}
+			on:deleteTweet={(e: CustomEvent<{ id: string }>) => handleDelete(e.detail.id)}
+			on:reschedule={(e: CustomEvent<{ tweetId: string; newDate: Date }>) => handleReschedule(e.detail)}
+		/>
+	{/if}
 
 	<Pagination
 		currentPage={data.currentPage || 1}

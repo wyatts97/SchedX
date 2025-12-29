@@ -51,8 +51,8 @@ export async function ensureDefaultAdminUser() {
 	// Check if ANY admin user exists (not just username 'admin')
 	const hasAdmins = await (db as any).hasAdminUsers();
 	if (!hasAdmins) {
-		const bcrypt = (await import('bcrypt')).default;
-		const passwordHash = await bcrypt.hash('changeme', 10);
+		const { hash } = await import('@node-rs/argon2');
+		const passwordHash = await hash('changeme');
 		await db.createAdminUser({
 			username: 'admin',
 			passwordHash,

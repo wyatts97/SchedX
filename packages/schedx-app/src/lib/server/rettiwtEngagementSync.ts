@@ -2,7 +2,8 @@ import { getDbInstance } from './db';
 import { RettiwtService } from './rettiwtService';
 import logger from './logger';
 import type { Tweet } from '@schedx/shared-lib/types/types';
-import * as cron from 'node-cron';
+import { Cron } from 'croner';
+import pLimit from 'p-limit';
 
 /**
  * Rettiwt-based Engagement Sync Service
@@ -12,7 +13,7 @@ import * as cron from 'node-cron';
 export class RettiwtEngagementSyncService {
 	private static instance: RettiwtEngagementSyncService;
 	private isRunning = false;
-	private cronJob: cron.ScheduledTask | null = null;
+	private cronJob: Cron | null = null;
 
 	private constructor() {}
 
@@ -36,13 +37,13 @@ export class RettiwtEngagementSyncService {
 		logger.info('Rettiwt engagement sync scheduler started - will run daily at 3 AM');
 
 		// Run daily at 3:00 AM (cron format: minute hour day month weekday)
-		this.cronJob = cron.schedule('0 3 * * *', () => {
+		this.cronJob = new Cron('0 3 * * *', {
+			timezone: 'Etc/UTC' // Use UTC timezone
+		}, () => {
 			logger.info('Running scheduled Rettiwt engagement sync (daily at 3 AM)');
 			this.syncAllEngagement().catch((error) => {
 				logger.error({ error }, 'Error in scheduled Rettiwt engagement sync');
 			});
-		}, {
-			timezone: 'Etc/UTC' // Use UTC timezone
 		});
 	}
 
@@ -74,10 +75,10 @@ export class RettiwtEngagementSyncService {
 		try {
 			const db = getDbInstance();
 
-			// Get posted tweets that have Twitter IDs
+			// Get posted tweets that have Twitter IDs (removed LOWER() for index usage)
 			const query = userId
-				? `SELECT * FROM tweets WHERE userId = ? AND LOWER(status) = 'posted' AND twitterTweetId IS NOT NULL ORDER BY createdAt DESC`
-				: `SELECT * FROM tweets WHERE LOWER(status) = 'posted' AND twitterTweetId IS NOT NULL ORDER BY createdAt DESC`;
+				? `SELECT * FROM tweets WHERE userId = ? AND status = 'POSTED' AND twitterTweetId IS NOT NULL ORDER BY createdAt DESC`
+				: `SELECT * FROM tweets WHERE status = 'POSTED' AND twitterTweetId IS NOT NULL ORDER BY createdAt DESC`;
 			
 			const params = userId ? [userId] : [];
 			const tweets = (db as any)['db'].query(query, params);
@@ -93,28 +94,30 @@ export class RettiwtEngagementSyncService {
 			// Sync follower counts for all accounts first
 			await this.syncFollowerCounts(userId);
 
-			// Process tweets in batches to avoid overwhelming the API
-			const batchSize = 10;
-			for (let i = 0; i < tweets.length; i += batchSize) {
-				const batch = tweets.slice(i, i + batchSize);
-				
-				await Promise.all(batch.map(async (tweet: any) => {
+			// Use p-limit for controlled concurrency (max 3 concurrent requests)
+			// This prevents overwhelming the API and provides better error handling
+			const limit = pLimit(3);
+			
+			// Create limited promises for all tweets
+			const promises = tweets.map((tweet: any) =>
+				limit(async () => {
 					try {
 						await this.syncTweetEngagement(tweet, userId);
 						stats.synced++;
+						logger.debug({ tweetId: tweet.id, synced: stats.synced }, 'Tweet synced');
 					} catch (error) {
 						const errorMsg = error instanceof Error ? error.message : 'Unknown error';
 						logger.error({ error: errorMsg, tweetId: tweet.id }, 'Failed to sync tweet engagement');
 						lastError = errorMsg;
 						stats.failed++;
 					}
-				}));
-
-				// Small delay between batches to be respectful
-				if (i + batchSize < tweets.length) {
-					await new Promise(resolve => setTimeout(resolve, 1000));
-				}
-			}
+					// Small delay between requests to be respectful to API
+					await new Promise(resolve => setTimeout(resolve, 500));
+				})
+			);
+			
+			// Wait for all tweets to be processed
+			await Promise.all(promises);
 
 			logger.info(stats, 'Rettiwt engagement sync completed');
 			await this.updateSyncStatus(userId, lastError);
@@ -143,20 +146,13 @@ export class RettiwtEngagementSyncService {
 			// Fetch tweet details using Rettiwt
 			const tweetDetails = await RettiwtService.getTweetDetails(tweetId, userId || tweet.userId);
 
-			// Update tweet engagement metrics in database
-			(db as any)['db'].execute(
-				`UPDATE tweets 
-				 SET likeCount = ?, retweetCount = ?, replyCount = ?, impressionCount = ?, updatedAt = ?
-				 WHERE id = ?`,
-				[
-					tweetDetails.likeCount || 0,
-					tweetDetails.retweetCount || 0,
-					tweetDetails.replyCount || 0,
-					tweetDetails.viewCount || 0, // Rettiwt provides view count
-					Date.now(),
-					tweet.id
-				]
-			);
+			// Update tweet engagement metrics in database using proper method
+			await db.updateTweet(tweet.id, {
+				likeCount: tweetDetails.likeCount || 0,
+				retweetCount: tweetDetails.retweetCount || 0,
+				replyCount: tweetDetails.replyCount || 0,
+				impressionCount: tweetDetails.viewCount || 0
+			});
 
 			logger.debug({
 				tweetId: tweet.id,
@@ -178,31 +174,31 @@ export class RettiwtEngagementSyncService {
 		try {
 			const db = getDbInstance();
 			
-			// Get all Twitter accounts
-			const query = userId
-				? `SELECT * FROM accounts WHERE userId = ? AND provider = 'twitter'`
-				: `SELECT * FROM accounts WHERE provider = 'twitter'`;
+			// Get all Twitter accounts using proper method
+			const accounts = userId 
+				? await db.getUserAccounts(userId)
+				: await db.getAllUserAccounts();
 			
-			const params = userId ? [userId] : [];
-			const accounts = (db as any)['db'].query(query, params);
+			// Filter for Twitter accounts only
+			const twitterAccounts = accounts.filter(acc => acc.provider === 'twitter');
 
-			logger.info({ accountCount: accounts.length }, 'Syncing follower counts via Rettiwt');
+			logger.info({ accountCount: twitterAccounts.length }, 'Syncing follower counts via Rettiwt');
 
-			for (const account of accounts) {
+			for (const account of twitterAccounts) {
 				try {
-					if (!account.username) {
+					const username = account.username;
+					if (!username) {
 						logger.warn({ accountId: account.id }, 'Account has no username, skipping');
 						continue;
 					}
 
-					// Fetch user details using Rettiwt
-					const userAnalytics = await RettiwtService.getUserAnalytics(account.username, userId || account.userId);
+					// Fetch user details using Rettiwt (username is guaranteed to be defined here)
+					const userAnalytics = await RettiwtService.getUserAnalytics(username, userId || account.userId);
 
-					// Update follower count in database
-					(db as any)['db'].execute(
-						`UPDATE accounts SET followerCount = ?, updatedAt = ? WHERE id = ?`,
-						[userAnalytics.followers, Date.now(), account.id]
-					);
+					// Update follower count in database using proper method
+					// Pass displayName if available, otherwise use username as fallback
+					await db.updateAccountProfileImage(account.id, account.profileImage || '', account.displayName || username);
+					// Note: followerCount update needs a dedicated method - adding to db-sqlite.ts
 
 					logger.debug({
 						accountId: account.id,

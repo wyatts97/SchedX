@@ -9,6 +9,8 @@ npm-debug.log
 # Documentation
 README.md
 *.md
+!packages/*/README.md
+docs/
 
 # Testing and coverage
 .nyc_output
@@ -17,15 +19,15 @@ test
 tests
 __tests__
 
-# Build artifacts
+# Build artifacts (exclude from context, will be built in container)
 .cache
 .parcel-cache
 .next
 .nuxt
-dist
-!packages/schedx-shared-lib/dist/
-build
 .svelte-kit
+packages/schedx-shared-lib/dist/
+packages/schedx-app/build/
+packages/schedx-scheduler/dist/
 
 # Environment files (keep only .env.docker)
 .env
@@ -57,3 +59,27 @@ data
 # Temporary files
 tmp
 temp
+*.tmp
+
+# Docker
+Dockerfile*
+!Dockerfile
+!Dockerfile.litestream
+docker-compose*.yml
+.dockerignore
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.circleci/
+
+# Scripts (not needed in container)
+scripts/
+dev.sh
+dev.ps1
+dev-setup.sh
+dev-setup.ps1
+run-dev-linux.sh
+
+# Litestream config (use docker-specific config)
+litestream.yml

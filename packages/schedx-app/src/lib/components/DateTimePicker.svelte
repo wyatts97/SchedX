@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy, createEventDispatcher } from 'svelte';
 	import { browser } from '$app/environment';
-	import 'air-datepicker/air-datepicker.css';
 
 	export let value: string = '';
 	export let label: string = 'Select Date & Time';
@@ -23,10 +22,12 @@
 	onMount(async () => {
 		if (browser && inputEl) {
 			try {
-				// Dynamically import Air Datepicker and English locale
+				// Dynamically import Air Datepicker, CSS, and English locale
 				const [AirDatepicker, localeEn] = await Promise.all([
 					import('air-datepicker'),
-					import('air-datepicker/locale/en')
+					import('air-datepicker/locale/en'),
+					// @ts-ignore - CSS import for side effects
+					import('air-datepicker/air-datepicker.css')
 				]);
 
 				// Detect if mobile device

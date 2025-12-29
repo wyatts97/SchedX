@@ -1,14 +1,14 @@
 # syntax=docker/dockerfile:1.4
 
 # Stage 1: Dependencies
-FROM node:22-bullseye-slim AS deps
+FROM node:22-alpine AS deps
 
-# Install system dependencies
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    apt-get update && \
-    apt-get install -y --no-install-recommends curl && \
-    rm -rf /var/lib/apt/lists/*
+# Install system dependencies for native builds
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    curl
 
 WORKDIR /app
 
@@ -28,23 +28,18 @@ FROM deps AS builder
 # Copy source files
 COPY . .
 
-# Build packages
+# Build packages (scheduler is integrated into the app via hooks.server.ts, so we skip building the separate scheduler package)
 RUN npm run build -w @schedx/shared-lib && \
-    npm run build -w @schedx/app && \
-    npm run build -w @schedx/scheduler
+    npm run build -w @schedx/app
 
-# Stage 3: Production Runtime
-FROM node:22-bullseye-slim AS runner
+# Stage 3: Production Runtime - Use specific Alpine version for reproducibility
+FROM node:22-alpine3.20 AS runner
 
-# Install ffmpeg for video thumbnail generation
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    apt-get update && \
-    apt-get install -y --no-install-recommends ffmpeg && \
-    rm -rf /var/lib/apt/lists/*
-
-# Create non-root user
-RUN groupadd -r schedx && useradd -r -g schedx schedx
+# Create non-root user and remove unnecessary Alpine packages
+# Note: Removed ffmpeg (~100MB) - video thumbnails handled client-side
+RUN addgroup -S schedx && adduser -S schedx -G schedx && \
+    # Remove package manager cache and unnecessary files
+    rm -rf /var/cache/apk/* /tmp/* /var/tmp/*
 
 WORKDIR /app
 
@@ -53,15 +48,44 @@ ENV NODE_ENV=production
 
 # Copy workspace configuration
 COPY --from=builder --chown=schedx:schedx /app/package.json /app/package-lock.json ./
+COPY --from=builder --chown=schedx:schedx /app/packages/schedx-shared-lib/package.json ./packages/schedx-shared-lib/
+COPY --from=builder --chown=schedx:schedx /app/packages/schedx-app/package.json ./packages/schedx-app/
+COPY --from=builder --chown=schedx:schedx /app/packages/schedx-scheduler/package.json ./packages/schedx-scheduler/
 
-# Copy only production node_modules (smaller)
-COPY --from=builder --chown=schedx:schedx /app/node_modules ./node_modules
+# Install ONLY essential production dependencies
+# Note: Cannot use --omit=optional as it breaks @node-rs/argon2 native binaries
+RUN npm ci --omit=dev --ignore-scripts && \
+    # Rebuild essential native modules for Alpine Linux
+    npm rebuild better-sqlite3 && \
+    # @node-rs/argon2 uses prebuilt binaries - no rebuild needed (uses linux-x64-musl for Alpine)
+    # Aggressive cleanup - combine all find commands for efficiency
+    npm cache clean --force && \
+    rm -rf /root/.npm /tmp/* /root/.cache && \
+    # Remove documentation files
+    find /app/node_modules -type f \( -name '*.md' -o -name 'LICENSE*' -o -name 'CHANGELOG*' -o -name 'README*' -o -name 'HISTORY*' -o -name 'AUTHORS*' -o -name 'CONTRIBUTORS*' \) -delete 2>/dev/null || true && \
+    # Remove source maps and TypeScript artifacts
+    find /app/node_modules -type f \( -name '*.js.map' -o -name '*.mjs.map' -o -name '*.cjs.map' -o -name '*.d.ts.map' -o -name '*.css.map' \) -delete 2>/dev/null || true && \
+    # Remove test/docs/examples/typing directories
+    find /app/node_modules -type d \( -name 'test' -o -name 'tests' -o -name '__tests__' -o -name 'docs' -o -name 'doc' -o -name 'examples' -o -name 'example' -o -name 'coverage' -o -name '.github' -o -name '.vscode' -o -name 'benchmark' -o -name 'benchmarks' \) -exec rm -rf {} + 2>/dev/null || true && \
+    # Remove TypeScript source files (keep .d.ts for module resolution)
+    find /app/node_modules -type f -name '*.ts' ! -name '*.d.ts' -delete 2>/dev/null || true && \
+    # Remove locale files except English (major size savings for intl packages)
+    find /app/node_modules -type d -name 'locale' -exec sh -c 'find "$1" -type f ! -name "*en*" ! -name "*EN*" -delete 2>/dev/null' _ {} \; 2>/dev/null || true && \
+    # Remove build artifacts from better-sqlite3
+    rm -rf /app/node_modules/better-sqlite3/build/Release/obj.target /app/node_modules/better-sqlite3/build/Release/.deps /app/node_modules/better-sqlite3/prebuilds /app/node_modules/better-sqlite3/deps 2>/dev/null || true && \
+    # Remove gyp build files
+    find /app/node_modules -type d -name 'gyp' -exec rm -rf {} + 2>/dev/null || true && \
+    find /app/node_modules -type f -name 'binding.gyp' -delete 2>/dev/null || true 
 
-# Copy built packages
-COPY --from=builder --chown=schedx:schedx /app/packages ./packages
+# Copy built packages (only dist folders and necessary files)
+# Note: scheduler is integrated into the app, so we don't copy schedx-scheduler
+COPY --from=builder --chown=schedx:schedx /app/packages/schedx-shared-lib/dist ./packages/schedx-shared-lib/dist
+COPY --from=builder --chown=schedx:schedx /app/packages/schedx-app/build ./packages/schedx-app/build
+COPY --from=builder --chown=schedx:schedx /app/packages/schedx-app/static ./packages/schedx-app/static
 
-# Create data directories with proper permissions (including video-thumbnails)
-RUN mkdir -p /app/packages/schedx-app/uploads /app/packages/schedx-app/uploads/video-thumbnails /data && \
+# Create data directories with proper permissions
+# Note: video thumbnails are handled client-side, uploads dir is for media files
+RUN mkdir -p /app/packages/schedx-app/uploads /data && \
     chown -R schedx:schedx /app/packages/schedx-app/uploads /data
 
 # Switch to non-root user
@@ -76,5 +100,5 @@ EXPOSE ${PORT}
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://127.0.0.1:${PORT}/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"
 
-# Start command
-CMD ["npm", "start", "-w", "@schedx/app"]
+# Start command using node directly for better performance
+CMD ["node", "packages/schedx-app/build/index.js"]

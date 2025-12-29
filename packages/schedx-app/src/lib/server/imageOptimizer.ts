@@ -1,12 +1,12 @@
 /**
  * Image Optimization Service
- * Handles image compression, WebP conversion, and thumbnail generation
- * Uses sharp for high-performance image processing
+ * NOTE: Image optimization removed to reduce Docker image size
+ * Images are now handled client-side in the browser
  */
 
 import { existsSync, mkdirSync, unlinkSync, statSync } from 'fs';
 import path from 'path';
-import sharp from 'sharp';
+import { LRUCache } from 'lru-cache';
 import logger from './logger';
 
 // Thumbnail sizes for different use cases
@@ -29,8 +29,20 @@ interface OptimizationResult {
 	savedPercent: number;
 }
 
-// Cache for tracking optimized images
-const optimizedCache = new Map<string, OptimizationResult>();
+// LRU Cache for tracking optimized images with automatic eviction
+// Max 500 entries, 1 hour TTL to prevent unbounded memory growth
+const optimizedCache = new LRUCache<string, OptimizationResult>({
+	max: 500,
+	ttl: 1000 * 60 * 60, // 1 hour
+	maxSize: 50 * 1024 * 1024, // 50MB max cache size
+	sizeCalculation: (value) => {
+		// Estimate size based on stored data
+		return JSON.stringify(value).length;
+	},
+	dispose: (value, key) => {
+		logger.debug({ filename: key }, 'Evicting image optimization result from cache');
+	}
+});
 
 /**
  * Get the uploads directory path
@@ -82,7 +94,9 @@ export function getCachedOptimization(filename: string): OptimizationResult | nu
 }
 
 /**
- * Optimize image using sharp - resize, compress, and convert to WebP
+ * No-op image optimization - returns original file info
+ * Image optimization removed to reduce Docker image size (~50MB saved)
+ * Images are handled client-side in the browser
  */
 export async function optimizeImage(
 	filepath: string,
@@ -95,93 +109,38 @@ export async function optimizeImage(
 			return optimizedCache.get(filename)!;
 		}
 
-		// Skip non-image files and GIFs (animated)
-		const isImage = mimeType.startsWith('image/') && mimeType !== 'image/gif';
+		// Skip non-image files
+		const isImage = mimeType.startsWith('image/');
 		if (!isImage) {
 			return null;
 		}
 
 		const originalSize = statSync(filepath).size;
-		const thumbnailsDir = getThumbnailsDir();
-		const optimizedDir = getOptimizedDir();
 		const baseName = path.basename(filename, path.extname(filename));
-		const ext = path.extname(filename);
 
-		// Initialize sharp with the original image
-		const image = sharp(filepath);
-		const metadata = await image.metadata();
-
-		// Generate WebP version (typically 25-35% smaller)
-		let webpUrl: string | null = null;
-		let optimizedSize = originalSize;
-		const webpPath = path.join(optimizedDir, `${baseName}.webp`);
-		
-		try {
-			await sharp(filepath)
-				.webp({ quality: 85, effort: 4 })
-				.toFile(webpPath);
-			
-			webpUrl = `/uploads/optimized/${baseName}.webp`;
-			optimizedSize = statSync(webpPath).size;
-			logger.debug(`WebP conversion: ${filename} -> ${optimizedSize} bytes (${Math.round((1 - optimizedSize/originalSize) * 100)}% smaller)`);
-		} catch (webpError) {
-			logger.warn(`WebP conversion failed for ${filename}, using original`);
-		}
-
-		// Generate thumbnails at different sizes
-		const thumbnailUrls: Record<ThumbnailSize, string> = {
-			small: `/uploads/thumbnails/${baseName}_small.webp`,
-			medium: `/uploads/thumbnails/${baseName}_medium.webp`,
-			large: `/uploads/thumbnails/${baseName}_large.webp`
-		};
-
-		for (const [sizeName, dimensions] of Object.entries(THUMBNAIL_SIZES)) {
-			const thumbnailPath = path.join(thumbnailsDir, `${baseName}_${sizeName}.webp`);
-			
-			if (!existsSync(thumbnailPath)) {
-				try {
-					await sharp(filepath)
-						.resize(dimensions.width, dimensions.height, {
-							fit: 'cover',
-							position: 'center'
-						})
-						.webp({ quality: 80 })
-						.toFile(thumbnailPath);
-				} catch (thumbError) {
-					// Fallback: create thumbnail in original format
-					const fallbackPath = path.join(thumbnailsDir, `${baseName}_${sizeName}${ext}`);
-					await sharp(filepath)
-						.resize(dimensions.width, dimensions.height, {
-							fit: 'cover',
-							position: 'center'
-						})
-						.toFile(fallbackPath);
-					thumbnailUrls[sizeName as ThumbnailSize] = `/uploads/thumbnails/${baseName}_${sizeName}${ext}`;
-				}
-			}
-		}
-
-		const savedBytes = originalSize - optimizedSize;
-		const savedPercent = Math.round((savedBytes / originalSize) * 100);
-
+		// Return original file info without optimization
 		const result: OptimizationResult = {
 			originalUrl: `/uploads/${filename}`,
-			optimizedUrl: webpUrl || `/uploads/${filename}`,
-			webpUrl,
-			thumbnailUrls,
+			optimizedUrl: `/uploads/${filename}`,
+			webpUrl: null,
+			thumbnailUrls: {
+				small: `/uploads/${filename}`,
+				medium: `/uploads/${filename}`,
+				large: `/uploads/${filename}`
+			},
 			originalSize,
-			optimizedSize,
-			savedBytes,
-			savedPercent
+			optimizedSize: originalSize,
+			savedBytes: 0,
+			savedPercent: 0
 		};
 
 		// Cache the result
 		optimizedCache.set(filename, result);
 		
-		logger.info(`Image optimized: ${filename} | Original: ${(originalSize/1024).toFixed(1)}KB | WebP: ${(optimizedSize/1024).toFixed(1)}KB | Saved: ${savedPercent}%`);
+		logger.debug(`Image uploaded (no server-side optimization): ${filename} | Size: ${(originalSize/1024).toFixed(1)}KB`);
 		return result;
 	} catch (error) {
-		logger.error(`Failed to optimize image ${filename}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+		logger.error(`Failed to process image ${filename}: ${error instanceof Error ? error.message : 'Unknown error'}`);
 		return null;
 	}
 }
@@ -206,41 +165,17 @@ export function getThumbnailUrl(
 }
 
 /**
- * Clean up thumbnails and optimized versions for a deleted image
+ * Clean up cache entry for deleted image
+ * No thumbnails to clean since optimization is disabled
  */
 export function cleanupThumbnails(filename: string): void {
 	try {
-		const thumbnailsDir = getThumbnailsDir();
-		const optimizedDir = getOptimizedDir();
-		const baseName = path.basename(filename, path.extname(filename));
-		const ext = path.extname(filename);
-		
-		// Clean up WebP thumbnails
-		for (const size of Object.keys(THUMBNAIL_SIZES)) {
-			// Try WebP version first
-			const webpPath = path.join(thumbnailsDir, `${baseName}_${size}.webp`);
-			if (existsSync(webpPath)) {
-				unlinkSync(webpPath);
-			}
-			// Also try original format version
-			const origPath = path.join(thumbnailsDir, `${baseName}_${size}${ext}`);
-			if (existsSync(origPath)) {
-				unlinkSync(origPath);
-			}
-		}
-		
-		// Clean up optimized WebP version
-		const webpOptimized = path.join(optimizedDir, `${baseName}.webp`);
-		if (existsSync(webpOptimized)) {
-			unlinkSync(webpOptimized);
-		}
-		
 		// Remove from cache
 		optimizedCache.delete(filename);
 		
-		logger.debug(`Cleaned up optimized files for ${filename}`);
+		logger.debug(`Removed cache entry for ${filename}`);
 	} catch (error) {
-		logger.error(`Failed to cleanup optimized files for ${filename}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+		logger.error(`Failed to cleanup cache for ${filename}: ${error instanceof Error ? error.message : 'Unknown error'}`);
 	}
 }
 

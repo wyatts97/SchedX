@@ -1,4 +1,4 @@
-import { Resend } from 'resend';
+// Direct REST API implementation - no SDK needed (saves ~30MB by avoiding react/react-dom)
 
 export interface EmailNotificationConfig {
 	enabled: boolean;
@@ -19,23 +19,67 @@ export interface TweetNotificationData {
 	mediaCount?: number;
 }
 
+interface ResendApiResponse {
+	id?: string;
+	error?: {
+		message: string;
+		name: string;
+	};
+}
+
 export class EmailService {
-	private resend: Resend | null = null;
 	private config: EmailNotificationConfig;
 
 	constructor(config: EmailNotificationConfig) {
 		this.config = config;
-		
-		if (config.enabled && config.apiKey) {
-			this.resend = new Resend(config.apiKey);
-		}
 	}
 
 	/**
 	 * Check if email service is enabled and configured
 	 */
 	isEnabled(): boolean {
-		return this.config.enabled && this.resend !== null;
+		return this.config.enabled && !!this.config.apiKey;
+	}
+
+	/**
+	 * Send email via Resend REST API
+	 */
+	private async sendEmail(params: {
+		to: string;
+		subject: string;
+		html: string;
+		text: string;
+	}): Promise<{ success: boolean; messageId?: string; error?: string }> {
+		try {
+			const response = await fetch('https://api.resend.com/emails', {
+				method: 'POST',
+				headers: {
+					'Authorization': `Bearer ${this.config.apiKey}`,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					from: `${this.config.fromName} <${this.config.fromEmail}>`,
+					to: params.to,
+					subject: params.subject,
+					html: params.html,
+					text: params.text
+				})
+			});
+
+			const result = await response.json() as ResendApiResponse;
+
+			if (!response.ok || result.error) {
+				return { 
+					success: false, 
+					error: result.error?.message || `HTTP ${response.status}: ${response.statusText}` 
+				};
+			}
+
+			return { success: true, messageId: result.id };
+		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+			return { success: false, error: errorMessage };
+		}
 	}
 
 	/**
@@ -49,27 +93,15 @@ export class EmailService {
 			return { success: false, error: 'Email service not enabled' };
 		}
 
-		try {
-			const html = this.generateSuccessEmailHtml(data);
-			const text = this.generateSuccessEmailText(data);
+		const html = this.generateSuccessEmailHtml(data);
+		const text = this.generateSuccessEmailText(data);
 
-			const result = await this.resend!.emails.send({
-				from: `${this.config.fromName} <${this.config.fromEmail}>`,
-				to: toEmail,
-				subject: `✅ Tweet Posted Successfully - @${data.accountUsername}`,
-				html,
-				text
-			});
-
-			if (result.error) {
-				return { success: false, error: result.error.message };
-			}
-
-			return { success: true, messageId: result.data?.id };
-		} catch (error) {
-			const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-			return { success: false, error: errorMessage };
-		}
+		return this.sendEmail({
+			to: toEmail,
+			subject: `✅ Tweet Posted Successfully - @${data.accountUsername}`,
+			html,
+			text
+		});
 	}
 
 	/**
@@ -83,27 +115,15 @@ export class EmailService {
 			return { success: false, error: 'Email service not enabled' };
 		}
 
-		try {
-			const html = this.generateFailureEmailHtml(data);
-			const text = this.generateFailureEmailText(data);
+		const html = this.generateFailureEmailHtml(data);
+		const text = this.generateFailureEmailText(data);
 
-			const result = await this.resend!.emails.send({
-				from: `${this.config.fromName} <${this.config.fromEmail}>`,
-				to: toEmail,
-				subject: `❌ Tweet Failed to Post - @${data.accountUsername}`,
-				html,
-				text
-			});
-
-			if (result.error) {
-				return { success: false, error: result.error.message };
-			}
-
-			return { success: true, messageId: result.data?.id };
-		} catch (error) {
-			const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-			return { success: false, error: errorMessage };
-		}
+		return this.sendEmail({
+			to: toEmail,
+			subject: `❌ Tweet Failed to Post - @${data.accountUsername}`,
+			html,
+			text
+		});
 	}
 
 	/**
