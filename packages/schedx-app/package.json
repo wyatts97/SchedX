@@ -68,7 +68,7 @@
     "sveltekit-superforms": "^2.27.0",
     "twitter-api-v2": "^1.24.0",
     "web-push": "^3.6.7",
-    "zod": "^3.25.67"
+    "zod": "^4.3.5"
   },
   "overrides": {
     "cookie": "^0.7.0"
