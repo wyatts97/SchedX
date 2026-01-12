@@ -60,7 +60,7 @@
     "lru-cache": "^11.0.2",
     "lucide-svelte": "^0.344.0",
     "p-limit": "^6.1.0",
-    "pino": "^9.7.0",
+    "pino": "^10.1.1",
     "preline": "^3.1.0",
     "rettiwt-api": "^6.0.7",
     "socks": "^2.8.6",
