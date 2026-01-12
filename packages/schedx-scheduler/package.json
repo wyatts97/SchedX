@@ -19,7 +19,7 @@
     "@twitter-api-v2/plugin-token-refresher": "^1.0.0",
     "croner": "^9.1.0",
     "dotenv": "^16.5.0",
-    "pino": "^9.7.0",
+    "pino": "^10.1.1",
     "twitter-api-v2": "^1.24.0"
   },
   "devDependencies": {
