@@ -24,16 +24,17 @@
 | **PWA** | Install as app • Push notifications • Offline support • Background sync |
 | **Security** | OAuth 2.0 PKCE + 1.0a • AES-256 token encryption • Rate limiting • CSRF protection |
 | **Themes** | Light, Dark, and Lights-Out modes • Timezone-aware scheduling |
+| **AI** | OpenRouter integration • Tweet generation • Multiple LLM models (GPT-4, Claude, Llama, etc.) |
 
 ## Tech Stack
 
 | Layer | Technologies |
 |-------|-------------|
 | **Frontend** | SvelteKit 5, Svelte 5, TailwindCSS, Preline UI, ApexCharts, Schedule-X Calendar |
-| **Backend** | Node.js 22, SvelteKit API routes, Zod validation, Superforms |
+| **Backend** | Node.js 18+, SvelteKit API routes, Zod validation, Superforms |
 | **Database** | SQLite (better-sqlite3), AES-256-GCM encryption, Litestream backups |
 | **Media** | Sharp (image optimization), fluent-ffmpeg (video thumbnails), bigger-picture (lightbox) |
-| **Scheduler** | node-cron, atomic claim mechanism, auto-retry with backoff |
+| **Scheduler** | Croner, atomic claim mechanism, auto-retry with backoff |
 | **Auth** | OAuth 2.0 PKCE, OAuth 1.0a for media uploads |
 | **Analytics** | Rettiwt-API (no rate limits), daily auto-sync |
 | **Infra** | Docker, Pino logging, health checks, Litestream (SQLite replication) |
@@ -51,12 +52,12 @@ cd schedx && npm install
 # Generate secrets
 openssl rand -base64 32  # For AUTH_SECRET
 openssl rand -base64 32  # For DB_ENCRYPTION_KEY
-openssl rand -base64 32  # For COOKIE_ENCRYPTION_KEY
+openssl rand -base64 32  # For API_KEY_ENCRYPTION_KEY
 
 # Create .env file with:
 AUTH_SECRET=<your-secret>
 DB_ENCRYPTION_KEY=<your-key>
-COOKIE_ENCRYPTION_KEY=<your-key>
+API_KEY_ENCRYPTION_KEY=<your-key>
 DATABASE_PATH=./data/schedx.db
 ORIGIN=http://localhost:5173
 ```
@@ -111,6 +112,15 @@ See [docs/LITESTREAM.md](docs/LITESTREAM.md) for backup configuration.
 
 **Required scopes**: `tweet.read`, `tweet.write`, `users.read`, `offline.access`
 
+## AI Tweet Generation (Optional)
+
+SchedX integrates with [OpenRouter](https://openrouter.ai) to generate tweet content using various LLM models.
+
+1. Create account at [openrouter.ai](https://openrouter.ai)
+2. Get API key from dashboard
+3. Configure in SchedX → Settings → OpenRouter
+4. Choose your preferred model (GPT-4, Claude, Llama, Gemini, etc.)
+
 ## Analytics Setup (Optional)
 
 SchedX uses Rettiwt-API for fetching engagement metrics (likes, retweets, replies, views) without Twitter API rate limits.
@@ -150,7 +160,7 @@ schedx/
 |----------|-------------|
 | `AUTH_SECRET` | Session key (32+ chars) |
 | `DB_ENCRYPTION_KEY` | Token encryption key (32+ chars) |
-| `COOKIE_ENCRYPTION_KEY` | Rettiwt API key encryption (32+ chars) |
+| `API_KEY_ENCRYPTION_KEY` | Rettiwt API key encryption (32+ chars) |
 | `DATABASE_PATH` | SQLite file path |
 
 | Optional | Default | Description |
@@ -158,6 +168,8 @@ schedx/
 | `PORT` | 5173 | Server port |
 | `MAX_UPLOAD_SIZE` | 52428800 | Max upload size in bytes (50MB) |
 | `CRON_SCHEDULE` | `* * * * *` | Tweet scheduler cron expression |
+| `ALLOW_LOCAL_NETWORK` | false | Allow access from local network (Docker) |
+| `OPENROUTER_API_KEY` | *(disabled)* | OpenRouter API key for AI features |
 | `VAPID_PUBLIC_KEY` | *(disabled)* | Push notification public key |
 | `VAPID_PRIVATE_KEY` | *(disabled)* | Push notification private key |
 | `VAPID_SUBJECT` | `mailto:admin@schedx.app` | Push notification contact |
@@ -222,7 +234,7 @@ RESEND_FROM_EMAIL=notifications@yourdomain.com
 
 | Component | Requirement |
 |-----------|-------------|
-| **Node.js** | 22.x or later |
+| **Node.js** | 18.x or later |
 | **ffmpeg** | Required for video thumbnails (included in Docker) |
 | **SQLite** | Included via better-sqlite3 |
 | **Storage** | ~100MB base + uploads |
