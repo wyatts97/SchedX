@@ -86,16 +86,5 @@
     "uploadedAt": "2025-10-11T19:31:37.715Z",
     "fileSize": 4642672,
     "accountId": "1142654a-18ad-4859-a0f1-fd4c8ee60ddf"
-  },
-  "1766970063674-jsp2ugsi1z.mp4": {
-    "url": "/uploads/1766970063674-jsp2ugsi1z.mp4",
-    "optimizedUrl": "/uploads/1766970063674-jsp2ugsi1z.mp4",
-    "thumbnails": null,
-    "videoThumbnail": null,
-    "type": "video",
-    "filename": "tumblr_t6p7wb6jSS1a98ioj.mp4",
-    "uploadedAt": "2025-12-29T01:01:03.683Z",
-    "fileSize": 202567,
-    "accountId": "ed8f3b03-24e3-46af-9c07-d5ceefc02063"
   }
 }
