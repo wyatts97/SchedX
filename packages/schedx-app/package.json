@@ -59,7 +59,7 @@
     "date-fns-tz": "^3.2.0",
     "emoji-picker-element": "^1.26.3",
     "lru-cache": "^11.0.2",
-    "lucide-svelte": "^0.344.0",
+    "lucide-svelte": "^0.562.0",
     "p-limit": "^6.1.0",
     "pino": "^9.7.0",
     "preline": "^3.1.0",
