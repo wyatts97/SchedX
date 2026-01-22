@@ -62,19 +62,7 @@ DATABASE_PATH=./data/schedx.db
 ORIGIN=http://localhost:5173
 ```
 
-### 3. Install ffmpeg (required for video thumbnails)
-```bash
-# Windows
-winget install ffmpeg
-
-# macOS
-brew install ffmpeg
-
-# Linux
-apt-get install ffmpeg
-```
-
-### 4. Run
+### 3. Run
 ```bash
 # Windows
 .\dev.ps1
