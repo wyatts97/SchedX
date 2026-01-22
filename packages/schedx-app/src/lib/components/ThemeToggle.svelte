@@ -4,6 +4,15 @@
 
 	let currentTheme = 'light';
 	let currentPosition = 0; // 0 = light, 1 = dark, 2 = lightsout
+	let isAnimating = false;
+	let slideDirection: 'up' | 'down' = 'up';
+
+	const themes = ['light', 'dark', 'lightsout'] as const;
+	const themeLabels = {
+		light: 'Light mode',
+		dark: 'Dark mode',
+		lightsout: 'Lights out mode'
+	};
 
 	function getCookie(name: string) {
 		const value = `; ${document.cookie}`;
@@ -11,6 +20,7 @@
 		if (parts.length === 2) return parts.pop()?.split(';').shift();
 		return null;
 	}
+	
 	function setCookie(name: string, value: string, days = 365) {
 		const expires = new Date(Date.now() + days * 864e5).toUTCString();
 		document.cookie = `${name}=${value}; expires=${expires}; path=/`;
@@ -22,33 +32,43 @@
 			localStorage.setItem('theme', newTheme);
 			setCookie('theme', newTheme);
 			const html = document.documentElement;
-			html.classList.remove('theme-dark', 'theme-lightsout');
+			// Remove all theme classes
+			html.classList.remove('dark', 'theme-dark', 'theme-lightsout');
 			if (newTheme === 'light') {
 				html.setAttribute('data-theme', 'light');
 			} else if (newTheme === 'dark') {
-				html.classList.add('theme-dark');
+				// Add 'dark' for Tailwind and 'theme-dark' for custom styles
+				html.classList.add('dark', 'theme-dark');
 				html.setAttribute('data-theme', 'dark');
 			} else if (newTheme === 'lightsout') {
-				html.classList.add('theme-lightsout');
+				// Add 'dark' for Tailwind and 'theme-lightsout' for custom styles
+				html.classList.add('dark', 'theme-lightsout');
 				html.setAttribute('data-theme', 'lightsout');
 			}
 			window.dispatchEvent(new CustomEvent('theme-change', { detail: { theme: newTheme } }));
 		}
 	}
 
-	function handleClick(position: number) {
-		currentPosition = position;
-		if (position === 0) {
-			setTheme('light');
-		} else if (position === 1) {
-			setTheme('dark');
-		} else {
-			setTheme('lightsout');
-		}
+	function cycleTheme() {
+		if (isAnimating) return;
+		
+		isAnimating = true;
+		slideDirection = 'up';
+		
+		// Move to next theme
+		const nextPosition = (currentPosition + 1) % 3;
+		
+		setTimeout(() => {
+			currentPosition = nextPosition;
+			setTheme(themes[nextPosition]);
+			
+			setTimeout(() => {
+				isAnimating = false;
+			}, 200);
+		}, 150);
 	}
 
 	onMount(() => {
-		// Get the saved theme from storage
 		const savedTheme = getCookie('theme') || localStorage.getItem('theme') || 'light';
 		currentTheme = savedTheme;
 		
@@ -63,71 +83,52 @@
 	});
 </script>
 
-
-<div class="theme-toggle-container inline-flex items-center gap-0.5 rounded-full bg-gray-100 px-0.5 dark:bg-gray-700 theme-lightsout:bg-gray-800">
-	<!-- Light Mode Button -->
-	<button
-		class="theme-toggle-btn flex items-center justify-center rounded-full transition-all duration-200 {currentPosition ===
-		0
-			? 'bg-yellow-500 text-black'
-			: 'text-yellow-500 hover:bg-yellow-500/20'}"
-		on:click={() => handleClick(0)}
-		title="Light mode"
-		aria-label="Switch to light mode"
-		data-hs-theme-click-value="light"
-	>
-		<Sun size={14} strokeWidth={2} />
-	</button>
-
-	<!-- Dark Mode Button (Twitter blue) -->
-	<button
-		class="theme-toggle-btn flex items-center justify-center rounded-full transition-all duration-200 {currentPosition ===
-		1
-			? 'bg-blue-500 text-white'
-			: 'text-blue-500 hover:bg-blue-500/20'}"
-		on:click={() => handleClick(1)}
-		title="Dark mode (blue)"
-		aria-label="Switch to dark mode"
-		data-hs-theme-click-value="dark"
-	>
-		<Circle size={14} strokeWidth={2} />
-	</button>
-
-	<!-- Lightsout Mode Button (true black) -->
-	<button
-		class="theme-toggle-btn flex items-center justify-center rounded-full transition-all duration-200 {currentPosition ===
-		2
-			? 'bg-gray-900 text-white'
-			: 'text-gray-900 hover:bg-gray-900/20'}"
-		on:click={() => handleClick(2)}
-		title="Lightsout mode (black)"
-		aria-label="Switch to lightsout mode"
-		data-hs-theme-click-value="lightsout"
-	>
-		<Moon size={14} strokeWidth={2} />
-	</button>
-</div>
+<button
+	class="theme-toggle-single relative flex h-7 w-7 items-center justify-center overflow-hidden rounded-lg transition-all hover:bg-gray-100 focus:outline-none dark:hover:bg-gray-700 theme-lightsout:hover:bg-gray-800"
+	on:click={cycleTheme}
+	title={themeLabels[themes[currentPosition]]}
+	aria-label="Toggle theme"
+>
+	<div class="icon-container" class:slide-out={isAnimating}>
+		{#if currentPosition === 0}
+			<Sun class="h-4 w-4 text-yellow-500" strokeWidth={2} />
+		{:else if currentPosition === 1}
+			<Circle class="h-4 w-4 text-blue-500" strokeWidth={2} />
+		{:else}
+			<Moon class="h-4 w-4 text-gray-400 theme-lightsout:text-white" strokeWidth={2} />
+		{/if}
+	</div>
+</button>
 
 <style>
-	.theme-toggle-container {
-		height: 24px !important;
-		max-height: 24px !important;
-		min-height: 24px !important;
-		padding-top: 2px !important;
-		padding-bottom: 2px !important;
-	}
-	.theme-toggle-btn {
-		width: 20px !important;
-		height: 20px !important;
-		min-width: 20px !important;
-		min-height: 20px !important;
-		max-width: 20px !important;
-		max-height: 20px !important;
-		padding: 0 !important;
-	}
-	.theme-toggle-btn :global(svg) {
-		width: 14px !important;
-		height: 14px !important;
+	.theme-toggle-single {
 		flex-shrink: 0;
+	}
+
+	.icon-container {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: transform 0.15s ease-out, opacity 0.15s ease-out;
+	}
+
+	.icon-container.slide-out {
+		transform: translateY(-100%);
+		opacity: 0;
+	}
+
+	.icon-container:not(.slide-out) {
+		animation: slide-in 0.2s ease-out;
+	}
+
+	@keyframes slide-in {
+		from {
+			transform: translateY(100%);
+			opacity: 0;
+		}
+		to {
+			transform: translateY(0);
+			opacity: 1;
+		}
 	}
 </style>

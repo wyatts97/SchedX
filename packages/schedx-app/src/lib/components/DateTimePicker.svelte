@@ -6,6 +6,7 @@
 	export let label: string = 'Select Date & Time';
 	export let disabled: boolean = false;
 	export let placeholder: string = 'Choose date and time';
+	export let minDate: Date | undefined = new Date(); // Default to current date/time (future dates only)
 
 	const dispatch = createEventDispatcher();
 
@@ -42,6 +43,7 @@
 					position: 'bottom left',
 					isMobile: isMobile,
 					autoClose: false, // Don't auto-close so users can set both date and time
+					minDate: minDate, // Prevent selecting past dates
 					buttons: ['clear', 'today', {
 						content: 'Done',
 						onClick: (dp: any) => {

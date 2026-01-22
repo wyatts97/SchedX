@@ -37,6 +37,14 @@
 			
 			const data: AccountStatsResponse = await response.json();
 			
+			// Debug: Log the received data to see banner info
+			console.log('Account stats received:', data.accounts.map(a => ({
+				username: a.username,
+				hasBanner: !!a.profileBanner,
+				bannerUrl: a.profileBanner?.substring(0, 80) || 'none',
+				hasImage: !!a.profileImage
+			})));
+			
 			// Map stats by account ID for easy lookup
 			// Create new Map to trigger Svelte reactivity
 			const newStats = new Map<string, AccountStats>();

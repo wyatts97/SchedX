@@ -4,8 +4,9 @@ import { CookieEncryption } from './cookieEncryption';
 import { getDbInstance } from './db';
 
 /**
- * Service for interacting with Twitter/X via Rettiwt-API
+ * Service for interacting with Twitter/X via Rettiwt-API v4.2.0
  * Supports both public (unauthenticated) and authenticated (API key-based) access
+ * Note: Using v4.2.0 for Node.js v20 compatibility (v6.x requires Node.js v21+)
  */
 export class RettiwtService {
 	/**
@@ -67,11 +68,11 @@ export class RettiwtService {
 			} catch (detailsError: any) {
 				if (detailsError.message?.toLowerCase().includes('rate limit')) {
 					throw new Error('Twitter API rate limit exceeded. Please try again later.');
-				}
-				if (detailsError.message?.toLowerCase().includes('not found') || detailsError.status === 404) {
+				} else if (detailsError.message?.toLowerCase().includes('not found') || detailsError.status === 404) {
 					throw new Error(`Twitter user @${username} not found`);
+				} else {
+					throw detailsError;
 				}
-				throw detailsError;
 			}
 			
 			if (!userDetails || !userDetails.id) {
@@ -82,7 +83,15 @@ export class RettiwtService {
 
 			// Fetch recent tweets using user.timeline() with NUMERIC ID
 			// The Rettiwt API requires numeric ID for timeline(), not username
-			const timelineData = await rettiwt.user.timeline(userDetails.id, 20);
+			// Fetch recent tweets - timeline may fail for private accounts
+			let timelineData;
+			try {
+				timelineData = await rettiwt.user.timeline(userDetails.id, 20);
+			} catch (timelineError: any) {
+				// Timeline fetch can fail for private accounts or rate limits - continue with empty list
+				logger.warn({ username, error: timelineError.message }, 'Failed to fetch timeline, continuing with empty list');
+				timelineData = { list: [] };
+			}
 
 			// Extract tweet list from the response
 			const tweetList = timelineData?.list || [];
@@ -109,6 +118,17 @@ export class RettiwtService {
 					.replace(/_200x200\./, '_400x400.');
 			}
 
+			// Get profile banner (header image)
+			// The banner URL is typically in format: https://pbs.twimg.com/profile_banners/{user_id}/{timestamp}
+			let profileBannerUrl = userDetails.profileBanner || '';
+			
+			// Log banner status for debugging
+			logger.debug({ 
+				username, 
+				hasBanner: !!profileBannerUrl,
+				bannerUrl: profileBannerUrl ? profileBannerUrl.substring(0, 50) + '...' : 'none'
+			}, 'Profile banner status');
+
 			// Calculate engagement rate: (likes + retweets + replies) / followers * 100
 			const totalEngagement = totalLikes + totalRetweets + totalReplies;
 			const engagementRate = userDetails.followersCount > 0 
@@ -122,7 +142,7 @@ export class RettiwtService {
 				following: userDetails.followingsCount,
 				tweetsCount: userDetails.statusesCount,
 				profileImage: profileImageUrl,
-				profileBanner: userDetails.profileBanner || '',
+				profileBanner: profileBannerUrl,
 				bio: userDetails.description || '',
 				verified: userDetails.isVerified,
 				createdAt: userDetails.createdAt || '',

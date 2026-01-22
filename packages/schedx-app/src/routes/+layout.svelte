@@ -8,6 +8,8 @@
 	import MobileNavbar from '$lib/components/MobileNavbar.svelte';
 	import Footer from '$lib/components/Footer.svelte';
 	import PullToRefresh from '$lib/components/PullToRefresh.svelte';
+	import Breadcrumb from '$lib/components/Breadcrumb.svelte';
+	import { sidebarCollapsed } from '$lib/stores/sidebarStore';
 	import { Toaster } from 'svelte-sonner';
 	import { QueryClientProvider } from '@tanstack/svelte-query';
 	import { queryClient } from '$lib/query/queryClient';
@@ -15,9 +17,19 @@
 	import { syncTimezone } from '$lib/utils/timezone';
 
 	let theme: string = 'light';
+	let transitionOverlay: HTMLDivElement;
+	let isThemeTransitioning = false;
 
 	onMount(() => {
 		if (browser) {
+			// Listen for theme changes to trigger transition animation
+			const handleThemeChange = (e: CustomEvent<{ theme: string }>) => {
+				isThemeTransitioning = true;
+				setTimeout(() => {
+					isThemeTransitioning = false;
+				}, 350);
+			};
+			window.addEventListener('theme-change', handleThemeChange as EventListener);
 			// Initialize Preline v3
 			const initPreline = async () => {
 				try {
@@ -73,18 +85,21 @@
 		const savedTheme = getCookie('theme') || localStorage.getItem('theme') || 'light';
 		theme = savedTheme;
 		const html = document.documentElement;
-		html.classList.remove('theme-dark', 'theme-lightsout');
+		// Remove all theme classes
+		html.classList.remove('dark', 'theme-dark', 'theme-lightsout');
 		if (theme === 'light') {
 			html.setAttribute('data-theme', 'light');
 			setCookie('theme', 'light');
 			localStorage.setItem('theme', 'light');
 		} else if (theme === 'dark') {
-			html.classList.add('theme-dark');
+			// Add 'dark' for Tailwind and 'theme-dark' for custom styles
+			html.classList.add('dark', 'theme-dark');
 			html.setAttribute('data-theme', 'dark');
 			setCookie('theme', 'dark');
 			localStorage.setItem('theme', 'dark');
 		} else if (theme === 'lightsout') {
-			html.classList.add('theme-lightsout');
+			// Add 'dark' for Tailwind and 'theme-lightsout' for custom styles
+			html.classList.add('dark', 'theme-lightsout');
 			html.setAttribute('data-theme', 'lightsout');
 			setCookie('theme', 'lightsout');
 			localStorage.setItem('theme', 'lightsout');
@@ -93,7 +108,14 @@
 </script>
 
 <QueryClientProvider client={queryClient}>
-<div class="theme-lightsout:bg-black flex min-h-screen flex-col bg-gray-50 dark:bg-gray-900">
+<!-- Theme transition overlay -->
+<div 
+	bind:this={transitionOverlay}
+	class="theme-transition-overlay fixed inset-0 z-[9999] pointer-events-none opacity-0 transition-opacity duration-300"
+	class:opacity-100={isThemeTransitioning}
+></div>
+
+<div class="flex min-h-screen flex-col bg-gray-50 dark:bg-[#15202B] theme-lightsout:!bg-black">
 	<!-- Check if we're on authentication pages -->
 	{#if $page.url.pathname !== '/login' && !$page.url.pathname.startsWith('/auth/') && $page.url.pathname !== '/signin' && $page.url.pathname !== '/signout' && !$page.url.pathname.startsWith('/admin/login') && $page.url.pathname !== '/logout'}
 		<!-- Skip to main content link for accessibility -->
@@ -118,10 +140,14 @@
 		<!-- Main Content -->
 		<main
 			id="main-content"
-			class="min-w-0 flex-1 lg:pl-56 lg:pt-4"
+			class="min-w-0 flex-1 lg:pt-4 transition-all duration-300"
+			class:lg:pl-56={!$sidebarCollapsed}
+			class:lg:pl-24={$sidebarCollapsed}
 			aria-label="Main content"
 		>
 			<div class="max-w-full px-4 py-6 sm:px-6 lg:px-8">
+				<!-- Breadcrumb navigation for nested pages -->
+				<Breadcrumb />
 				<!-- Mobile-friendly container with proper spacing -->
 				<div class="w-full max-w-none">
 					<slot />

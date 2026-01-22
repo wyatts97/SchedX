@@ -215,6 +215,45 @@ html[data-theme="lightsout"] {
   --shadow: none;
 }
 
+/* Lightsout mode MUST override dark mode backgrounds with true black */
+html[data-theme="lightsout"] body,
+html.theme-lightsout body,
+html.theme-lightsout .min-h-screen {
+  background-color: #000000 !important;
+}
+
+/* Override Tailwind dark mode classes for lightsout */
+.theme-lightsout .dark\:bg-\[\#15202B\] {
+  background-color: #000000 !important;
+}
+
+.theme-lightsout .dark\:bg-gray-900 {
+  background-color: #000000 !important;
+}
+
+.theme-lightsout .dark\:bg-gray-800 {
+  background-color: #111111 !important;
+}
+
+/* Mobile Header lightsout overrides */
+html.theme-lightsout header,
+html[data-theme="lightsout"] header {
+  background-color: rgba(0, 0, 0, 0.9) !important;
+}
+
+/* Mobile Navbar lightsout overrides */
+html.theme-lightsout .mobile-navbar > div,
+html[data-theme="lightsout"] .mobile-navbar > div {
+  background-color: rgba(0, 0, 0, 0.9) !important;
+  border-color: rgba(34, 34, 34, 0.5) !important;
+}
+
+html.theme-lightsout .mobile-navbar .dropup-container > div > div,
+html[data-theme="lightsout"] .mobile-navbar .dropup-container > div > div {
+  background-color: rgba(0, 0, 0, 0.95) !important;
+  border-color: rgba(34, 34, 34, 0.5) !important;
+}
+
 /* Ensure text uses the theme token */
 body {
   color: var(--text-primary);
@@ -1495,4 +1534,329 @@ html[data-theme="lightsout"] .bg-white {
 html[data-theme="lightsout"] [class*="dark:bg-"][class*="15202B"],
 html[data-theme="lightsout"] .dark\:bg-\[#15202B\] {
   background-color: #000000 !important;
+}
+
+/* ===========================================
+   ACCESSIBILITY: Improved Color Contrast
+   WCAG AA requires 4.5:1 for normal text, 3:1 for large text
+   =========================================== */
+
+/* Better contrast for gray text - upgrade from gray-400/500 to darker shades */
+.text-muted {
+  @apply text-gray-600 dark:text-gray-300;
+}
+
+/* Timestamp and secondary text - ensure readability */
+.text-secondary {
+  @apply text-gray-600 dark:text-gray-300 theme-lightsout:text-gray-300;
+}
+
+/* Override low-contrast gray text globally */
+html[data-theme="light"] .text-gray-400 {
+  color: #6b7280 !important; /* gray-500 for better contrast */
+}
+
+html[data-theme="light"] .text-gray-500 {
+  color: #4b5563 !important; /* gray-600 for better contrast */
+}
+
+html[data-theme="dark"] .text-gray-400,
+html[data-theme="dark"] .text-neutral-400 {
+  color: #d1d5db !important; /* gray-300 for better contrast on dark */
+}
+
+html[data-theme="lightsout"] .text-gray-400,
+html[data-theme="lightsout"] .text-gray-500,
+html[data-theme="lightsout"] .text-neutral-400,
+html[data-theme="lightsout"] .text-neutral-500 {
+  color: #d1d5db !important; /* gray-300 for better contrast on black */
+}
+
+/* Placeholder text improvements */
+html[data-theme="light"] ::placeholder {
+  color: #6b7280 !important; /* gray-500 */
+}
+
+html[data-theme="dark"] ::placeholder,
+html[data-theme="lightsout"] ::placeholder {
+  color: #9ca3af !important; /* gray-400 */
+}
+
+/* Focus visible improvements for accessibility */
+*:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .text-gray-400,
+  .text-gray-500,
+  .text-neutral-400,
+  .text-neutral-500 {
+    color: currentColor !important;
+  }
+  
+  .border-gray-200,
+  .border-gray-300 {
+    border-color: currentColor !important;
+  }
+}
+
+/* ===========================================
+   MOBILE: Touch Target Sizes (44px minimum)
+   =========================================== */
+
+/* Ensure minimum touch target size on mobile */
+@media (max-width: 768px) {
+  /* Buttons */
+  button,
+  [role="button"],
+  .btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Links that act as buttons */
+  a.btn,
+  a[role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Icon buttons */
+  .icon-btn,
+  button:has(svg:only-child),
+  [aria-label]:not(input):not(textarea) {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Form inputs */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="number"],
+  select,
+  textarea {
+    min-height: 44px;
+  }
+
+  /* Checkboxes and radios - add padding for touch area */
+  input[type="checkbox"],
+  input[type="radio"] {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 10px;
+  }
+
+  /* Navigation links */
+  nav a,
+  .nav-link {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  /* List items that are interactive */
+  li[role="button"],
+  li:has(> a),
+  li:has(> button) {
+    min-height: 44px;
+  }
+}
+
+/* Touch-friendly utility class */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.touch-target-lg {
+  min-height: 48px;
+  min-width: 48px;
+}
+
+/* ===========================================
+   VISUAL: Micro-animations
+   =========================================== */
+
+/* Fade in animation */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Slide animations */
+@keyframes slideInUp {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInDown {
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Scale animation for buttons */
+@keyframes scaleIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Utility classes for animations */
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out;
+}
+
+.animate-slide-up {
+  animation: slideInUp 0.2s ease-out;
+}
+
+.animate-slide-down {
+  animation: slideInDown 0.2s ease-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.15s ease-out;
+}
+
+/* Tab panel transition */
+.tab-panel-enter {
+  animation: fadeIn 0.15s ease-out;
+}
+
+/* Dropdown menu animation */
+.dropdown-enter {
+  animation: scaleIn 0.15s ease-out;
+  transform-origin: top right;
+}
+
+/* Card hover elevation */
+.card-interactive {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+}
+
+/* ===========================================
+   VISUAL: Card Elevation Hierarchy
+   =========================================== */
+
+/* Base elevation - flat cards */
+.elevation-0 {
+  box-shadow: none;
+}
+
+/* Low elevation - subtle lift */
+.elevation-1 {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* Medium elevation - default cards */
+.elevation-2 {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* High elevation - modals, dropdowns */
+.elevation-3 {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+}
+
+/* Highest elevation - popovers, dialogs */
+.elevation-4 {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+}
+
+/* Dark mode elevations */
+html[data-theme="dark"] .elevation-1,
+html[data-theme="lightsout"] .elevation-1 {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+}
+
+html[data-theme="dark"] .elevation-2,
+html[data-theme="lightsout"] .elevation-2 {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px -1px rgba(0, 0, 0, 0.3);
+}
+
+html[data-theme="dark"] .elevation-3,
+html[data-theme="lightsout"] .elevation-3 {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+}
+
+html[data-theme="dark"] .elevation-4,
+html[data-theme="lightsout"] .elevation-4 {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
+}
+
+/* ===================================================================
+   Theme Transition Animation
+   =================================================================== */
+
+.theme-transition-overlay {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+  transition: opacity 0.3s ease-in-out;
+}
+
+html[data-theme="light"] .theme-transition-overlay {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
+}
+
+html[data-theme="dark"] .theme-transition-overlay {
+  background: linear-gradient(135deg, #15202B 0%, #192734 50%, #1a2836 100%);
+}
+
+html[data-theme="lightsout"] .theme-transition-overlay {
+  background: #000000;
+}
+
+/* ===================================================================
+   Logo Inhale Animation
+   =================================================================== */
+
+.logo-inhale {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.logo-inhale:hover {
+  animation: inhale 0.6s ease-in-out;
+}
+
+@keyframes inhale {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.92);
+  }
+  100% {
+    transform: scale(1);
+  }
 }

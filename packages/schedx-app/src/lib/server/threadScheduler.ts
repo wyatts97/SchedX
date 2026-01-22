@@ -3,6 +3,8 @@ import { TwitterAuthService } from './twitterAuth';
 import { TweetStatus } from '@schedx/shared-lib/types/types';
 import { log } from './logger';
 import { TwitterApi } from 'twitter-api-v2';
+import { readFileSync } from 'fs';
+import path from 'path';
 
 /**
  * Thread Scheduler Service
@@ -279,9 +281,24 @@ export class ThreadSchedulerService {
 
 					for (const mediaItem of tweetContent.media) {
 						try {
-							// Fetch media from URL
-							const response = await fetch(mediaItem.url);
-							const buffer = await response.arrayBuffer();
+							// Read media from filesystem (consistent with tweet scheduler)
+							// mediaItem.url is like "/uploads/filename.gif"
+							const filename = mediaItem.url.replace('/uploads/', '');
+							// In Docker, uploads are at /app/packages/schedx-app/uploads
+							// In dev, they're at process.cwd()/uploads
+							const uploadsDir = process.env.DOCKER === 'true'
+								? '/app/packages/schedx-app/uploads'
+								: path.join(process.cwd(), 'uploads');
+							const filepath = path.join(uploadsDir, filename);
+							
+							log.debug('Reading media file for scheduled thread', {
+								threadId: thread.id,
+								tweetPosition: i + 1,
+								mediaUrl: mediaItem.url,
+								filepath
+							});
+							
+							const buffer = readFileSync(filepath);
 
 							// Determine media type based on file extension for accuracy
 							const ext = mediaItem.url.split('.').pop()?.toLowerCase() || '';

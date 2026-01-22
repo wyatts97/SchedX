@@ -13,7 +13,8 @@
 	import AIGenerator from '$lib/components/AIGenerator.svelte';
 	import DateTimePicker from '$lib/components/DateTimePicker.svelte';
 	import StyledSelect from '$lib/components/StyledSelect.svelte';
-	import { CheckCircle, XCircle, Loader2, Save, FileText, ListPlus, Calendar, Send, Sparkles } from 'lucide-svelte';
+	import CharacterCounter from '$lib/components/CharacterCounter.svelte';
+	import { CheckCircle, XCircle, Loader2, Save, FileText, ListPlus, Calendar, Send, Sparkles, ChevronDown } from 'lucide-svelte';
 	import logger from '$lib/logger';
 	import { toastStore } from '$lib/stores/toastStore';
 
@@ -47,6 +48,29 @@
 	// AI Generator state
 	let showAIGenerator = false;
 	let aiEnabled = false;
+
+	// Action dropdown state
+	let showActionDropdown = false;
+	let actionDropdownRef: HTMLDivElement;
+
+	// Close dropdown when clicking outside
+	function handleDropdownClickOutside(event: MouseEvent) {
+		if (showActionDropdown && actionDropdownRef && !actionDropdownRef.contains(event.target as Node)) {
+			showActionDropdown = false;
+		}
+	}
+
+	// Track if form has unsaved changes
+	$: hasUnsavedChanges = tweetContent.trim().length > 0 || tweetMedia.length > 0 || scheduledDate !== '';
+
+	// Unsaved changes warning handler
+	function handleBeforeUnload(event: BeforeUnloadEvent) {
+		if (hasUnsavedChanges && !submitting) {
+			event.preventDefault();
+			event.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+			return event.returnValue;
+		}
+	}
 	
 	// Check if OpenRouter AI is enabled
 	async function checkAIEnabled() {
@@ -112,6 +136,8 @@
 		if (typeof window !== 'undefined') {
 			await import('emoji-picker-element');
 			window.addEventListener('click', handleClickOutside, true);
+			window.addEventListener('click', handleDropdownClickOutside, true);
+			window.addEventListener('beforeunload', handleBeforeUnload);
 
 			// Wait for Preline to be ready, then initialize
 			waitForPrelineInit(() => window.HSStaticMethods.autoInit());
@@ -139,6 +165,8 @@
 	onDestroy(() => {
 		if (typeof window !== 'undefined') {
 			window.removeEventListener('click', handleClickOutside, true);
+			window.removeEventListener('click', handleDropdownClickOutside, true);
+			window.removeEventListener('beforeunload', handleBeforeUnload);
 		}
 	});
 
@@ -393,7 +421,9 @@
 <div class="relative mb-4 w-full">
 	<div class="flex flex-wrap items-center justify-between gap-2">
 		<label for="tweet-content" class="mb-2 block text-sm font-medium dark:text-white">Tweet</label>
-		<span class="mb-2 block text-sm text-gray-500 dark:text-neutral-500">{charCount}/280</span>
+		<div class="mb-2">
+			<CharacterCounter current={charCount} max={280} warningThreshold={260} dangerThreshold={280} />
+		</div>
 	</div>
 	<textarea
 		id="tweet-content"
@@ -474,12 +504,12 @@
 	initialMedia={tweetMedia}
 />
 
-<!-- Button Group (responsive grid: vertical stack on mobile, 2x2 grid on desktop) -->
-<div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+<!-- Button Group - Primary action with dropdown for secondary actions -->
+<div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
 	{#if mode === 'schedule' || mode === 'edit'}
 		<button
 			type="button"
-			class="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-blue-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
+			class="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:bg-blue-700 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
 			on:click={() => handleSubmit(mode === 'edit' ? 'update' : 'schedule')}
 			disabled={submitting}
 		>
@@ -488,43 +518,13 @@
 			{:else}
 				<Calendar class="h-5 w-5" />
 			{/if}
-			{mode === 'edit' ? 'Update Schedule' : 'Schedule'}
+			{mode === 'edit' ? 'Update Schedule' : 'Schedule Tweet'}
 		</button>
 	{:else}
-		<!-- Publish Now (Green) -->
+		<!-- Primary Action: Schedule (most common use case) -->
 		<button
 			type="button"
-			class="inline-flex items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-green-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
-			on:click={() => handleSubmit('publish')}
-			disabled={submitting}
-		>
-			{#if submitting && currentAction === 'publish'}
-				<Loader2 class="h-5 w-5 animate-spin" />
-			{:else}
-				<Send class="h-5 w-5" />
-			{/if}
-			Publish Now
-		</button>
-		
-		<!-- Draft (Purple) -->
-		<button
-			type="button"
-			class="inline-flex items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-purple-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
-			on:click={() => handleSubmit('draft')}
-			disabled={submitting}
-		>
-			{#if submitting && currentAction === 'draft'}
-				<Loader2 class="h-5 w-5 animate-spin" />
-			{:else}
-				<Save class="h-5 w-5" />
-			{/if}
-			Save Draft
-		</button>
-		
-		<!-- Schedule (Blue) -->
-		<button
-			type="button"
-			class="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-blue-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
+			class="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 py-3.5 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:bg-blue-700 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
 			on:click={() => handleSubmit('schedule')}
 			disabled={submitting}
 		>
@@ -533,23 +533,89 @@
 			{:else}
 				<Calendar class="h-5 w-5" />
 			{/if}
-			Schedule
+			Schedule Tweet
 		</button>
 		
-		<!-- Queue (Orange) -->
-		<button
-			type="button"
-			class="inline-flex items-center justify-center gap-2 rounded-lg bg-orange-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-orange-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
-			on:click={() => handleSubmit('queue')}
-			disabled={submitting}
-		>
-			{#if submitting && currentAction === 'queue'}
-				<Loader2 class="h-5 w-5 animate-spin" />
-			{:else}
-				<ListPlus class="h-5 w-5" />
+		<!-- Secondary Actions Dropdown -->
+		<div class="relative" bind:this={actionDropdownRef}>
+			<button
+				type="button"
+				class="inline-flex items-center justify-center gap-2 rounded-lg border-2 border-gray-300 bg-white px-4 py-3.5 text-sm font-medium text-gray-700 shadow-sm transition-all duration-200 hover:bg-gray-50 hover:border-gray-400 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700 sm:w-auto w-full"
+				on:click={() => showActionDropdown = !showActionDropdown}
+				disabled={submitting}
+				aria-expanded={showActionDropdown}
+				aria-haspopup="true"
+			>
+				More Actions
+				<ChevronDown class="h-4 w-4 transition-transform duration-200 {showActionDropdown ? 'rotate-180' : ''}" />
+			</button>
+			
+			{#if showActionDropdown}
+				<div class="absolute right-0 z-20 mt-2 w-56 origin-top-right rounded-xl border border-gray-200 bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none dark:border-gray-700 dark:bg-gray-800 animate-in fade-in slide-in-from-top-2 duration-150">
+					<div class="p-1">
+						<!-- Publish Now -->
+						<button
+							type="button"
+							class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-gray-700 transition-colors hover:bg-green-50 dark:text-gray-200 dark:hover:bg-green-900/20"
+							on:click={() => { showActionDropdown = false; handleSubmit('publish'); }}
+							disabled={submitting}
+						>
+							<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/30">
+								{#if submitting && currentAction === 'publish'}
+									<Loader2 class="h-4 w-4 animate-spin text-green-600 dark:text-green-400" />
+								{:else}
+									<Send class="h-4 w-4 text-green-600 dark:text-green-400" />
+								{/if}
+							</div>
+							<div class="text-left">
+								<div class="font-medium">Publish Now</div>
+								<div class="text-xs text-gray-500 dark:text-gray-400">Post immediately</div>
+							</div>
+						</button>
+						
+						<!-- Save Draft -->
+						<button
+							type="button"
+							class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-gray-700 transition-colors hover:bg-purple-50 dark:text-gray-200 dark:hover:bg-purple-900/20"
+							on:click={() => { showActionDropdown = false; handleSubmit('draft'); }}
+							disabled={submitting}
+						>
+							<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/30">
+								{#if submitting && currentAction === 'draft'}
+									<Loader2 class="h-4 w-4 animate-spin text-purple-600 dark:text-purple-400" />
+								{:else}
+									<Save class="h-4 w-4 text-purple-600 dark:text-purple-400" />
+								{/if}
+							</div>
+							<div class="text-left">
+								<div class="font-medium">Save Draft</div>
+								<div class="text-xs text-gray-500 dark:text-gray-400">Save for later editing</div>
+							</div>
+						</button>
+						
+						<!-- Add to Queue -->
+						<button
+							type="button"
+							class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-gray-700 transition-colors hover:bg-orange-50 dark:text-gray-200 dark:hover:bg-orange-900/20"
+							on:click={() => { showActionDropdown = false; handleSubmit('queue'); }}
+							disabled={submitting}
+						>
+							<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-100 dark:bg-orange-900/30">
+								{#if submitting && currentAction === 'queue'}
+									<Loader2 class="h-4 w-4 animate-spin text-orange-600 dark:text-orange-400" />
+								{:else}
+									<ListPlus class="h-4 w-4 text-orange-600 dark:text-orange-400" />
+								{/if}
+							</div>
+							<div class="text-left">
+								<div class="font-medium">Add to Queue</div>
+								<div class="text-xs text-gray-500 dark:text-gray-400">Auto-schedule later</div>
+							</div>
+						</button>
+					</div>
+				</div>
 			{/if}
-			Add to Queue
-		</button>
+		</div>
 	{/if}
 </div>
 

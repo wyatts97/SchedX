@@ -275,8 +275,8 @@ export class DatabaseClient {
   async updateAdminUserPassword(id: string, passwordHash: string): Promise<void> {
     const now = this.db.now();
     this.db.execute(
-      'UPDATE users SET password = ?, updatedAt = ? WHERE id = ?',
-      [passwordHash, now, id]
+      'UPDATE users SET password = ?, passwordChangedAt = ?, updatedAt = ? WHERE id = ?',
+      [passwordHash, now, now, id]
     );
   }
 
@@ -620,8 +620,22 @@ export class DatabaseClient {
     } as UserAccount));
   }
 
-  async getAllUserAccounts(): Promise<UserAccount[]> {
-    const accounts = this.db.query<any>('SELECT * FROM accounts');
+  async getAllUserAccounts(limit?: number, offset?: number): Promise<UserAccount[]> {
+    let query = 'SELECT * FROM accounts';
+    const params: any[] = [];
+    
+    // Add pagination if specified
+    if (limit !== undefined) {
+      query += ' LIMIT ?';
+      params.push(limit);
+      
+      if (offset !== undefined) {
+        query += ' OFFSET ?';
+        params.push(offset);
+      }
+    }
+    
+    const accounts = this.db.query<any>(query, params);
     
     return accounts.map((account: any) => ({
       id: account.id,
@@ -672,6 +686,14 @@ export class DatabaseClient {
         [profileImage, now, accountId]
       );
     }
+  }
+
+  async updateAccountFollowerCount(accountId: string, followerCount: number): Promise<void> {
+    const now = this.db.now();
+    this.db.execute(
+      'UPDATE accounts SET followerCount = ?, updatedAt = ? WHERE id = ?',
+      [followerCount, now, accountId]
+    );
   }
 
   async deleteAllUserAccounts(userId: string): Promise<void> {
@@ -944,6 +966,11 @@ export class DatabaseClient {
   }
 
   async updateTweet(tweetId: string, updates: Partial<any>): Promise<void> {
+    // Validation: Ensure tweetId is provided
+    if (!tweetId || typeof tweetId !== 'string') {
+      throw new Error('Invalid tweetId: must be a non-empty string');
+    }
+
     const now = this.db.now();
     const updateFields: string[] = [];
     const params: any[] = [];
@@ -999,6 +1026,32 @@ export class DatabaseClient {
     if (updates.twitterTweetId !== undefined) {
       updateFields.push('twitterTweetId = ?');
       params.push(updates.twitterTweetId);
+    }
+    if (updates.likeCount !== undefined) {
+      updateFields.push('likeCount = ?');
+      params.push(updates.likeCount);
+    }
+    if (updates.retweetCount !== undefined) {
+      updateFields.push('retweetCount = ?');
+      params.push(updates.retweetCount);
+    }
+    if (updates.replyCount !== undefined) {
+      updateFields.push('replyCount = ?');
+      params.push(updates.replyCount);
+    }
+    if (updates.impressionCount !== undefined) {
+      updateFields.push('impressionCount = ?');
+      params.push(updates.impressionCount);
+    }
+    if (updates.bookmarkCount !== undefined) {
+      updateFields.push('bookmarkCount = ?');
+      params.push(updates.bookmarkCount);
+    }
+    
+    // Validation: Ensure at least one field is being updated
+    if (updateFields.length === 0) {
+      logger.warn({ tweetId }, 'updateTweet called with no fields to update');
+      return; // Skip unnecessary database write
     }
     
     updateFields.push('updatedAt = ?');

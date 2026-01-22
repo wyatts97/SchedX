@@ -14,6 +14,9 @@ export class RettiwtEngagementSyncService {
 	private static instance: RettiwtEngagementSyncService;
 	private isRunning = false;
 	private cronJob: Cron | null = null;
+	private syncInProgress = false;
+	private lastSyncTime = 0;
+	private readonly MIN_SYNC_INTERVAL = 60000; // 1 minute minimum between syncs
 
 	private constructor() {}
 
@@ -69,6 +72,24 @@ export class RettiwtEngagementSyncService {
 		failed: number;
 		skipped: number;
 	}> {
+		// Deduplication: Check if sync is already in progress
+		if (this.syncInProgress) {
+			logger.warn('Sync already in progress, skipping duplicate request');
+			return { synced: 0, failed: 0, skipped: 0 };
+		}
+
+		// Rate limiting: Prevent syncs within minimum interval
+		const now = Date.now();
+		const timeSinceLastSync = now - this.lastSyncTime;
+		if (timeSinceLastSync < this.MIN_SYNC_INTERVAL) {
+			logger.warn({ timeSinceLastSync, minInterval: this.MIN_SYNC_INTERVAL }, 'Sync requested too soon, skipping');
+			return { synced: 0, failed: 0, skipped: 0 };
+		}
+
+		// Set lock
+		this.syncInProgress = true;
+		this.lastSyncTime = now;
+
 		const stats = { synced: 0, failed: 0, skipped: 0 };
 		let lastError: string | null = null;
 
@@ -94,9 +115,9 @@ export class RettiwtEngagementSyncService {
 			// Sync follower counts for all accounts first
 			await this.syncFollowerCounts(userId);
 
-			// Use p-limit for controlled concurrency (max 3 concurrent requests)
-			// This prevents overwhelming the API and provides better error handling
-			const limit = pLimit(3);
+			// Use p-limit for controlled concurrency (max 10 concurrent requests)
+			// Increased from 3 to 10 for faster syncing while still being respectful to API
+			const limit = pLimit(10);
 			
 			// Create limited promises for all tweets
 			const promises = tweets.map((tweet: any) =>
@@ -128,6 +149,9 @@ export class RettiwtEngagementSyncService {
 			lastError = errorMsg;
 			await this.updateSyncStatus(userId, errorMsg);
 			return stats;
+		} finally {
+			// Always release the lock
+			this.syncInProgress = false;
 		}
 	}
 
@@ -182,8 +206,6 @@ export class RettiwtEngagementSyncService {
 			// Filter for Twitter accounts only
 			const twitterAccounts = accounts.filter(acc => acc.provider === 'twitter');
 
-			logger.info({ accountCount: twitterAccounts.length }, 'Syncing follower counts via Rettiwt');
-
 			for (const account of twitterAccounts) {
 				try {
 					const username = account.username;
@@ -192,13 +214,16 @@ export class RettiwtEngagementSyncService {
 						continue;
 					}
 
-					// Fetch user details using Rettiwt (username is guaranteed to be defined here)
+					if (!account.id) {
+						logger.warn({ username }, 'Account has no ID, skipping');
+						continue;
+					}
+
+					// Fetch user details using Rettiwt (username and id are guaranteed to be defined here)
 					const userAnalytics = await RettiwtService.getUserAnalytics(username, userId || account.userId);
 
-					// Update follower count in database using proper method
-					// Pass displayName if available, otherwise use username as fallback
-					await db.updateAccountProfileImage(account.id, account.profileImage || '', account.displayName || username);
-					// Note: followerCount update needs a dedicated method - adding to db-sqlite.ts
+					// Update follower count in database using dedicated method
+					await db.updateAccountFollowerCount(account.id, userAnalytics.followers);
 
 					logger.debug({
 						accountId: account.id,

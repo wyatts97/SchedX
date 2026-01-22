@@ -252,7 +252,10 @@ export class TweetSchedulerService {
 							tweet.id!,
 							`Retry ${currentRetryCount + 1}/${maxRetries}: ${errorMessage}`,
 							accountUsername
-						).catch(err => log.error('Failed to send push notification for tweet retry', { error: err }));
+						).catch(err => {
+							log.error('Failed to send push notification for tweet retry', { error: err });
+							// Note: Push notification failures are logged but don't block tweet retry
+						});
 					} else {
 						// Max retries exceeded, mark as permanently failed
 						log.warn('Max retries exceeded for tweet, marking as failed', {
@@ -290,7 +293,10 @@ export class TweetSchedulerService {
 							tweet.id!,
 							`Max retries exceeded: ${errorMessage}`,
 							accountUsername
-						).catch(err => log.error('Failed to send push notification for max retries', { error: err }));
+						).catch(err => {
+							log.error('Failed to send push notification for max retries', { error: err });
+							log.debug('Push failures logged; tweet status visible in dashboard');
+						});
 					}
 				}
 			}
@@ -518,7 +524,10 @@ export class TweetSchedulerService {
 			tweet.id!,
 			tweet.content,
 			tweetUrl
-		).catch(err => log.error('Failed to send tweet posted notification', { error: err }));
+		).catch(err => {
+			log.error('Failed to send tweet posted notification', { error: err });
+			// Note: Email failures don't affect successful tweet posting
+		});
 
 		// Send push notification for successful post
 		pushNotificationService.notifyTweetPosted(

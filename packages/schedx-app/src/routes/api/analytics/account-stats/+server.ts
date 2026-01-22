@@ -19,13 +19,29 @@ export const GET: RequestHandler = async ({ locals }) => {
 	try {
 		const db = getDbInstance();
 		
+		// Log user info for debugging
+		logger.info({ userId: user.id, username: user.username }, 'Fetching account stats for user');
+		
 		// Get all Twitter accounts for the user
 		const accounts = (db as any)['db'].query(
 			`SELECT * FROM accounts WHERE userId = ? AND provider = 'twitter'`,
 			[user.id]
 		);
 
+		logger.info({ userId: user.id, accountsFound: accounts.length }, 'Accounts query result');
+
 		if (accounts.length === 0) {
+			// Check if there are ANY accounts for this user
+			const allAccounts = (db as any)['db'].query(
+				`SELECT id, username, provider FROM accounts WHERE userId = ?`,
+				[user.id]
+			);
+			logger.warn({ 
+				userId: user.id, 
+				allAccountsCount: allAccounts.length,
+				allAccounts: allAccounts.map((a: any) => ({ id: a.id, username: a.username, provider: a.provider }))
+			}, 'No Twitter accounts found, checking all accounts');
+			
 			return json({
 				accounts: [],
 				totalFollowers: 0,
@@ -44,6 +60,14 @@ export const GET: RequestHandler = async ({ locals }) => {
 					}
 
 					const analytics = await RettiwtService.getUserAnalytics(account.username, user.id);
+
+					// Log banner data for debugging
+					logger.info({ 
+						username: account.username,
+						hasBanner: !!analytics.profileBanner,
+						bannerLength: analytics.profileBanner?.length || 0,
+						bannerPreview: analytics.profileBanner ? analytics.profileBanner.substring(0, 80) : 'none'
+					}, 'Account stats fetched with banner info');
 
 					return {
 						accountId: account.id,

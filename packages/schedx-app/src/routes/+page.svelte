@@ -146,6 +146,12 @@
 
 	const handleTabChange = (newTab: string) => {
 		activeTab = newTab;
+		// Update URL to persist tab state on refresh
+		if (browser) {
+			const url = new URL(window.location.href);
+			url.searchParams.set('tab', newTab);
+			goto(url.toString(), { replaceState: true, noScroll: true, keepFocus: true });
+		}
 		logger.debug('Dashboard tab changed', { tab: newTab });
 	};
 

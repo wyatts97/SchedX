@@ -1,7 +1,7 @@
 <!--
   @component ContentMixChart
   
-  Displays content type distribution and hashtag frequency using Chart.js.
+  Displays content type distribution and hashtag frequency using ApexCharts.
   Follows Preline UI chart styling.
   
   @prop {ContentMixData} contentMix - Content mix data from API
@@ -17,10 +17,12 @@
 
 	export let contentMix: ContentMixData;
 
-	let postTypeChartEl: HTMLCanvasElement;
-	let hashtagChartEl: HTMLCanvasElement;
+	let postTypeChartEl: HTMLElement;
+	let hashtagChartEl: HTMLElement;
 	let postTypeChart: any;
 	let hashtagChart: any;
+	let observer: MutationObserver | null = null;
+	let isMounted = true;
 	
 	// Check if we have any post type data
 	$: hasPostTypeData = contentMix?.postTypeDistribution && (
@@ -33,140 +35,118 @@
 
 	onMount(() => {
 		if (!browser) return;
+		isMounted = true;
 
-		// Dynamically import Chart.js and initialize charts
+		// Dynamically import ApexCharts and initialize charts
 		(async () => {
-			// Wait for post type chart element to be available
-			if (!postTypeChartEl || !hasPostTypeData) {
-				console.warn('Post type chart element not found or no data, skipping chart initialization');
-				return;
-			}
+			if (!isMounted) return;
 			
-			const { Chart, registerables } = await import('chart.js');
-			Chart.register(...registerables);
-
-			// Post Type Distribution Chart (Doughnut)
+			const ApexCharts = (await import('apexcharts')).default;
 			const isDark = document.documentElement.classList.contains('dark');
-			const postTypeData = [
-				contentMix.postTypeDistribution?.text ?? 0,
-				contentMix.postTypeDistribution?.image ?? 0,
-				contentMix.postTypeDistribution?.video ?? 0,
-				contentMix.postTypeDistribution?.gif ?? 0,
-				contentMix.postTypeDistribution?.link ?? 0
-			];
 
-			postTypeChart = new Chart(postTypeChartEl, {
-				type: 'doughnut',
-				data: {
+			// Post Type Distribution Chart (Donut)
+			if (postTypeChartEl && hasPostTypeData) {
+				const postTypeData = [
+					contentMix.postTypeDistribution?.text ?? 0,
+					contentMix.postTypeDistribution?.image ?? 0,
+					contentMix.postTypeDistribution?.video ?? 0,
+					contentMix.postTypeDistribution?.gif ?? 0,
+					contentMix.postTypeDistribution?.link ?? 0
+				];
+
+				postTypeChart = new ApexCharts(postTypeChartEl, {
+					chart: {
+						type: 'donut',
+						height: 300,
+						fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, sans-serif'
+					},
+					series: postTypeData,
 					labels: ['Text Only', 'Image', 'Video', 'GIF', 'Link'],
-					datasets: [{
-						data: postTypeData,
-						backgroundColor: ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'],
-						borderWidth: 0
-					}]
-				},
-				options: {
-					responsive: true,
-					maintainAspectRatio: false,
-					plugins: {
-						legend: {
-							position: 'bottom',
-							labels: {
-								font: { size: 12, family: 'Inter, ui-sans-serif, system-ui, -apple-system, sans-serif' },
-								color: isDark ? '#d1d5db' : '#374151',
-								padding: 8,
-								boxWidth: 8,
-								boxHeight: 8
-							}
-						},
-						tooltip: {
-							callbacks: {
-								label: function(context: any) {
-									const label = context.label || '';
-									const value = context.parsed || 0;
-									const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0);
-									const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0';
-									return `${label}: ${value} (${percentage}%)`;
-								}
+					colors: ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'],
+					legend: {
+						position: 'bottom',
+						fontSize: '12px'
+					},
+					plotOptions: {
+						pie: {
+							donut: {
+								size: '70%'
 							}
 						}
 					},
-					cutout: '70%'
-				}
-			});
-
-		// Top Hashtags Chart (Horizontal Bar)
-		const hashtagData = (contentMix?.topHashtags ?? []).slice(0, 10);
-		
-		// Only create hashtag chart if element exists (when there are hashtags)
-		if (hashtagChartEl && hashtagData.length > 0) {
-			hashtagChart = new Chart(hashtagChartEl, {
-				type: 'bar',
-				data: {
-					labels: hashtagData.map(h => '#' + h.hashtag),
-					datasets: [{
-						label: 'Uses',
-						data: hashtagData.map(h => h.count),
-						backgroundColor: '#3b82f6',
-						borderRadius: 4
-					}]
-				},
-				options: {
-					indexAxis: 'y',
-					responsive: true,
-					maintainAspectRatio: false,
-					plugins: {
-						legend: { display: false },
-						tooltip: {
-							callbacks: {
-								label: function(context: any) {
-									return `Uses: ${context.parsed.x}`;
-								}
-							}
-						}
+					dataLabels: {
+						enabled: false
 					},
-					scales: {
-						x: {
-							beginAtZero: true,
-							ticks: {
-								font: { size: 12 },
-								color: isDark ? '#d1d5db' : '#374151'
-							},
-							grid: {
-								color: isDark ? '#374151' : '#e5e7eb'
-							}
-						},
+					tooltip: {
 						y: {
-							ticks: {
-								font: { size: 12 },
-								color: isDark ? '#d1d5db' : '#374151'
-							},
-							grid: {
-								display: false
+							formatter: function(value: number, { seriesIndex, w }: any) {
+								const total = w.globals.seriesTotals.reduce((a: number, b: number) => a + b, 0);
+								const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0';
+								return `${value} (${percentage}%)`;
 							}
 						}
-					}
-				}
-			});
-		}
+					},
+					theme: { mode: isDark ? 'dark' : 'light' }
+				});
+				postTypeChart.render();
+			}
 
-		// Listen for theme changes
-		const observer = new MutationObserver(() => {
-			const newIsDark = document.documentElement.classList.contains('dark');
-			const textColor = newIsDark ? '#d1d5db' : '#374151';
-			const gridColor = newIsDark ? '#374151' : '#e5e7eb';
+			// Top Hashtags Chart (Horizontal Bar)
+			const hashtagData = (contentMix?.topHashtags ?? []).slice(0, 10);
 			
-			if (postTypeChart) {
-				postTypeChart.options.plugins.legend.labels.color = textColor;
-				postTypeChart.update();
+			if (hashtagChartEl && hashtagData.length > 0) {
+				hashtagChart = new ApexCharts(hashtagChartEl, {
+					chart: {
+						type: 'bar',
+						height: 300,
+						fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, sans-serif',
+						toolbar: { show: false }
+					},
+					series: [{
+						name: 'Uses',
+						data: hashtagData.map(h => h.count)
+					}],
+					xaxis: {
+						categories: hashtagData.map(h => '#' + h.hashtag),
+						labels: {
+							style: { fontSize: '12px' }
+						}
+					},
+					yaxis: {
+						labels: {
+							style: { fontSize: '12px' }
+						}
+					},
+					plotOptions: {
+						bar: {
+							horizontal: true,
+							borderRadius: 4
+						}
+					},
+					colors: ['#3b82f6'],
+					dataLabels: {
+						enabled: false
+					},
+					grid: {
+						strokeDashArray: 3,
+						borderColor: isDark ? '#374151' : '#e5e7eb'
+					},
+					theme: { mode: isDark ? 'dark' : 'light' }
+				});
+				hashtagChart.render();
 			}
-			if (hashtagChart) {
-				hashtagChart.options.scales.x.ticks.color = textColor;
-				hashtagChart.options.scales.y.ticks.color = textColor;
-				hashtagChart.options.scales.x.grid.color = gridColor;
-				hashtagChart.update();
-			}
-		});
+
+			// Listen for theme changes
+			if (!isMounted) return;
+			
+			observer = new MutationObserver(() => {
+				if (!isMounted) return;
+				const newIsDark = document.documentElement.classList.contains('dark');
+				const themeUpdate = { theme: { mode: newIsDark ? 'dark' : 'light' } };
+				
+				if (postTypeChart) postTypeChart.updateOptions(themeUpdate);
+				if (hashtagChart) hashtagChart.updateOptions(themeUpdate);
+			});
 
 			observer.observe(document.documentElement, {
 				attributes: true,
@@ -175,8 +155,19 @@
 		})();
 
 		return () => {
-			if (postTypeChart) postTypeChart.destroy();
-			if (hashtagChart) hashtagChart.destroy();
+			isMounted = false;
+			if (observer) {
+				observer.disconnect();
+				observer = null;
+			}
+			if (postTypeChart) {
+				postTypeChart.destroy();
+				postTypeChart = null;
+			}
+			if (hashtagChart) {
+				hashtagChart.destroy();
+				hashtagChart = null;
+			}
 		};
 	});
 </script>
@@ -194,7 +185,7 @@
 			</h3>
 			{#if hasPostTypeData}
 				<div class="h-[300px]">
-					<canvas bind:this={postTypeChartEl}></canvas>
+					<div bind:this={postTypeChartEl}></div>
 				</div>
 			{:else}
 				<div class="flex h-[300px] items-center justify-center">
@@ -214,7 +205,7 @@
 			</h3>
 			{#if contentMix?.topHashtags?.length > 0}
 				<div class="h-[300px]">
-					<canvas bind:this={hashtagChartEl}></canvas>
+					<div bind:this={hashtagChartEl}></div>
 				</div>
 			{:else}
 				<div class="flex h-[300px] items-center justify-center">
