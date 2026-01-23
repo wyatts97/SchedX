@@ -965,6 +965,126 @@ export class DatabaseClient {
     return result.changes === 1;
   }
 
+  /**
+   * Atomically claim a queued tweet for scheduling to prevent race conditions
+   * Returns true if claim was successful, false if tweet was already claimed/scheduled
+   * 
+   * This method ensures that concurrent queue processors don't schedule the same tweet twice
+   */
+  claimQueuedTweetForScheduling(tweetId: string, scheduledDate: Date, newStatus: TweetStatus = TweetStatus.SCHEDULED): boolean {
+    const now = this.db.now();
+    
+    // Atomic update: only succeeds if tweet is still QUEUED
+    const result = this.db.execute(
+      `UPDATE tweets 
+       SET status = ?, scheduledDate = ?, queuePosition = NULL, updatedAt = ? 
+       WHERE id = ? 
+       AND status = ?`,
+      [newStatus, scheduledDate.getTime(), now, tweetId, TweetStatus.QUEUED]
+    );
+    
+    // If changes === 1, we successfully claimed and scheduled the tweet
+    return result.changes === 1;
+  }
+
+  /**
+   * Check if there's a scheduling conflict at a specific time for an account
+   * Returns conflicting tweet info if found
+   */
+  async checkScheduleConflict(
+    userId: string,
+    scheduledDate: Date,
+    twitterAccountId: string,
+    excludeTweetId?: string
+  ): Promise<{ hasConflict: boolean; conflictingTweet?: { id: string; content: string; scheduledDate: Date } }> {
+    const tolerance = 60000; // 1 minute tolerance
+    const targetTime = scheduledDate.getTime();
+    
+    let sql = `SELECT id, content, scheduledDate FROM tweets 
+               WHERE userId = ? 
+               AND twitterAccountId = ? 
+               AND status IN (?, ?)
+               AND scheduledDate >= ? 
+               AND scheduledDate <= ?`;
+    const params: any[] = [
+      userId,
+      twitterAccountId,
+      TweetStatus.SCHEDULED,
+      TweetStatus.QUEUED,
+      targetTime - tolerance,
+      targetTime + tolerance
+    ];
+    
+    if (excludeTweetId) {
+      sql += ' AND id != ?';
+      params.push(excludeTweetId);
+    }
+    
+    const conflicts = this.db.query<any>(sql, params);
+    
+    if (conflicts && conflicts.length > 0) {
+      return {
+        hasConflict: true,
+        conflictingTweet: {
+          id: conflicts[0].id,
+          content: conflicts[0].content,
+          scheduledDate: new Date(conflicts[0].scheduledDate)
+        }
+      };
+    }
+    
+    return { hasConflict: false };
+  }
+
+  /**
+   * Get estimated post time for a queued tweet based on its position
+   */
+  async getEstimatedPostTime(
+    userId: string,
+    twitterAccountId: string,
+    queuePosition: number
+  ): Promise<Date | null> {
+    try {
+      // Get queue settings for this user
+      const settings = await this.getQueueSettings(userId);
+      if (!settings || !settings.enabled || !settings.postingTimes || settings.postingTimes.length === 0) {
+        return null;
+      }
+
+      // Get count of scheduled tweets for this account
+      const scheduledTweets = this.db.query<any>(
+        `SELECT scheduledDate FROM tweets 
+         WHERE userId = ? AND twitterAccountId = ? AND status = ?
+         ORDER BY scheduledDate ASC`,
+        [userId, twitterAccountId, TweetStatus.SCHEDULED]
+      );
+
+      // Calculate how many slots we need to skip
+      const slotsToSkip = (scheduledTweets?.length || 0) + queuePosition;
+      
+      // Simple estimation: use first posting time, skip the required number of days
+      const now = new Date();
+      const [hours, minutes] = settings.postingTimes[0].split(':').map(Number);
+      
+      let estimatedDate = new Date(now);
+      estimatedDate.setHours(hours, minutes, 0, 0);
+      
+      // If today's time has passed, start from tomorrow
+      if (estimatedDate <= now) {
+        estimatedDate.setDate(estimatedDate.getDate() + 1);
+      }
+      
+      // Skip days based on position
+      const daysToSkip = Math.floor(slotsToSkip / settings.maxPostsPerDay);
+      estimatedDate.setDate(estimatedDate.getDate() + daysToSkip);
+      
+      return estimatedDate;
+    } catch (error) {
+      logger.error({ error }, 'Error calculating estimated post time');
+      return null;
+    }
+  }
+
   async updateTweet(tweetId: string, updates: Partial<any>): Promise<void> {
     // Validation: Ensure tweetId is provided
     if (!tweetId || typeof tweetId !== 'string') {
@@ -1767,6 +1887,25 @@ export class DatabaseClient {
         [status, now, threadId]
       );
     }
+  }
+
+  /**
+   * Update thread partial progress for recovery from failures
+   * Saves which tweets were successfully posted so we can resume later
+   */
+  async updateThreadPartialProgress(threadId: string, progress: {
+    postedTweetIds: string[];
+    lastSuccessIndex: number;
+    failedAtIndex: number;
+    error: string;
+    failedAt: string;
+  } | null): Promise<void> {
+    const now = Date.now();
+    
+    this.db.execute(
+      'UPDATE threads SET partialProgress = ?, updatedAt = ? WHERE id = ?',
+      [progress ? this.db.stringifyJson(progress) : null, now, threadId]
+    );
   }
 
   async getApiUsage(userId: string): Promise<{ posts: number; reads: number; month: string }> {

@@ -107,12 +107,18 @@ export class ThreadSchedulerService {
 				return;
 			}
 
-			// Get all scheduled threads
-			const threads = await db.getThreads(user.id, TweetStatus.SCHEDULED);
+			// Get all scheduled threads AND partial_failed threads for retry
+			const scheduledThreads = await db.getThreads(user.id, TweetStatus.SCHEDULED);
+			const partialFailedThreads = await db.getThreads(user.id, 'partial_failed' as TweetStatus);
+			const allThreads = [...scheduledThreads, ...partialFailedThreads];
 			
-			// Filter to only due threads
+			// Filter to only due threads (scheduled) or partial_failed threads (always retry)
 			const now = new Date();
-			const dueThreads = threads.filter((thread: any) => {
+			const dueThreads = allThreads.filter((thread: any) => {
+				// Partial failed threads should always be retried
+				if (thread.status === 'partial_failed') {
+					return true;
+				}
 				return thread.scheduledDate && new Date(thread.scheduledDate) <= now;
 			});
 
@@ -256,10 +262,27 @@ export class ThreadSchedulerService {
 		}
 
 		// Post tweets in sequence, each replying to the previous
+		// Track partial progress for recovery from failures
 		const tweetIds: string[] = [];
 		let previousTweetId: string | undefined = undefined;
+		
+		// Check if this is a retry with partial progress
+		// If thread has partialProgress, resume from last successful tweet
+		const partialProgress = thread.partialProgress || { postedTweetIds: [], lastSuccessIndex: -1 };
+		if (partialProgress.postedTweetIds && partialProgress.postedTweetIds.length > 0) {
+			log.info('Resuming thread from partial progress', {
+				threadId: thread.id,
+				previouslyPosted: partialProgress.postedTweetIds.length,
+				totalTweets: thread.tweets.length
+			});
+			tweetIds.push(...partialProgress.postedTweetIds);
+			previousTweetId = partialProgress.postedTweetIds[partialProgress.postedTweetIds.length - 1];
+		}
+		
+		// Start from where we left off (or 0 if fresh start)
+		const startIndex = partialProgress.lastSuccessIndex + 1;
 
-		for (let i = 0; i < thread.tweets.length; i++) {
+		for (let i = startIndex; i < thread.tweets.length; i++) {
 			const tweetContent = thread.tweets[i];
 			
 			try {
@@ -385,12 +408,44 @@ export class ThreadSchedulerService {
 				log.error('Failed to post tweet in thread', {
 					threadId: thread.id,
 					position: i + 1,
+					postedSoFar: tweetIds.length,
 					error: error instanceof Error ? error.message : 'Unknown error'
 				});
-				throw error; // Fail the entire thread if one tweet fails
+				
+				// Save partial progress for recovery instead of losing all progress
+				if (tweetIds.length > 0) {
+					log.warn('Saving partial thread progress for recovery', {
+						threadId: thread.id,
+						postedTweets: tweetIds.length,
+						totalTweets: thread.tweets.length,
+						lastSuccessIndex: i - 1
+					});
+					
+					// Save partial progress to database
+					await (db as any).updateThreadPartialProgress(thread.id, {
+						postedTweetIds: tweetIds,
+						lastSuccessIndex: i - 1,
+						failedAtIndex: i,
+						error: error instanceof Error ? error.message : 'Unknown error',
+						failedAt: new Date().toISOString()
+					});
+					
+					// Mark as PARTIAL_FAILED instead of completely FAILED
+					// This allows the scheduler to retry from where it left off
+					await db.updateThreadStatus(thread.id, 'partial_failed' as TweetStatus, tweetIds[0]);
+					
+					// Don't throw - we've saved progress and can retry later
+					return;
+				}
+				
+				// No progress made, throw to mark as fully failed
+				throw error;
 			}
 		}
 
+		// Clear any partial progress on successful completion
+		await (db as any).updateThreadPartialProgress(thread.id, null);
+		
 		// Update thread in database with first tweet ID
 		await db.updateThreadStatus(thread.id, TweetStatus.POSTED, tweetIds[0]);
 

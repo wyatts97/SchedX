@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { autoAnimate } from '@formkit/auto-animate';
-	import { Edit, Calendar as CalendarIcon, List, FileEdit, Trash2, FileText, Filter, Clock } from 'lucide-svelte';
+	import { Edit, Calendar as CalendarIcon, List, FileEdit, Trash2, FileText, Filter, Clock, CheckSquare, Square, Trash, Clock3, Hash } from 'lucide-svelte';
 	import type { Tweet } from '$lib/stores/dashboardStore';
 	import type { UserAccount } from '$lib/types';
 	import { createEventDispatcher } from 'svelte';
@@ -25,6 +25,56 @@
 	// Filter state
 	let selectedAccount = 'all';
 	let selectedStatus: 'all' | 'scheduled' | 'queued' = 'all';
+
+	// Bulk selection state
+	let selectedTweetIds: Set<string> = new Set();
+	let bulkMode = false;
+
+	// Toggle bulk selection mode
+	function toggleBulkMode() {
+		bulkMode = !bulkMode;
+		if (!bulkMode) {
+			selectedTweetIds = new Set();
+		}
+	}
+
+	// Toggle single tweet selection
+	function toggleTweetSelection(tweetId: string) {
+		if (selectedTweetIds.has(tweetId)) {
+			selectedTweetIds.delete(tweetId);
+		} else {
+			selectedTweetIds.add(tweetId);
+		}
+		selectedTweetIds = selectedTweetIds; // Trigger reactivity
+	}
+
+	// Select/deselect all visible tweets
+	function toggleSelectAll() {
+		if (selectedTweetIds.size === sortedTweets.length) {
+			selectedTweetIds = new Set();
+		} else {
+			selectedTweetIds = new Set(sortedTweets.map(t => t.id).filter((id): id is string => !!id));
+		}
+	}
+
+	// Handle bulk delete
+	function handleBulkDelete() {
+		if (selectedTweetIds.size === 0) return;
+		dispatch('bulkDelete', Array.from(selectedTweetIds));
+		selectedTweetIds = new Set();
+		bulkMode = false;
+	}
+
+	// Handle bulk reschedule (shift by hours)
+	function handleBulkReschedule(hoursToShift: number) {
+		if (selectedTweetIds.size === 0) return;
+		dispatch('bulkReschedule', { 
+			tweetIds: Array.from(selectedTweetIds), 
+			hoursToShift 
+		});
+		selectedTweetIds = new Set();
+		bulkMode = false;
+	}
 
 	// Create account lookup map
 	$: accountByProviderId = accounts.reduce((acc: any, account: any) => {
@@ -94,10 +144,97 @@
 			<h3 class="text-lg font-medium leading-6 text-surface-900 dark:text-surface-100">
 				Scheduled Tweets
 			</h3>
-			<span class="text-sm text-surface-500 dark:text-surface-400">
-				{filteredTweets.length} tweet{filteredTweets.length !== 1 ? 's' : ''}
-			</span>
+			<div class="flex items-center gap-2">
+				<span class="text-sm text-surface-500 dark:text-surface-400">
+					{filteredTweets.length} tweet{filteredTweets.length !== 1 ? 's' : ''}
+				</span>
+				<!-- Bulk Mode Toggle -->
+				<button
+					type="button"
+					on:click={toggleBulkMode}
+					class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors {bulkMode ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'}"
+					title="{bulkMode ? 'Exit bulk mode' : 'Select multiple tweets'}"
+				>
+					<CheckSquare class="h-4 w-4" />
+					{bulkMode ? 'Done' : 'Select'}
+				</button>
+			</div>
 		</div>
+
+		<!-- Bulk Actions Bar (shown when in bulk mode with selections) -->
+		{#if bulkMode}
+			<div class="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20">
+				<button
+					type="button"
+					on:click={toggleSelectAll}
+					class="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-gray-200 transition-colors hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-200 dark:ring-gray-600 dark:hover:bg-gray-700"
+				>
+					{#if selectedTweetIds.size === sortedTweets.length && sortedTweets.length > 0}
+						<CheckSquare class="h-4 w-4 text-blue-500" />
+						Deselect All
+					{:else}
+						<Square class="h-4 w-4" />
+						Select All
+					{/if}
+				</button>
+
+				{#if selectedTweetIds.size > 0}
+					<span class="text-sm font-medium text-blue-700 dark:text-blue-300">
+						{selectedTweetIds.size} selected
+					</span>
+					
+					<div class="ml-auto flex flex-wrap items-center gap-2">
+						<!-- Reschedule options -->
+						<div class="flex items-center gap-1 rounded-lg bg-white p-1 shadow-sm ring-1 ring-gray-200 dark:bg-gray-800 dark:ring-gray-600">
+							<span class="px-2 text-xs text-gray-500 dark:text-gray-400">Shift:</span>
+							<button
+								type="button"
+								on:click={() => handleBulkReschedule(-24)}
+								class="rounded px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+								title="Move 24 hours earlier"
+							>
+								-1 day
+							</button>
+							<button
+								type="button"
+								on:click={() => handleBulkReschedule(-1)}
+								class="rounded px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+								title="Move 1 hour earlier"
+							>
+								-1h
+							</button>
+							<button
+								type="button"
+								on:click={() => handleBulkReschedule(1)}
+								class="rounded px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+								title="Move 1 hour later"
+							>
+								+1h
+							</button>
+							<button
+								type="button"
+								on:click={() => handleBulkReschedule(24)}
+								class="rounded px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+								title="Move 24 hours later"
+							>
+								+1 day
+							</button>
+						</div>
+
+						<!-- Delete button -->
+						<button
+							type="button"
+							on:click={handleBulkDelete}
+							class="inline-flex items-center gap-1.5 rounded-lg bg-red-500 px-3 py-1.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-red-600"
+							title="Delete selected tweets"
+						>
+							<Trash class="h-4 w-4" />
+							Delete
+						</button>
+					</div>
+				{/if}
+			</div>
+		{/if}
 
 		<!-- Filters -->
 		<div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -129,16 +266,41 @@
 		<!-- Tweet List -->
 		<div use:autoAnimate={{ duration: 250 }} class="max-h-[800px] space-y-4 overflow-y-auto pr-2 scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400 dark:scrollbar-track-gray-800 dark:scrollbar-thumb-gray-600 dark:hover:scrollbar-thumb-gray-500">
 			{#if sortedTweets.length > 0}
-				{#each sortedTweets as tweet}
+				{#each sortedTweets as tweet (tweet.id)}
 					{@const account = tweet.twitterAccountId ? accountByProviderId[tweet.twitterAccountId] : undefined}
 					{@const displayDate = getDisplayDate(tweet)}
-					<div class="group overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-800 theme-lightsout:border-gray-800 theme-lightsout:bg-black">
+					{@const isSelected = tweet.id ? selectedTweetIds.has(tweet.id) : false}
+					<div class="group overflow-hidden rounded-xl border transition-all hover:shadow-md {isSelected ? 'border-blue-500 ring-2 ring-blue-200 dark:ring-blue-800' : 'border-gray-200 dark:border-gray-700 theme-lightsout:border-gray-800'} bg-white shadow-sm dark:bg-gray-800 theme-lightsout:bg-black">
 						<!-- Status Badge & Actions - Clean horizontal layout -->
 						<div class="flex items-center justify-center gap-2 rounded-t-lg bg-gray-50 px-3 py-2 dark:bg-gray-800/50 theme-lightsout:bg-gray-900">
+							<!-- Bulk Selection Checkbox -->
+							{#if bulkMode && tweet.id}
+								<button
+									type="button"
+									on:click={() => tweet.id && toggleTweetSelection(tweet.id)}
+									class="flex items-center justify-center rounded p-1 transition-colors hover:bg-gray-200 dark:hover:bg-gray-700"
+									title="{isSelected ? 'Deselect' : 'Select'} tweet"
+								>
+									{#if isSelected}
+										<CheckSquare class="h-5 w-5 text-blue-500" />
+									{:else}
+										<Square class="h-5 w-5 text-gray-400" />
+									{/if}
+								</button>
+							{/if}
+
+							<!-- Queue Position Badge (for queued tweets) -->
+							{#if tweet.status === 'queued' && tweet.queuePosition !== undefined}
+								<div class="flex items-center gap-1 rounded-full bg-orange-100 px-2 py-1 text-xs font-medium text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">
+									<Hash class="h-3 w-3" />
+									<span>{tweet.queuePosition + 1}</span>
+								</div>
+							{/if}
+
 							<!-- Time Badge -->
 							<div class="flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-sm font-medium text-gray-600 shadow-sm ring-1 ring-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:ring-gray-600 theme-lightsout:bg-gray-800 theme-lightsout:text-gray-300 theme-lightsout:ring-gray-700">
 								<Clock class="h-4 w-4 text-gray-400" />
-								<span>{getTimeUntil(displayDate)}</span>
+								<span>{tweet.status === 'queued' ? 'Est. ' : ''}{getTimeUntil(displayDate)}</span>
 							</div>
 							
 							<!-- Edit Button -->

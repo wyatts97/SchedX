@@ -53,11 +53,93 @@
 	let showActionDropdown = false;
 	let actionDropdownRef: HTMLDivElement;
 
+	// Schedule conflict state
+	let scheduleConflict: { id: string; content: string; scheduledDate: string } | null = null;
+	let conflictCheckTimeout: any = null;
+
 	// Close dropdown when clicking outside
 	function handleDropdownClickOutside(event: MouseEvent) {
 		if (showActionDropdown && actionDropdownRef && !actionDropdownRef.contains(event.target as Node)) {
 			showActionDropdown = false;
 		}
+	}
+
+	// Set quick schedule preset
+	function setQuickSchedule(preset: string) {
+		const now = new Date();
+		let targetDate: Date;
+
+		switch (preset) {
+			case 'in-1-hour':
+				targetDate = new Date(now.getTime() + 60 * 60 * 1000);
+				break;
+			case 'tomorrow-9am':
+				targetDate = new Date(now);
+				targetDate.setDate(targetDate.getDate() + 1);
+				targetDate.setHours(9, 0, 0, 0);
+				break;
+			case 'tomorrow-12pm':
+				targetDate = new Date(now);
+				targetDate.setDate(targetDate.getDate() + 1);
+				targetDate.setHours(12, 0, 0, 0);
+				break;
+			case 'tomorrow-6pm':
+				targetDate = new Date(now);
+				targetDate.setDate(targetDate.getDate() + 1);
+				targetDate.setHours(18, 0, 0, 0);
+				break;
+			case 'next-monday-9am':
+				targetDate = new Date(now);
+				const daysUntilMonday = (8 - now.getDay()) % 7 || 7; // Next Monday
+				targetDate.setDate(targetDate.getDate() + daysUntilMonday);
+				targetDate.setHours(9, 0, 0, 0);
+				break;
+			default:
+				return;
+		}
+
+		scheduledDate = targetDate.toISOString();
+		checkConflict(scheduledDate);
+	}
+
+	// Check for schedule conflicts
+	async function checkConflict(dateStr: string) {
+		if (!dateStr || !selectedAccountId) {
+			scheduleConflict = null;
+			return;
+		}
+
+		// Debounce conflict checking
+		if (conflictCheckTimeout) {
+			clearTimeout(conflictCheckTimeout);
+		}
+
+		conflictCheckTimeout = setTimeout(async () => {
+			try {
+				if (!selectedAccountId) {
+					scheduleConflict = null;
+					return;
+				}
+				
+				const params = new URLSearchParams({
+					date: dateStr,
+					accountId: selectedAccountId
+				});
+				
+				if (tweetId) {
+					params.append('excludeTweetId', tweetId);
+				}
+
+				const response = await fetch(`/api/tweets/check-conflict?${params}`);
+				if (response.ok) {
+					const data = await response.json();
+					scheduleConflict = data.hasConflict ? data.conflictingTweet : null;
+				}
+			} catch (err) {
+				logger.debug('Failed to check conflict:', err instanceof Error ? { error: err.message } : undefined);
+				scheduleConflict = null;
+			}
+		}, 300);
 	}
 
 	// Track if form has unsaved changes
@@ -466,33 +548,96 @@
 	{/if}
 </div>
 
-<!-- Calendar  -->
-<div class="mb-4 flex flex-col gap-4 sm:flex-row">
-	<!-- Schedule Date -->
-	<DateTimePicker
-		label="Schedule Date"
-		placeholder="Choose date and time"
-		bind:value={scheduledDate}
-		disabled={submitting}
-		on:change={(e) => {
-			scheduledDate = e.detail;
-		}}
-	/>
-	<!-- Recurrence -->
-	<div class="flex-1">
-		<span class="mb-2 block text-sm font-medium dark:text-white">Recurrence</span>
-		<StyledSelect
-			id="recurrence"
-			bind:value={recurrence}
-			options={[
-				{ value: '', label: 'None' },
-				{ value: 'daily', label: 'Daily' },
-				{ value: 'weekly', label: 'Weekly' },
-				{ value: 'monthly', label: 'Monthly' }
-			]}
-			placeholder="Select recurrence"
+<!-- Schedule Date with Quick Presets -->
+<div class="mb-4">
+	<div class="flex flex-col gap-4 sm:flex-row">
+		<!-- Schedule Date -->
+		<DateTimePicker
+			label="Schedule Date"
+			placeholder="Choose date and time"
+			bind:value={scheduledDate}
+			disabled={submitting}
+			on:change={(e) => {
+				scheduledDate = e.detail;
+				checkConflict(e.detail);
+			}}
 		/>
+		<!-- Recurrence -->
+		<div class="flex-1">
+			<span class="mb-2 block text-sm font-medium dark:text-white">Recurrence</span>
+			<StyledSelect
+				id="recurrence"
+				bind:value={recurrence}
+				options={[
+					{ value: '', label: 'None' },
+					{ value: 'daily', label: 'Daily' },
+					{ value: 'weekly', label: 'Weekly' },
+					{ value: 'monthly', label: 'Monthly' }
+				]}
+				placeholder="Select recurrence"
+			/>
+		</div>
 	</div>
+	
+	<!-- Quick Schedule Presets -->
+	<div class="mt-3">
+		<span class="mb-2 block text-xs font-medium text-gray-500 dark:text-gray-400">Quick Schedule</span>
+		<div class="flex flex-wrap gap-2">
+			<button
+				type="button"
+				class="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+				on:click={() => setQuickSchedule('in-1-hour')}
+				disabled={submitting}
+			>
+				In 1 hour
+			</button>
+			<button
+				type="button"
+				class="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+				on:click={() => setQuickSchedule('tomorrow-9am')}
+				disabled={submitting}
+			>
+				Tomorrow 9 AM
+			</button>
+			<button
+				type="button"
+				class="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+				on:click={() => setQuickSchedule('tomorrow-12pm')}
+				disabled={submitting}
+			>
+				Tomorrow 12 PM
+			</button>
+			<button
+				type="button"
+				class="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+				on:click={() => setQuickSchedule('tomorrow-6pm')}
+				disabled={submitting}
+			>
+				Tomorrow 6 PM
+			</button>
+			<button
+				type="button"
+				class="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+				on:click={() => setQuickSchedule('next-monday-9am')}
+				disabled={submitting}
+			>
+				Next Monday 9 AM
+			</button>
+		</div>
+	</div>
+	
+	<!-- Conflict Warning -->
+	{#if scheduleConflict}
+		<div class="mt-3 flex items-start gap-2 rounded-lg border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800 dark:border-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-200">
+			<svg class="h-5 w-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+				<path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+			</svg>
+			<div>
+				<p class="font-medium">Schedule Conflict</p>
+				<p class="mt-1 text-xs opacity-80">Another tweet is already scheduled at this time: "{scheduleConflict.content}"</p>
+			</div>
+		</div>
+	{/if}
 </div>
 
 <!-- File Upload -->

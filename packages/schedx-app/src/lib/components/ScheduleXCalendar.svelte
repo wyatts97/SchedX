@@ -13,6 +13,11 @@
 	import { browser } from '$app/environment';
 	import { getStoredOrDetectedTimezone } from '$lib/utils/timezone';
 
+	// Expose Temporal globally for Schedule-X library (must be before calendar creation)
+	if (typeof window !== 'undefined' && !(window as any).Temporal) {
+		(window as any).Temporal = Temporal;
+	}
+
 	const dispatch = createEventDispatcher();
 
 	// Props
@@ -108,25 +113,34 @@
 			return acc;
 		}, {} as Record<string, any>);
 
+			// Detect mobile for responsive default view
+		const isMobile = browser && window.innerWidth < 768;
+		
 		calendarApp = createCalendar({
 			locale: 'en-US',
 			timezone: userTimezone as any, // Use admin's timezone for display (cast needed for dynamic timezone)
-			firstDayOfWeek: 1, // Sunday
+			firstDayOfWeek: 7, // Sunday (ISO week: 1=Monday, 7=Sunday)
 			views: [
 				createViewMonthGrid(),
 				createViewWeek(),
 				createViewDay(),
 				createViewMonthAgenda()
 			],
-			defaultView: 'month-grid',
+			// Use agenda view on mobile for better UX, month-grid on desktop
+			defaultView: isMobile ? 'month-agenda' : 'month-grid',
 			events: events,
 			calendars: calendars,
 			weekOptions: {
 				// Use 12-hour format (e.g., "2 PM" instead of "14:00")
 				timeAxisFormatOptions: { hour: 'numeric', hour12: true }
 			},
+			monthGridOptions: {
+				// Limit events shown per day on mobile
+				nEventsPerDay: isMobile ? 2 : 4
+			},
 			plugins: [
-				createDragAndDropPlugin(15) // 15 minute intervals
+				// Only enable drag-and-drop on desktop (touch drag is unreliable)
+				...(isMobile ? [] : [createDragAndDropPlugin(15)])
 			],
 			callbacks: {
 				onEventClick(calendarEvent) {
@@ -202,32 +216,82 @@
 		selectedTweet = null;
 	}
 
+	// Reference to calendar wrapper for scoped event delegation
+	let calendarWrapper: HTMLElement;
+
 	// Update calendar when tweets or filter changes
-	$: if (calendarApp && (tweets || selectedAccountFilter)) {
+	$: if (calendarApp && (tweets || selectedAccountFilter !== undefined)) {
 		const events = tweetsToEvents(tweets);
 		calendarApp.events.set(events);
 	}
 
-	// Setup hover listeners for desktop preview
+	// Setup hover listeners using event delegation (fixes memory leak)
 	function setupHoverListeners() {
-		if (!browser) return;
+		if (!browser || !calendarWrapper) return;
 
-		// Add event listeners to calendar events for hover preview
-		const observer = new MutationObserver(() => {
-			const eventElements = document.querySelectorAll('.sx__event');
-			eventElements.forEach((el) => {
-				if (!(el as any)._hoverListenerAdded) {
-					el.addEventListener('mouseenter', handleEventHover as any);
-					el.addEventListener('mouseleave', handleEventLeave);
-					(el as any)._hoverListenerAdded = true;
+		// Use event delegation on the calendar wrapper instead of individual elements
+		// This prevents memory leaks from attaching listeners to dynamically created elements
+		const handleMouseOver = (e: MouseEvent) => {
+			if (window.innerWidth < 768) return; // Only on desktop
+
+			const target = (e.target as HTMLElement).closest('.sx__event') as HTMLElement;
+			if (!target) return;
+
+			const eventId = target.getAttribute('data-event-id');
+			if (!eventId) return;
+
+			// Find the event
+			const event = calendarApp?.events.getAll().find((ev: any) => ev.id === eventId);
+			if (!event) return;
+
+			// Clear any existing timeout
+			if (hoverTimeout) clearTimeout(hoverTimeout);
+
+			// Set timeout to show preview after 300ms
+			hoverTimeout = setTimeout(() => {
+				hoveredEvent = event;
+				
+				// Position the preview near the element
+				const rect = target.getBoundingClientRect();
+				
+				// Calculate position with viewport bounds checking
+				let x = rect.left + rect.width / 2;
+				let y = rect.bottom + 10;
+				
+				// Ensure preview doesn't go off-screen
+				const previewWidth = 384; // w-96 = 24rem = 384px
+				const previewHeight = 300; // approximate height
+				
+				if (x - previewWidth / 2 < 10) {
+					x = previewWidth / 2 + 10;
+				} else if (x + previewWidth / 2 > window.innerWidth - 10) {
+					x = window.innerWidth - previewWidth / 2 - 10;
 				}
-			});
-		});
+				
+				// If too close to bottom, show above
+				if (y + previewHeight > window.innerHeight - 10) {
+					y = rect.top - previewHeight - 10;
+				}
+				
+				previewPosition = { x, y };
+				showHoverPreview = true;
+			}, 300);
+		};
 
-		observer.observe(document.body, {
-			childList: true,
-			subtree: true
-		});
+		const handleMouseOut = (e: MouseEvent) => {
+			const target = (e.target as HTMLElement).closest('.sx__event');
+			const relatedTarget = (e.relatedTarget as HTMLElement)?.closest('.sx__event');
+			
+			// Only hide if we're leaving the event element entirely
+			if (target && target !== relatedTarget) {
+				if (hoverTimeout) {
+					clearTimeout(hoverTimeout);
+					hoverTimeout = null;
+				}
+				showHoverPreview = false;
+				hoveredEvent = null;
+			}
+		};
 
 		// Hide preview on scroll to prevent position mismatch
 		const handleScroll = () => {
@@ -241,61 +305,32 @@
 			}
 		};
 
+		// Attach event delegation to calendar wrapper only (not entire document)
+		calendarWrapper.addEventListener('mouseover', handleMouseOver);
+		calendarWrapper.addEventListener('mouseout', handleMouseOut);
 		window.addEventListener('scroll', handleScroll, true);
 
 		return () => {
-			observer.disconnect();
+			calendarWrapper?.removeEventListener('mouseover', handleMouseOver);
+			calendarWrapper?.removeEventListener('mouseout', handleMouseOut);
 			window.removeEventListener('scroll', handleScroll, true);
+			if (hoverTimeout) {
+				clearTimeout(hoverTimeout);
+			}
 		};
-	}
-
-	function handleEventHover(e: MouseEvent) {
-		if (window.innerWidth < 768) return; // Only on desktop
-
-		const target = e.currentTarget as HTMLElement;
-		const eventId = target.getAttribute('data-event-id');
-		
-		if (!eventId) return;
-
-		// Find the event
-		const event = calendarApp?.events.getAll().find((ev: any) => ev.id === eventId);
-		if (!event) return;
-
-		// Clear any existing timeout
-		if (hoverTimeout) clearTimeout(hoverTimeout);
-
-		// Set timeout to show preview after 300ms
-		hoverTimeout = setTimeout(() => {
-			hoveredEvent = event;
-			
-			// Position the preview near the cursor
-			const rect = target.getBoundingClientRect();
-			previewPosition = {
-				x: rect.left + rect.width / 2,
-				y: rect.bottom + 10
-			};
-			
-			showHoverPreview = true;
-		}, 300);
-	}
-
-	function handleEventLeave() {
-		if (hoverTimeout) {
-			clearTimeout(hoverTimeout);
-			hoverTimeout = null;
-		}
-		showHoverPreview = false;
-		hoveredEvent = null;
 	}
 
 	onMount(() => {
 		initCalendar();
-		const cleanup = setupHoverListeners();
-		return cleanup;
+		// Wait for DOM to be ready before setting up hover listeners
+		tick().then(() => {
+			const cleanup = setupHoverListeners();
+			return cleanup;
+		});
 	});
 </script>
 
-<div class="schedule-x-wrapper">
+<div class="schedule-x-wrapper" bind:this={calendarWrapper}>
 	{#if calendarApp}
 		<ScheduleXCalendar calendarApp={calendarApp} />
 	{/if}
