@@ -1051,16 +1051,15 @@ export class DatabaseClient {
         return null;
       }
 
-      // Get count of scheduled tweets for this account
-      const scheduledTweets = this.db.query<any>(
-        `SELECT scheduledDate FROM tweets 
-         WHERE userId = ? AND twitterAccountId = ? AND status = ?
-         ORDER BY scheduledDate ASC`,
+      // Get count of scheduled tweets for this account (optimized - use COUNT instead of fetching all rows)
+      const countResult = this.db.queryOne<{ count: number }>(
+        `SELECT COUNT(*) as count FROM tweets 
+         WHERE userId = ? AND twitterAccountId = ? AND status = ?`,
         [userId, twitterAccountId, TweetStatus.SCHEDULED]
       );
 
       // Calculate how many slots we need to skip
-      const slotsToSkip = (scheduledTweets?.length || 0) + queuePosition;
+      const slotsToSkip = (countResult?.count || 0) + queuePosition;
       
       // Simple estimation: use first posting time, skip the required number of days
       const now = new Date();
@@ -1730,6 +1729,27 @@ export class DatabaseClient {
     };
   }
 
+  async getAllQueueSettings(userId: string): Promise<any[]> {
+    const settings = this.db.query<any>(
+      'SELECT * FROM queue_settings WHERE userId = ?',
+      [userId]
+    );
+    
+    return settings.map((s: any) => ({
+      id: s.id,
+      userId: s.userId,
+      twitterAccountId: s.twitterAccountId || null,
+      enabled: s.enabled === 1,
+      postingTimes: JSON.parse(s.postingTimes || '[]'),
+      timezone: s.timezone,
+      minInterval: s.minInterval,
+      maxPostsPerDay: s.maxPostsPerDay,
+      skipWeekends: s.skipWeekends === 1,
+      createdAt: new Date(s.createdAt),
+      updatedAt: s.updatedAt ? new Date(s.updatedAt) : null
+    }));
+  }
+
   async saveQueueSettings(settings: any): Promise<string> {
     const now = Date.now();
     
@@ -1841,6 +1861,7 @@ export class DatabaseClient {
       scheduledDate: thread.scheduledDate ? new Date(thread.scheduledDate) : null,
       twitterThreadId: thread.twitterThreadId,
       error: thread.error,
+      partialProgress: thread.partialProgress ? JSON.parse(thread.partialProgress) : null,
       createdAt: new Date(thread.createdAt),
       updatedAt: thread.updatedAt ? new Date(thread.updatedAt) : null
     };
@@ -1864,6 +1885,7 @@ export class DatabaseClient {
       scheduledDate: thread.scheduledDate ? new Date(thread.scheduledDate) : null,
       twitterThreadId: thread.twitterThreadId,
       error: thread.error,
+      partialProgress: thread.partialProgress ? JSON.parse(thread.partialProgress) : null,
       createdAt: new Date(thread.createdAt),
       updatedAt: thread.updatedAt ? new Date(thread.updatedAt) : null
     }));
