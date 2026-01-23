@@ -35,11 +35,11 @@ RUN npm run build -w @schedx/shared-lib && \
 # Stage 3: Production Runtime - Use specific Alpine version for reproducibility
 FROM node:22-alpine3.20 AS runner
 
-# Create non-root user and remove unnecessary Alpine packages
+# Create non-root user and harden the container
 # Note: Removed ffmpeg (~100MB) - video thumbnails handled client-side
 RUN addgroup -S schedx && adduser -S schedx -G schedx && \
-    # Remove package manager cache and unnecessary files
-    rm -rf /var/cache/apk/* /tmp/* /var/tmp/*
+    # Remove package manager to prevent installing packages at runtime (security)
+    rm -rf /var/cache/apk/* /tmp/* /var/tmp/* /sbin/apk /etc/apk
 
 WORKDIR /app
 
@@ -97,7 +97,7 @@ ENV PORT=${PORT}
 EXPOSE ${PORT}
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://127.0.0.1:${PORT}/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"
 
 # Start command using node directly for better performance
