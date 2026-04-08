@@ -25,7 +25,6 @@ export {
 	// Queries
 	useDashboardQuery,
 	useAccountsQuery,
-	useAccountStatsQuery,
 	useQueuedTweetsQuery,
 	useScheduledTweetsQuery,
 	useMediaQuery,

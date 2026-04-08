@@ -7,10 +7,11 @@
 	import { dashboardStore } from '$lib/stores/dashboardStore';
 	import TweetCreate from '$lib/components/TweetCreate.svelte';
 	import TweetPreview from '$lib/components/TweetPreview.svelte';
+	import TweetsTab from '$lib/components/dashboard/tabs/TweetsTab.svelte';
+	import AccountsTab from '$lib/components/dashboard/tabs/AccountsTab.svelte';
 	import ErrorBoundary from '$lib/components/ErrorBoundary.svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import logger from '$lib/logger';
-	import { format } from 'date-fns';
 
 	let activeTab = 'tweets';
 	let dashboardError: Error | null = null;
@@ -362,23 +363,12 @@
 					{#if activeTab === 'tweets'}
 						<div id="tweets-tab-panel" role="tabpanel" aria-labelledby="tweets-tab">
 							<ErrorBoundary errorId="tweets-tab">
-								<!-- Simplified Tweets List -->
-								<div class="space-y-4">
-									{#if $dashboardStore.data.tweets?.length > 0}
-										{#each $dashboardStore.data.tweets as tweet}
-											<div class="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-												<p class="text-sm text-gray-900 dark:text-white">{tweet.content}</p>
-												<div class="mt-2 flex items-center gap-2 text-xs text-gray-500">
-													<span>Status: {tweet.status}</span>
-													<span>•</span>
-													<span>{tweet.scheduledDate ? format(new Date(tweet.scheduledDate), 'MMM d, h:mm a') : 'No date'}</span>
-												</div>
-											</div>
-										{/each}
-									{:else}
-										<p class="text-center text-gray-500">No tweets scheduled</p>
-									{/if}
-								</div>
+								<TweetsTab
+									tweets={$dashboardStore.data.tweets}
+									accounts={$dashboardStore.data.accounts}
+									on:editTweet={handleEditTweet}
+									on:deleteTweet={handleDeleteTweet}
+								/>
 							</ErrorBoundary>
 						</div>
 					{:else if activeTab === 'overview'}
@@ -390,17 +380,11 @@
 					{:else if activeTab === 'accounts'}
 						<div id="accounts-tab-panel" role="tabpanel" aria-labelledby="accounts-tab">
 							<ErrorBoundary errorId="accounts-tab">
-								<div class="space-y-4">
-									{#if $dashboardStore.data.accounts?.length > 0}
-										{#each $dashboardStore.data.accounts as account}
-											<div class="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-												<p class="text-sm font-medium text-gray-900 dark:text-white">@{account.username}</p>
-											</div>
-										{/each}
-									{:else}
-										<p class="text-center text-gray-500">No connected accounts</p>
-									{/if}
-								</div>
+								<AccountsTab
+									accounts={$dashboardStore.data.accounts}
+									tweets={$dashboardStore.data.tweets}
+									apps={$dashboardStore.data.apps}
+								/>
 							</ErrorBoundary>
 						</div>
 					{/if}
