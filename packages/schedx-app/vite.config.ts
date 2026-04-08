@@ -14,29 +14,16 @@ export default defineConfig(({ mode }: { mode: string }) => {
 	return {
 		plugins: [sveltekit()],
 		ssr: {
-			external: ['react', 'react-dom'],
 			noExternal: ['@schedule-x/calendar', '@schedule-x/svelte', '@schedule-x/drag-and-drop']
-		},
-		resolve: {
-			dedupe: ['react', 'react-dom', 'styled-components'],
-			alias: {
-				react: 'react',
-				'react-dom': 'react-dom',
-				'styled-components': 'styled-components'
-			}
 		},
 		optimizeDeps: {
 			include: [
-				'react', 
-				'react-dom', 
-				'styled-components',
 				'@schedule-x/calendar',
 				'@schedule-x/svelte',
 				'@schedule-x/drag-and-drop',
 				'date-fns',
 				'date-fns-tz'
-			],
-			exclude: []
+			]
 		},
 		server: {
 			host,

@@ -22,9 +22,9 @@ const config = {
 			}
 		}),
 		csrf: {
-			// Disable CSRF origin check for Docker/self-hosted deployments
+			// Allow all origins for Docker/self-hosted deployments
 			// This allows access from local network IPs
-			checkOrigin: false
+			trustedOrigins: ['*']
 		},
 		alias: {
 			$components: 'src/lib/components',
