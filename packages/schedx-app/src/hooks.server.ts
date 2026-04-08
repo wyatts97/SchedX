@@ -7,8 +7,6 @@ import { RequestContext, logApiRequest, logApiError } from '$lib/server/logging'
 import { apiRateLimiter, authRateLimiter, getRateLimitIdentifier, createRateLimitResponse } from '$lib/server/rate-limiter';
 import { TweetSchedulerService } from '$lib/server/tweetScheduler';
 import { ThreadSchedulerService } from '$lib/server/threadScheduler';
-import { RettiwtEngagementSyncService } from '$lib/server/rettiwtEngagementSync';
-import { DataCleanupService } from '$lib/server/services/dataCleanupService';
 import { Cron } from 'croner';
 
 // Initialize database and ensure default admin user
@@ -52,31 +50,8 @@ const initDb = async () => {
 				const threadScheduler = ThreadSchedulerService.getInstance();
 				threadScheduler.start(60000); // Check every minute
 				
-				const engagementSync = RettiwtEngagementSyncService.getInstance();
-				engagementSync.start(); // Runs daily at 3 AM using Rettiwt-API
-				
-				// Schedule weekly data cleanup (Sunday at 2 AM UTC)
-				const cleanupCronJob = new Cron('0 2 * * 0', {
-					timezone: 'Etc/UTC'
-				}, async () => {
-					logger.info('Starting scheduled data cleanup');
-					try {
-						const cleanupService = DataCleanupService.getInstance();
-						const stats = await cleanupService.runGlobalCleanup();
-						logger.info({
-							totalRecordsDeleted: stats.totalRecordsDeleted,
-							duration: stats.duration
-						}, 'Scheduled data cleanup completed');
-					} catch (error) {
-						logger.error({ error }, 'Scheduled data cleanup failed');
-					}
-				});
-				
-				// Store cron job reference for cleanup
-				cronJobs.push(cleanupCronJob);
-				
 				schedulerInitialized = true;
-				logger.info('Tweet, thread, engagement sync, and data cleanup schedulers initialized');
+				logger.info('Tweet and thread schedulers initialized');
 			}
 		} catch (error) {
 			logger.error({ error }, 'Database initialization failed');

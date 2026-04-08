@@ -42,14 +42,6 @@ export function useAccountsQuery() {
 	}));
 }
 
-export function useAccountStatsQuery() {
-	return createQuery(() => ({
-		queryKey: queryKeys.accountStats,
-		queryFn: () => fetchApi<any>('/api/analytics/account-stats'),
-		staleTime: 60 * 1000,
-	}));
-}
-
 // Tweet queries
 export function useQueuedTweetsQuery(accountId?: string) {
 	return createQuery(() => ({

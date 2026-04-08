@@ -3,6 +3,8 @@
  * Handles subscription management for web push notifications
  */
 
+import logger from '$lib/logger';
+
 /**
  * Check if push notifications are supported in this browser
  */
@@ -108,7 +110,7 @@ export async function subscribeToPush(): Promise<{ success: boolean; error?: str
 
 		return { success: true };
 	} catch (error) {
-		console.error('Push subscription error:', error);
+		logger.error('Push subscription error', { error });
 		return { success: false, error: 'Failed to subscribe to push notifications' };
 	}
 }
@@ -141,7 +143,7 @@ export async function unsubscribeFromPush(): Promise<{ success: boolean; error?:
 
 		return { success: true };
 	} catch (error) {
-		console.error('Push unsubscribe error:', error);
+		logger.error('Push unsubscribe error', { error });
 		return { success: false, error: 'Failed to unsubscribe' };
 	}
 }
@@ -214,7 +216,7 @@ export async function queueFailedTweetForSync(tweet: any): Promise<boolean> {
  */
 export async function initializePushNotifications(): Promise<void> {
 	if (!isPushSupported()) {
-		console.log('Push notifications not supported');
+		logger.info('Push notifications not supported');
 		return;
 	}
 
@@ -224,14 +226,14 @@ export async function initializePushNotifications(): Promise<void> {
 			scope: '/'
 		});
 
-		console.log('Service worker registered:', registration.scope);
+		logger.info('Service worker registered', { scope: registration.scope });
 
 		// Check if already subscribed
 		const subscribed = await isSubscribed();
 		if (subscribed) {
-			console.log('Already subscribed to push notifications');
+			logger.info('Already subscribed to push notifications');
 		}
 	} catch (error) {
-		console.error('Service worker registration failed:', error);
+		logger.error('Service worker registration failed', { error });
 	}
 }

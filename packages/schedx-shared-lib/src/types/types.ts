@@ -25,6 +25,153 @@ export interface UserAccount {
   updatedAt?: Date;
   twitterAppId: string; // Reference to TwitterApp
   isDefault?: boolean; // Whether this is the default account
+  // Extended properties for database rows
+  accessToken?: string; // Encrypted in DB
+  refreshToken?: string; // Encrypted in DB
+  expiresAt?: number;
+  followerCount?: number;
+}
+
+// ============================================================================
+// Raw Database Row Types
+// These interfaces define the exact shape of SQLite query results
+// ============================================================================
+
+/** Raw user row from database */
+export interface UserRow {
+  id: string;
+  username: string;
+  email?: string;
+  password: string;
+  displayName?: string;
+  avatar?: string;
+  role?: string;
+  createdAt: number;
+  updatedAt: number;
+  emailOnSuccess?: number;
+  emailOnFailure?: number;
+  timezone?: string;
+  passwordChangedAt?: number;
+}
+
+/** Raw account row from database */
+export interface AccountRow {
+  id: string;
+  userId: string;
+  provider: string;
+  providerAccountId: string;
+  username: string;
+  displayName?: string;
+  profileImage?: string;
+  accessToken: string;
+  refreshToken: string;
+  expiresAt?: number;
+  twitterAppId?: string;
+  isDefault?: number;
+  createdAt: number;
+  updatedAt: number;
+  followerCount?: number;
+}
+
+/** Raw tweet row from database */
+export interface TweetRow {
+  id: string;
+  userId: string;
+  twitterAccountId: string;
+  content: string;
+  scheduledDate: number;
+  community?: string;
+  status: string;
+  media?: string;
+  createdAt: number;
+  updatedAt?: number;
+  likeCount?: number;
+  retweetCount?: number;
+  replyCount?: number;
+  impressionCount?: number;
+  bookmarkCount?: number;
+  twitterTweetId?: string;
+  error?: string;
+  recurrenceType?: string;
+  recurrenceInterval?: number;
+  recurrenceEndDate?: number;
+  templateName?: string;
+  templateCategory?: string;
+  queuePosition?: number;
+  isThread?: number;
+  threadId?: string;
+  threadPosition?: number;
+  threadTotal?: number;
+}
+
+/** Raw notification row from database */
+export interface NotificationRow {
+  id: string;
+  userId: string;
+  type: string;
+  message: string;
+  read?: number;
+  metadata?: string;
+  createdAt: number;
+}
+
+/** Raw queue settings row from database */
+export interface QueueSettingsRow {
+  id: string;
+  userId: string;
+  twitterAccountId?: string;
+  enabled?: number;
+  postingTimes: string;
+  timezone?: string;
+  minInterval?: number;
+  maxPostsPerDay?: number;
+  skipWeekends?: number;
+  createdAt: number;
+  updatedAt?: number;
+}
+
+/** Raw Twitter app row from database */
+export interface TwitterAppRow {
+  id: string;
+  name: string;
+  apiKey?: string;
+  apiSecret?: string;
+  bearerToken?: string;
+  bearerTokenSecret?: string;
+  clientId?: string;
+  clientSecret?: string;
+  callbackUrl?: string;
+  isActive?: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/** Raw thread row from database */
+export interface ThreadRow {
+  id: string;
+  userId: string;
+  twitterAccountId: string;
+  title?: string;
+  tweets: string; // JSON string
+  status: string;
+  scheduledDate?: number;
+  twitterThreadId?: string;
+  error?: string;
+  partialProgress?: string; // JSON string
+  createdAt: number;
+  updatedAt?: number;
+}
+
+/** Raw Resend settings row from database */
+export interface ResendSettingsRow {
+  id: string;
+  userId: string;
+  apiKey: string;
+  fromEmail?: string;
+  fromName?: string;
+  enabled?: number;
+  createdAt: number;
+  updatedAt: number;
 }
 
 export interface Tweet {
@@ -60,6 +207,7 @@ export interface Tweet {
   threadId?: string; // ID of the parent thread
   threadPosition?: number; // Position in thread (1, 2, 3, etc.)
   threadTotal?: number; // Total tweets in thread
+  error?: string; // Error message if tweet failed
 }
 
 export interface Thread {
@@ -67,12 +215,20 @@ export interface Thread {
   userId: string;
   title?: string; // Optional thread title for organization
   twitterAccountId: string;
-  scheduledDate: Date;
-  status: TweetStatus;
+  scheduledDate: Date | null;
+  status: TweetStatus | string;
   tweets: ThreadTweet[]; // Array of tweets in the thread
   createdAt: Date;
-  updatedAt?: Date;
+  updatedAt?: Date | null;
   twitterThreadId?: string; // ID of first tweet in posted thread
+  error?: string; // Error message if thread failed
+  partialProgress?: {
+    postedTweetIds: string[];
+    lastSuccessIndex: number;
+    failedAtIndex: number;
+    error: string;
+    failedAt: string;
+  } | null;
 }
 
 export interface ThreadTweet {
@@ -131,4 +287,44 @@ export interface AdminUser {
   avatar?: string;
   createdAt?: Date;
   updatedAt?: Date;
-} 
+}
+
+// ============================================================================
+// Settings Interfaces
+// ============================================================================
+
+/** Resend email settings */
+export interface ResendSettings {
+  id?: string;
+  userId: string;
+  apiKey: string;
+  fromEmail?: string;
+  fromName?: string;
+  enabled: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/** OpenRouter AI settings */
+export interface OpenRouterSettings {
+  id?: string;
+  userId: string;
+  apiKey: string;
+  model?: string;
+  temperature?: number;
+  maxTokens?: number;
+  enabled: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/** Session data structure */
+export interface SessionData {
+  user?: {
+    id: string;
+    name?: string;
+    email?: string;
+    image?: string;
+  };
+  [key: string]: unknown;
+}

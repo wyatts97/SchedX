@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getDbInstance } from '$lib/server/db';
+import logger from '$lib/logger';
 
 /**
  * GET /api/admin/timezone - Get user's timezone setting
@@ -18,7 +19,7 @@ export const GET: RequestHandler = async ({ locals, cookies }) => {
 				userId = session.data.user.id;
 			}
 		} catch (error) {
-			console.error('Error validating admin session:', error);
+			logger.error('Error validating admin session', { error });
 		}
 	}
 
@@ -40,7 +41,7 @@ export const GET: RequestHandler = async ({ locals, cookies }) => {
 			detected: false // Will be true when auto-detected on client
 		});
 	} catch (error) {
-		console.error('Failed to get timezone:', error);
+		logger.error('Failed to get timezone', { error });
 		return json({ error: 'Failed to get timezone' }, { status: 500 });
 	}
 };
@@ -61,7 +62,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 				userId = session.data.user.id;
 			}
 		} catch (error) {
-			console.error('Error validating admin session:', error);
+			logger.error('Error validating admin session', { error });
 		}
 	}
 
@@ -97,7 +98,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 			message: 'Timezone updated successfully'
 		});
 	} catch (error) {
-		console.error('Failed to update timezone:', error);
+		logger.error('Failed to update timezone', { error });
 		return json({ error: 'Failed to update timezone' }, { status: 500 });
 	}
 };

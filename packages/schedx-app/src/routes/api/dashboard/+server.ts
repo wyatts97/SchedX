@@ -2,7 +2,6 @@ import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
 import { getDbInstance } from '$lib/server/db';
 import logger from '$lib/server/logger';
-import { getCachedAnalytics } from '$lib/server/services/analyticsCache';
 
 export const GET: RequestHandler = async ({ cookies }) => {
 	const adminSession = cookies.get('admin_session');
@@ -20,24 +19,20 @@ export const GET: RequestHandler = async ({ cookies }) => {
 
 		const userId = session.data.user.id;
 
-		// OPTIMIZATION: Use cached analytics where possible
+		// Get basic dashboard data
 		const [appsResult, tweetsResult, accountsResult] = await Promise.all([
 			db.listTwitterApps().catch(() => ([])),
 			db.getAllTweets(userId).catch(() => ([])),
-			(db as any).getAllUserAccounts().catch(() => ([]))
+			db.getUserAccounts(userId).catch(() => ([]))
 		]);
 
 		// Transform results to match expected format
 		const apps = Array.isArray(appsResult) ? appsResult : [];
 		const tweets = Array.isArray(tweetsResult) ? tweetsResult : [];
 		const accounts = Array.isArray(accountsResult) ? accountsResult : [];
-		
-		// OPTIMIZATION: Use cached analytics (1 minute TTL)
-		const analytics = await getCachedAnalytics(
-			'dashboard',
-			userId,
-			async () => computeAnalyticsFromData(tweets, accounts)
-		);
+
+		// Compute simple analytics from data
+		const analytics = computeAnalyticsFromData(tweets, accounts);
 
 		logger.debug(`Dashboard data loaded: apps=${apps.length}, tweets=${tweets.length}, accounts=${accounts.length}`);
 
@@ -46,11 +41,11 @@ export const GET: RequestHandler = async ({ cookies }) => {
 			analytics: analytics || {},
 			tweets: tweets || [],
 			accounts: accounts || []
-		}, { 
-			headers: { 
-				// OPTIMIZATION: Allow short client-side caching (30s) for dashboard data
-				'cache-control': 'private, max-age=30, stale-while-revalidate=60' 
-			} 
+		}, {
+			headers: {
+				// Allow short client-side caching (30s) for dashboard data
+				'cache-control': 'private, max-age=30, stale-while-revalidate=60'
+			}
 		});
 	} catch (error) {
 		logger.error({ error }, 'Failed to load batched dashboard data');

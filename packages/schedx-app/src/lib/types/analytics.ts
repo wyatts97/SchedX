@@ -308,3 +308,194 @@ export interface AccountStatsResponse {
 	totalEngagement: number;
 	timestamp: string;
 }
+
+// ============================================================================
+// Raw Database Query Result Types
+// These interfaces define the exact shape of SQLite query results
+// ============================================================================
+
+/** Raw result from COUNT(*) queries */
+export interface CountResult {
+	count: number;
+}
+
+/** Raw result from time-based aggregation queries */
+export interface TimeAggregationResult {
+	in24h: number;
+	in7d: number;
+}
+
+/** Raw result from tweet status count queries */
+export interface TweetStatusCountResult {
+	published: number;
+	scheduled: number;
+	failed: number;
+}
+
+/** Raw result from single time value queries (MAX/MIN) */
+export interface TimeValueResult {
+	time: number | null;
+}
+
+/** Raw result from daily_stats aggregation queries */
+export interface DailyStatsAggregateResult {
+	avg_rate: number | null;
+	avg_followers: number | null;
+}
+
+/** Raw result from tweet engagement aggregate queries */
+export interface TweetEngagementAggregateResult {
+	tweet_count: number;
+	avg_engagement: number | null;
+}
+
+/** Raw result from account queries */
+export interface AccountQueryResult {
+	id: string;
+	providerAccountId: string;
+	username: string;
+	profileImage: string | null;
+	followerCount: number | null;
+	expiresAt: number | null;
+	displayName: string | null;
+}
+
+/** Raw result from most engaged post query */
+export interface MostEngagedPostResult {
+	id: string;
+	content: string;
+	likeCount: number;
+	retweetCount: number;
+	replyCount: number;
+	createdAt: number;
+	twitterAccountId: string;
+	username: string | null;
+	profileImage: string | null;
+	engagement_score: number;
+}
+
+/** Raw result from top performing account query */
+export interface TopPerformingAccountResult {
+	account_id: string;
+	username: string;
+	displayName: string | null;
+	avg_rate: number;
+	total_posts: number;
+}
+
+/** Raw result from content type distribution query */
+export interface ContentTypeDistributionResult {
+	text: number | null;
+	image: number | null;
+	video: number | null;
+	gif: number | null;
+	link: number | null;
+}
+
+/** Raw result from content_analytics hashtag query */
+export interface HashtagAnalyticsResult {
+	hashtags: string;
+	engagement_score: number;
+}
+
+/** Raw result from posting time heatmap query */
+export interface PostingTimeHeatmapResult {
+	post_day: number;
+	post_hour: number;
+	avg_engagement: number;
+	count: number;
+}
+
+/** Raw result from follower trend query */
+export interface FollowerTrendResult {
+	date: string;
+	followers: number;
+}
+
+/** Raw result from daily stats trend query */
+export interface DailyStatsTrendResult {
+	date: string;
+	avg_rate: number;
+	total_posts: number;
+}
+
+/** Raw result for account status query */
+export interface AccountStatusResult {
+	id: string;
+	username: string;
+	expiresAt: number | null;
+	last_post_time: number | null;
+}
+
+/** Raw result from queue settings query */
+export interface QueueSettingsResult {
+	enabled: number | null;
+}
+
+/** Generic raw tweet result from queries */
+export interface RawTweetResult {
+	id: string;
+	content: string;
+	scheduledDate: number | null;
+	status: string;
+	createdAt: number;
+	updatedAt: number | null;
+	likeCount: number | null;
+	retweetCount: number | null;
+	replyCount: number | null;
+	impressionCount: number | null;
+	twitterTweetId: string | null;
+	twitterAccountId: string;
+	media: string | null;
+	userId: string;
+}
+
+/** Raw result with single number value */
+export interface SingleNumberResult {
+	value: number;
+}
+
+/** Raw tweet media/content for hashtag extraction */
+export interface TweetContentResult {
+	content: string;
+	likeCount: number | null;
+	retweetCount: number | null;
+	replyCount: number | null;
+}
+
+/** Raw tweet with media for content analysis */
+export interface TweetMediaResult {
+	media: string | null;
+	content: string;
+}
+
+/** Raw result from tweet engagement query for heatmap */
+export interface TweetEngagementResult {
+	createdAt: number;
+	likeCount: number | null;
+	retweetCount: number | null;
+	replyCount: number | null;
+}
+
+/** Raw result from tweet query for sync operations */
+export interface TweetQueryResult {
+	id: string;
+	content: string;
+	scheduledDate: number | null;
+	status: string;
+	createdAt: number;
+	updatedAt: number | null;
+	likeCount: number | null;
+	retweetCount: number | null;
+	replyCount: number | null;
+	impressionCount: number | null;
+	twitterTweetId: string | null;
+	twitterAccountId: string;
+	media: string | null;
+	userId: string;
+}
+
+/** Raw result from engagement snapshot query */
+export interface EngagementSnapshotResult {
+	id: string;
+}

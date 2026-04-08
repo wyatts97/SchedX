@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { pushNotificationService } from '$lib/server/pushNotificationService';
+import logger from '$lib/logger';
 
 /**
  * GET /api/push - Get VAPID public key and subscription status
@@ -66,7 +67,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 		return json({ success: true, message: 'Subscription saved' });
 	} catch (error) {
-		console.error('Failed to save push subscription:', error);
+		logger.error('Failed to save push subscription', { error });
 		return json({ error: 'Failed to save subscription' }, { status: 500 });
 	}
 };
@@ -91,7 +92,7 @@ export const DELETE: RequestHandler = async ({ request, locals }) => {
 
 		return json({ success: true, message: 'Subscription removed' });
 	} catch (error) {
-		console.error('Failed to remove push subscription:', error);
+		logger.error('Failed to remove push subscription', { error });
 		return json({ error: 'Failed to remove subscription' }, { status: 500 });
 	}
 };

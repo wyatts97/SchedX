@@ -58,7 +58,6 @@ export const GET: RequestHandler = async ({ cookies }) => {
 			error: errorMsg,
 			stack: errorStack
 		});
-		console.error('GET /api/admin/openrouter error:', error);
 		
 		return new Response(
 			JSON.stringify({ 
@@ -138,7 +137,6 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			error: errorMsg,
 			stack: errorStack
 		});
-		console.error('POST /api/admin/openrouter error:', error);
 		
 		return new Response(
 			JSON.stringify({ 

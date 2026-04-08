@@ -3,6 +3,8 @@
  * Handles automatic timezone detection and common timezone operations
  */
 
+import logger from '$lib/logger';
+
 /**
  * Get the user's timezone from the browser
  */
@@ -172,7 +174,7 @@ export async function syncTimezone(): Promise<string> {
 		storeTimezone(data.timezone);
 		return data.timezone;
 	} catch (error) {
-		console.error('Failed to sync timezone:', error);
+		logger.error('Failed to sync timezone', { error });
 		return getStoredOrDetectedTimezone();
 	}
 }

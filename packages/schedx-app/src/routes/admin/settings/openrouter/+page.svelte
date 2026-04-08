@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { toastStore } from '$lib/stores/toastStore';
+  import logger from '$lib/logger';
   import { Sparkles, CheckCircle, Loader2, Key, Settings, Zap, Search, X } from 'lucide-svelte';
 
   let loading = true;
@@ -54,11 +55,11 @@
         settings = data.settings;
       } else {
         const error = await response.json();
-        console.error('Failed to load settings:', error);
+        logger.error('Failed to load OpenRouter settings', { error });
         toastStore.error(error.details || error.error || 'Failed to load OpenRouter settings');
       }
     } catch (error) {
-      console.error('Failed to load settings:', error);
+      logger.error('Failed to load OpenRouter settings', { error });
       toastStore.error('Failed to load OpenRouter settings');
     } finally {
       loading = false;
@@ -75,7 +76,7 @@
         filteredModels = allModels;
       }
     } catch (error) {
-      console.error('Failed to load models:', error);
+      logger.error('Failed to load OpenRouter models', { error });
       // Don't show error toast, just fail silently
     } finally {
       loadingModels = false;
@@ -136,13 +137,13 @@
 
       if (!response.ok) {
         const error = await response.json();
-        console.error('Failed to save settings:', error);
+        logger.error('Failed to save OpenRouter settings', { error });
         throw new Error(error.details || error.error || 'Failed to save settings');
       }
       
       toastStore.success('OpenRouter settings saved successfully');
     } catch (error) {
-      console.error('Save settings error:', error);
+      logger.error('Save OpenRouter settings error', { error });
       toastStore.error(error instanceof Error ? error.message : 'Failed to save settings');
     } finally {
       saving = false;
@@ -178,11 +179,11 @@
         toastStore.success('Connection successful! OpenRouter is working.');
       } else {
         const error = await response.json();
-        console.error('Connection test failed:', error);
+        logger.error('OpenRouter connection test failed', { error });
         throw new Error(error.details || error.error || 'Connection test failed');
       }
     } catch (error) {
-      console.error('Test connection error:', error);
+      logger.error('OpenRouter test connection error', { error });
       toastStore.error(error instanceof Error ? error.message : 'Connection test failed');
     } finally {
       testing = false;

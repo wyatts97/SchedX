@@ -3,19 +3,14 @@
 	import { browser } from '$app/environment';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { Edit3 } from 'lucide-svelte';
+	import { Edit3, MessageSquare, Users, LayoutDashboard } from 'lucide-svelte';
 	import { dashboardStore } from '$lib/stores/dashboardStore';
-	import StatsOverview from '$lib/components/dashboard/StatsOverview.svelte';
-	import TweetsTab from '$lib/components/dashboard/tabs/TweetsTab.svelte';
-	import OverviewTab from '$lib/components/dashboard/tabs/OverviewTab.svelte';
-	import AccountsTab from '$lib/components/dashboard/tabs/AccountsTab.svelte';
-	import AppFormModal from '$lib/components/dashboard/AppFormModal.svelte';
 	import TweetCreate from '$lib/components/TweetCreate.svelte';
 	import TweetPreview from '$lib/components/TweetPreview.svelte';
 	import ErrorBoundary from '$lib/components/ErrorBoundary.svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
-	import { MessageSquare, LayoutDashboard, Users } from 'lucide-svelte';
 	import logger from '$lib/logger';
+	import { format } from 'date-fns';
 
 	let activeTab = 'tweets';
 	let dashboardError: Error | null = null;
@@ -84,31 +79,27 @@
 			logger.info('Refreshing dashboard data...');
 
 			// Use the same endpoints as the page server
-			const [appsRes, analyticsRes, tweetsRes] = await Promise.all([
+			const [appsRes, tweetsRes] = await Promise.all([
 				fetch('/api/twitter_apps'),
-				fetch('/api/admin/analytics'),
 				fetch('/api/admin/tweets')
 			]);
 
 			// Check if all requests were successful
-			if (!appsRes.ok || !analyticsRes.ok || !tweetsRes.ok) {
+			if (!appsRes.ok || !tweetsRes.ok) {
 				const failedRequests = [];
 				if (!appsRes.ok) failedRequests.push(`twitter_apps: ${appsRes.status}`);
-				if (!analyticsRes.ok) failedRequests.push(`analytics: ${analyticsRes.status}`);
 				if (!tweetsRes.ok) failedRequests.push(`tweets: ${tweetsRes.status}`);
 
 				throw new Error(`API requests failed: ${failedRequests.join(', ')}`);
 			}
 
-			const [apps, analytics, tweets] = await Promise.all([
+			const [apps, tweets] = await Promise.all([
 				appsRes.json(),
-				analyticsRes.json(),
 				tweetsRes.json()
 			]);
 
 			const dashboardData = {
 				apps: apps.apps || apps || [],
-				analytics: analytics.analytics || analytics || {},
 				tweets: tweets.tweets || tweets || [],
 				accounts: $page.data.accounts || []
 			};
@@ -371,46 +362,49 @@
 					{#if activeTab === 'tweets'}
 						<div id="tweets-tab-panel" role="tabpanel" aria-labelledby="tweets-tab">
 							<ErrorBoundary errorId="tweets-tab">
-								<TweetsTab
-									tweets={$dashboardStore.data.tweets}
-									accounts={$dashboardStore.data.accounts}
-									on:editTweet={handleEditTweet}
-									on:deleteTweet={handleDeleteTweet}
-								/>
+								<!-- Simplified Tweets List -->
+								<div class="space-y-4">
+									{#if $dashboardStore.data.tweets?.length > 0}
+										{#each $dashboardStore.data.tweets as tweet}
+											<div class="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+												<p class="text-sm text-gray-900 dark:text-white">{tweet.content}</p>
+												<div class="mt-2 flex items-center gap-2 text-xs text-gray-500">
+													<span>Status: {tweet.status}</span>
+													<span>•</span>
+													<span>{tweet.scheduledDate ? format(new Date(tweet.scheduledDate), 'MMM d, h:mm a') : 'No date'}</span>
+												</div>
+											</div>
+										{/each}
+									{:else}
+										<p class="text-center text-gray-500">No tweets scheduled</p>
+									{/if}
+								</div>
 							</ErrorBoundary>
 						</div>
 					{:else if activeTab === 'overview'}
 						<div id="overview-tab-panel" role="tabpanel" aria-labelledby="overview-tab">
 							<ErrorBoundary errorId="overview-tab">
-								<OverviewTab
-									analytics={$dashboardStore.data.analytics}
-									apps={$dashboardStore.data.apps}
-									tweets={$dashboardStore.data.tweets}
-									accounts={$dashboardStore.data.accounts}
-									on:editTweet={handleEditTweet}
-									on:deleteTweet={handleDeleteTweet}
-								/>
+								<p class="text-center text-gray-500">Overview - Analytics features have been removed</p>
 							</ErrorBoundary>
 						</div>
 					{:else if activeTab === 'accounts'}
 						<div id="accounts-tab-panel" role="tabpanel" aria-labelledby="accounts-tab">
 							<ErrorBoundary errorId="accounts-tab">
-								<AccountsTab
-									accounts={$dashboardStore.data.accounts}
-									tweets={$dashboardStore.data.tweets}
-									apps={$dashboardStore.data.apps}
-								/>
+								<div class="space-y-4">
+									{#if $dashboardStore.data.accounts?.length > 0}
+										{#each $dashboardStore.data.accounts as account}
+											<div class="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+												<p class="text-sm font-medium text-gray-900 dark:text-white">@{account.username}</p>
+											</div>
+										{/each}
+									{:else}
+										<p class="text-center text-gray-500">No connected accounts</p>
+									{/if}
+								</div>
 							</ErrorBoundary>
 						</div>
 					{/if}
 				</div>
-			{/if}
-
-			<!-- App Form Modal -->
-			{#if $dashboardStore.ui.showAppForm}
-				<ErrorBoundary errorId="app-form-modal">
-					<AppFormModal editingApp={$dashboardStore.ui.editingApp} />
-				</ErrorBoundary>
 			{/if}
 		</div>
 	{/if}

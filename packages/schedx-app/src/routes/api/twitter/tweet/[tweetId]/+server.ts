@@ -1,6 +1,5 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { RettiwtService } from '$lib/server/rettiwtService';
 import logger from '$lib/server/logger';
 
 /**
@@ -19,20 +18,6 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 		throw error(400, 'Tweet ID is required');
 	}
 
-	try {
-		logger.debug({ tweetId, userId: user.id }, 'Fetching tweet details');
-
-		const tweetDetails = await RettiwtService.getTweetDetails(tweetId, user.id);
-
-		return json(tweetDetails);
-	} catch (err: any) {
-		logger.error({ error: err, tweetId, userId: user.id }, 'Failed to fetch tweet details');
-		
-		// Return more specific error messages
-		if (err.message?.includes('not found')) {
-			throw error(404, 'Tweet not found');
-		}
-		
-		throw error(500, 'Failed to fetch tweet details');
-	}
+	// Note: Rettiwt integration removed - tweet details fetch not available
+	throw error(501, 'Tweet details service not available');
 };

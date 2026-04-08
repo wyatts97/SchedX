@@ -122,7 +122,6 @@ export const POST: RequestHandler = userRateLimit({
 			error: errorMsg,
 			stack: errorStack
 		});
-		console.error('POST /api/ai/generate error:', error);
 
 		const errorMessage = error instanceof Error ? error.message : 'Failed to generate tweet';
 

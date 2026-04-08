@@ -1,5 +1,22 @@
 import { SqliteDatabase } from './sqlite-wrapper.js';
-import { TweetStatus, Tweet, UserAccount, Notification } from '../types/types.js';
+import { 
+  TweetStatus, 
+  Tweet, 
+  UserAccount, 
+  Notification,
+  Thread,
+  UserRow,
+  AccountRow,
+  TweetRow,
+  NotificationRow,
+  QueueSettingsRow,
+  TwitterAppRow,
+  ThreadRow,
+  ResendSettingsRow,
+  ResendSettings,
+  OpenRouterSettings,
+  SessionData
+} from '../types/types.js';
 import { EncryptionService } from './encryption.js';
 import pino from 'pino';
 import { createRequire } from 'module';
@@ -233,7 +250,7 @@ export class DatabaseClient {
 
   async getAdminUserByUsername(username: string): Promise<import('../types/types.js').AdminUser | null> {
     // Look up user by username (added in migration 008)
-    const user = this.db.queryOne<any>(
+    const user = this.db.queryOne<UserRow>(
       'SELECT * FROM users WHERE username = ? AND role = ?',
       [username, 'admin']
     );
@@ -242,7 +259,7 @@ export class DatabaseClient {
     
     return {
       id: user.id,
-      username: user.username || user.displayName || user.email,
+      username: user.username || user.displayName || user.email || '',
       passwordHash: user.password,
       displayName: user.displayName,
       email: user.email,
@@ -253,7 +270,7 @@ export class DatabaseClient {
   }
 
   async getAdminUserById(id: string): Promise<import('../types/types.js').AdminUser | null> {
-    const user = this.db.queryOne<any>(
+    const user = this.db.queryOne<UserRow>(
       'SELECT * FROM users WHERE id = ? AND role = ?',
       [id, 'admin']
     );
@@ -262,7 +279,7 @@ export class DatabaseClient {
     
     return {
       id: user.id,
-      username: user.username || user.displayName || user.email,
+      username: user.username || user.displayName || user.email || '',
       passwordHash: user.password,
       displayName: user.displayName,
       email: user.email,
@@ -280,10 +297,10 @@ export class DatabaseClient {
     );
   }
 
-  async updateAdminUserProfile(id: string, updates: any): Promise<void> {
+  async updateAdminUserProfile(id: string, updates: Partial<UserRow>): Promise<void> {
     const now = this.db.now();
     const updateFields: string[] = [];
-    const params: any[] = [];
+    const params: (string | number | undefined)[] = [];
     
     // Check username uniqueness if changing
     if (updates.username !== undefined) {
@@ -353,7 +370,7 @@ export class DatabaseClient {
     }
   ): Promise<void> {
     const updates: string[] = [];
-    const params: any[] = [];
+    const params: (string | number)[] = [];
     
     if (preferences.email !== undefined) {
       updates.push('email = ?');
@@ -386,40 +403,12 @@ export class DatabaseClient {
   // USER METHODS - Twitter Cookie Management
   // ============================================
 
-  async getUserById(userId: string): Promise<any | null> {
-    const user = this.db.queryOne<any>(
+  async getUserById(userId: string): Promise<UserRow | null> {
+    const user = this.db.queryOne<UserRow>(
       'SELECT * FROM users WHERE id = ?',
       [userId]
     );
     return user || null;
-  }
-
-  async updateUserRettiwtApiKey(userId: string, encryptedApiKey: string | null): Promise<void> {
-    const now = this.db.now();
-    this.db.execute(
-      'UPDATE users SET rettiwt_api_key = ?, updatedAt = ? WHERE id = ?',
-      [encryptedApiKey, now, userId]
-    );
-  }
-
-  async getUserRettiwtApiKey(userId: string): Promise<string | null> {
-    const user = this.db.queryOne<{ rettiwt_api_key: string | null }>(
-      'SELECT rettiwt_api_key FROM users WHERE id = ?',
-      [userId]
-    );
-    return user?.rettiwt_api_key || null;
-  }
-
-  /**
-   * Get Rettiwt API key from any of the user's Twitter accounts
-   * Used by RettiwtService for authenticated API access
-   */
-  async getAccountRettiwtApiKey(userId: string): Promise<string | null> {
-    const account = this.db.queryOne<{ rettiwt_api_key: string | null }>(
-      'SELECT rettiwt_api_key FROM accounts WHERE userId = ? AND provider = ? AND rettiwt_api_key IS NOT NULL LIMIT 1',
-      [userId, 'twitter']
-    );
-    return account?.rettiwt_api_key || null;
   }
 
   async getUserTimezone(userId: string): Promise<string> {
@@ -471,7 +460,7 @@ export class DatabaseClient {
           encryptedRefreshToken,
           userAccount.expires_at || null,
           userAccount.twitterAppId || null,
-          (userAccount as any).isDefault ? 1 : 0,
+          (userAccount as UserAccount).isDefault ? 1 : 0,
           now,
           existingAccount.id
         ]
@@ -497,7 +486,7 @@ export class DatabaseClient {
           encryptedRefreshToken,
           userAccount.expires_at || null,
           userAccount.twitterAppId || null,
-          (userAccount as any).isDefault ? 1 : 0,
+          (userAccount as UserAccount).isDefault ? 1 : 0,
           now,
           now
         ]
@@ -508,7 +497,7 @@ export class DatabaseClient {
   }
 
   async getUserAccount(userId: string, provider: string): Promise<UserAccount | null> {
-    const account = this.db.queryOne<any>(
+    const account = this.db.queryOne<AccountRow>(
       'SELECT * FROM accounts WHERE userId = ? AND provider = ?',
       [userId, provider]
     );
@@ -532,7 +521,7 @@ export class DatabaseClient {
   }
 
   async getUserAccountByProviderId(providerAccountId: string): Promise<UserAccount | null> {
-    const account = this.db.queryOne<any>(
+    const account = this.db.queryOne<AccountRow>(
       'SELECT * FROM accounts WHERE providerAccountId = ?',
       [providerAccountId]
     );
@@ -575,7 +564,7 @@ export class DatabaseClient {
   }
 
   async getUserAccountById(accountId: string): Promise<UserAccount | null> {
-    const account = this.db.queryOne<any>(
+    const account = this.db.queryOne<AccountRow>(
       'SELECT * FROM accounts WHERE id = ?',
       [accountId]
     );
@@ -599,12 +588,12 @@ export class DatabaseClient {
   }
 
   async getUserAccounts(userId: string): Promise<UserAccount[]> {
-    const accounts = this.db.query<any>(
+    const accounts = this.db.query<AccountRow>(
       'SELECT * FROM accounts WHERE userId = ?',
       [userId]
     );
     
-    return accounts.map((account: any) => ({
+    return accounts.map((account: AccountRow) => ({
       id: account.id,
       userId: account.userId,
       provider: account.provider,
@@ -635,9 +624,9 @@ export class DatabaseClient {
       }
     }
     
-    const accounts = this.db.query<any>(query, params);
+    const accounts = this.db.query<AccountRow>(query, params);
     
-    return accounts.map((account: any) => ({
+    return accounts.map((account: AccountRow) => ({
       id: account.id,
       userId: account.userId,
       provider: account.provider,
@@ -791,24 +780,24 @@ export class DatabaseClient {
     
     const tweets = this.db.query(sql, params);
     
-    return tweets.map((tweet: any) => ({
+    return (tweets as TweetRow[]).map((tweet: TweetRow) => ({
       id: tweet.id,
       userId: tweet.userId,
       content: tweet.content,
       scheduledDate: tweet.scheduledDate ? new Date(tweet.scheduledDate) : new Date(),
       community: tweet.community || '',
-      status: tweet.status,
+      status: tweet.status as TweetStatus,
       createdAt: new Date(tweet.createdAt),
       updatedAt: tweet.updatedAt ? new Date(tweet.updatedAt) : undefined,
       twitterAccountId: tweet.twitterAccountId,
       twitterTweetId: tweet.twitterTweetId,
       error: tweet.error,
-      media: this.db.parseJson(tweet.media) || [],
+      media: this.db.parseJson(tweet.media ?? null) || [],
       likeCount: tweet.likeCount || 0,
       retweetCount: tweet.retweetCount || 0,
       replyCount: tweet.replyCount || 0,
       impressionCount: tweet.impressionCount || 0,
-      recurrenceType: tweet.recurrenceType || null,
+      recurrenceType: (tweet.recurrenceType as 'daily' | 'weekly' | 'monthly' | null) || null,
       recurrenceInterval: tweet.recurrenceInterval || null,
       recurrenceEndDate: tweet.recurrenceEndDate ? new Date(tweet.recurrenceEndDate) : null,
       templateName: tweet.templateName || undefined,
@@ -864,7 +853,7 @@ export class DatabaseClient {
   async deleteTweet(tweetId: string, userId: string, twitterAccountId?: string) {
     try {
       let sql = 'DELETE FROM tweets WHERE id = ? AND userId = ?';
-      const params: any[] = [tweetId, userId];
+      const params: (string | number)[] = [tweetId, userId];
       
       if (twitterAccountId) {
         sql += ' AND twitterAccountId = ?';
@@ -885,28 +874,28 @@ export class DatabaseClient {
 
   async findDueTweets(): Promise<Tweet[]> {
     const now = this.db.now();
-    const tweets = this.db.query<any>(
+    const tweets = this.db.query<TweetRow>(
       'SELECT * FROM tweets WHERE status = ? AND scheduledDate <= ?',
       [TweetStatus.SCHEDULED, now]
     );
     
-    return tweets.map((tweet: any) => ({
+    return tweets.map((tweet: TweetRow) => ({
       id: tweet.id,
       userId: tweet.userId,
       content: tweet.content,
       scheduledDate: new Date(tweet.scheduledDate),
       community: tweet.community || '',
-      status: tweet.status,
+      status: tweet.status as TweetStatus,
       createdAt: new Date(tweet.createdAt),
       updatedAt: tweet.updatedAt ? new Date(tweet.updatedAt) : undefined,
       twitterAccountId: tweet.twitterAccountId,
       twitterTweetId: tweet.twitterTweetId,
-      media: this.db.parseJson(tweet.media) || [],
+      media: this.db.parseJson(tweet.media ?? null) || [],
       likeCount: tweet.likeCount || 0,
       retweetCount: tweet.retweetCount || 0,
       replyCount: tweet.replyCount || 0,
       impressionCount: tweet.impressionCount || 0,
-      recurrenceType: tweet.recurrenceType || null,
+      recurrenceType: (tweet.recurrenceType as 'daily' | 'weekly' | 'monthly' | null) || null,
       recurrenceInterval: tweet.recurrenceInterval || null,
       recurrenceEndDate: tweet.recurrenceEndDate ? new Date(tweet.recurrenceEndDate) : null,
       templateName: tweet.templateName || undefined,
@@ -1006,7 +995,7 @@ export class DatabaseClient {
                AND status IN (?, ?)
                AND scheduledDate >= ? 
                AND scheduledDate <= ?`;
-    const params: any[] = [
+    const params: (string | number)[] = [
       userId,
       twitterAccountId,
       TweetStatus.SCHEDULED,
@@ -1020,7 +1009,7 @@ export class DatabaseClient {
       params.push(excludeTweetId);
     }
     
-    const conflicts = this.db.query<any>(sql, params);
+    const conflicts = this.db.query<TweetRow>(sql, params);
     
     if (conflicts && conflicts.length > 0) {
       return {
@@ -1084,7 +1073,7 @@ export class DatabaseClient {
     }
   }
 
-  async updateTweet(tweetId: string, updates: Partial<any>): Promise<void> {
+  async updateTweet(tweetId: string, updates: Partial<Tweet>): Promise<void> {
     // Validation: Ensure tweetId is provided
     if (!tweetId || typeof tweetId !== 'string') {
       throw new Error('Invalid tweetId: must be a non-empty string');
@@ -1092,7 +1081,7 @@ export class DatabaseClient {
 
     const now = this.db.now();
     const updateFields: string[] = [];
-    const params: any[] = [];
+    const params: (string | number | null)[] = [];
     
     if (updates.content !== undefined) {
       updateFields.push('content = ?');
@@ -1183,27 +1172,27 @@ export class DatabaseClient {
   }
 
   async getAllTweets(userId: string): Promise<any[]> {
-    const tweets = this.db.query<any>('SELECT * FROM tweets WHERE userId = ?', [userId]);
+    const tweets = this.db.query<TweetRow>('SELECT * FROM tweets WHERE userId = ?', [userId]);
     
-    return tweets.map((tweet: any) => ({
+    return tweets.map((tweet: TweetRow) => ({
       id: tweet.id,
       userId: tweet.userId,
       content: tweet.content,
       scheduledDate: tweet.scheduledDate ? new Date(tweet.scheduledDate) : new Date(),
       community: tweet.community || '',
-      status: tweet.status,
+      status: tweet.status as TweetStatus,
       createdAt: new Date(tweet.createdAt),
       updatedAt: tweet.updatedAt ? new Date(tweet.updatedAt) : undefined,
       twitterAccountId: tweet.twitterAccountId,
       twitterTweetId: tweet.twitterTweetId,
       error: tweet.error,
-      media: this.db.parseJson(tweet.media) || [],
+      media: this.db.parseJson(tweet.media ?? null) || [],
       likeCount: tweet.likeCount || 0,
       retweetCount: tweet.retweetCount || 0,
       replyCount: tweet.replyCount || 0,
       impressionCount: tweet.impressionCount || 0,
       bookmarkCount: tweet.bookmarkCount || 0,
-      recurrenceType: tweet.recurrenceType || null,
+      recurrenceType: (tweet.recurrenceType as 'daily' | 'weekly' | 'monthly' | null) || null,
       recurrenceInterval: tweet.recurrenceInterval || null,
       recurrenceEndDate: tweet.recurrenceEndDate ? new Date(tweet.recurrenceEndDate) : null,
       templateName: tweet.templateName || undefined,
@@ -1237,7 +1226,7 @@ export class DatabaseClient {
 
   async duplicateTweets(tweetIds: string[]): Promise<any> {
     const placeholders = tweetIds.map(() => '?').join(',');
-    const tweets = this.db.query<any>(
+    const tweets = this.db.query<TweetRow>(
       `SELECT * FROM tweets WHERE id IN (${placeholders})`,
       tweetIds
     );
@@ -1274,32 +1263,32 @@ export class DatabaseClient {
 
   async getAllUserIds(): Promise<string[]> {
     const results = this.db.query<{ userId: string }>('SELECT DISTINCT userId FROM tweets');
-    return results.map((r: any) => r.userId);
+    return results.map((r: { userId: string }) => r.userId);
   }
 
   async getPostedTweetsWithTwitterId(userId: string): Promise<Tweet[]> {
-    const tweets = this.db.query<any>(
+    const tweets = this.db.query<TweetRow>(
       'SELECT * FROM tweets WHERE userId = ? AND status = ? AND twitterTweetId IS NOT NULL',
       [userId, TweetStatus.POSTED]
     );
     
-    return tweets.map((tweet: any) => ({
+    return tweets.map((tweet: TweetRow) => ({
       id: tweet.id,
       userId: tweet.userId,
       content: tweet.content,
       scheduledDate: new Date(tweet.scheduledDate),
       community: tweet.community || '',
-      status: tweet.status,
+      status: tweet.status as TweetStatus,
       createdAt: new Date(tweet.createdAt),
       updatedAt: tweet.updatedAt ? new Date(tweet.updatedAt) : undefined,
       twitterAccountId: tweet.twitterAccountId,
       twitterTweetId: tweet.twitterTweetId,
-      media: this.db.parseJson(tweet.media) || [],
+      media: this.db.parseJson(tweet.media ?? null) || [],
       likeCount: tweet.likeCount || 0,
       retweetCount: tweet.retweetCount || 0,
       replyCount: tweet.replyCount || 0,
       impressionCount: tweet.impressionCount || 0,
-      recurrenceType: tweet.recurrenceType || null,
+      recurrenceType: (tweet.recurrenceType as 'daily' | 'weekly' | 'monthly' | null) || null,
       recurrenceInterval: tweet.recurrenceInterval || null,
       recurrenceEndDate: tweet.recurrenceEndDate ? new Date(tweet.recurrenceEndDate) : null,
       templateName: tweet.templateName || undefined,
@@ -1326,14 +1315,14 @@ export class DatabaseClient {
     
     sql += ' ORDER BY createdAt ASC';
     
-    const tweets = this.db.query<any>(sql, params);
+    const tweets = this.db.query<TweetRow>(sql, params);
     
-    return tweets.map((tweet: any) => ({
+    return tweets.map((tweet: TweetRow) => ({
       ...tweet,
       scheduledDate: tweet.scheduledDate ? new Date(tweet.scheduledDate) : null,
       createdAt: new Date(tweet.createdAt),
       updatedAt: tweet.updatedAt ? new Date(tweet.updatedAt) : undefined,
-      media: this.db.parseJson(tweet.media) || []
+      media: this.db.parseJson(tweet.media ?? null) || []
     }));
   }
 
@@ -1384,17 +1373,17 @@ export class DatabaseClient {
       content: tweet.content,
       scheduledDate: tweet.scheduledDate ? new Date(tweet.scheduledDate) : new Date(),
       community: tweet.community || '',
-      status: tweet.status,
+      status: tweet.status as TweetStatus,
       createdAt: new Date(tweet.createdAt),
       updatedAt: tweet.updatedAt ? new Date(tweet.updatedAt) : undefined,
       twitterAccountId: tweet.twitterAccountId,
       twitterTweetId: tweet.twitterTweetId,
-      media: this.db.parseJson(tweet.media) || [],
+      media: this.db.parseJson(tweet.media ?? null) || [],
       likeCount: tweet.likeCount || 0,
       retweetCount: tweet.retweetCount || 0,
       replyCount: tweet.replyCount || 0,
       impressionCount: tweet.impressionCount || 0,
-      recurrenceType: tweet.recurrenceType || null,
+      recurrenceType: (tweet.recurrenceType as 'daily' | 'weekly' | 'monthly' | null) || null,
       recurrenceInterval: tweet.recurrenceInterval || null,
       recurrenceEndDate: tweet.recurrenceEndDate ? new Date(tweet.recurrenceEndDate) : null,
       templateName: tweet.templateName || undefined,
@@ -1701,7 +1690,7 @@ export class DatabaseClient {
   // STUB METHODS (Not implemented yet)
   // ============================================
 
-  async updateTweetAnalytics(tweetId: string, analytics: any): Promise<void> {
+  async updateTweetAnalytics(tweetId: string, analytics: Record<string, number>): Promise<void> {
     // Analytics columns need to be added to schema
   }
 
@@ -1799,7 +1788,7 @@ export class DatabaseClient {
     }
   }
 
-  async saveThread(thread: any): Promise<string> {
+  async saveThread(thread: Thread): Promise<string> {
     const now = Date.now();
     
     if (thread.id) {
@@ -1841,8 +1830,8 @@ export class DatabaseClient {
     }
   }
 
-  async getThread(threadId: string): Promise<any | null> {
-    const thread = this.db.queryOne<any>(
+  async getThread(threadId: string): Promise<Thread | null> {
+    const thread = this.db.queryOne<ThreadRow>(
       'SELECT * FROM threads WHERE id = ?',
       [threadId]
     );
@@ -1867,15 +1856,15 @@ export class DatabaseClient {
     };
   }
 
-  async getThreads(userId: string, status?: any): Promise<any[]> {
+  async getThreads(userId: string, status?: string): Promise<Thread[]> {
     const query = status
       ? 'SELECT * FROM threads WHERE userId = ? AND status = ? ORDER BY createdAt DESC'
       : 'SELECT * FROM threads WHERE userId = ? ORDER BY createdAt DESC';
     
     const params = status ? [userId, status] : [userId];
-    const threads = this.db.query<any>(query, params);
+    const threads = this.db.query<ThreadRow>(query, params);
     
-    return threads.map((thread: any) => ({
+    return threads.map((thread: ThreadRow) => ({
       id: thread.id,
       userId: thread.userId,
       twitterAccountId: thread.twitterAccountId,
@@ -1895,7 +1884,7 @@ export class DatabaseClient {
     this.db.execute('DELETE FROM threads WHERE id = ?', [threadId]);
   }
 
-  async updateThreadStatus(threadId: string, status: any, twitterThreadId?: string): Promise<void> {
+  async updateThreadStatus(threadId: string, status: string, twitterThreadId?: string): Promise<void> {
     const now = Date.now();
     
     if (twitterThreadId) {
@@ -2000,7 +1989,7 @@ export class DatabaseClient {
     return { allowed: true };
   }
 
-  async saveSession(sessionId: string, sessionData: any, expiresAt: Date): Promise<void> {
+  async saveSession(sessionId: string, sessionData: Record<string, unknown>, expiresAt: Date): Promise<void> {
     const now = Date.now();
     const expiresAtMs = expiresAt.getTime();
     
@@ -2010,7 +1999,7 @@ export class DatabaseClient {
     );
   }
 
-  async getSession(sessionId: string): Promise<any | null> {
+  async getSession(sessionId: string): Promise<{ id: string; data: SessionData; expiresAt: Date } | null> {
     const now = Date.now();
     
     const session = this.db.queryOne<{ id: string; data: string; expiresAt: number }>(
@@ -2049,7 +2038,7 @@ export class DatabaseClient {
     createdAt: Date;
     updatedAt: Date;
   } | null> {
-    const settings = this.db.queryOne<any>(
+    const settings = this.db.queryOne<ResendSettingsRow>(
       'SELECT * FROM resend_settings WHERE userId = ?',
       [userId]
     );
@@ -2065,21 +2054,15 @@ export class DatabaseClient {
       id: settings.id,
       userId: settings.userId,
       apiKey: decryptedApiKey,
-      fromEmail: settings.fromEmail,
-      fromName: settings.fromName,
+      fromEmail: settings.fromEmail || '',
+      fromName: settings.fromName || '',
       enabled: Boolean(settings.enabled),
       createdAt: new Date(settings.createdAt),
       updatedAt: new Date(settings.updatedAt)
     };
   }
 
-  async saveResendSettings(data: {
-    userId: string;
-    apiKey: string;
-    fromEmail?: string;
-    fromName?: string;
-    enabled?: boolean;
-  }): Promise<void> {
+  async saveResendSettings(data: Partial<ResendSettings> & { userId: string; apiKey: string }): Promise<void> {
     const existing = await this.getResendSettings(data.userId);
     const now = Date.now();
     
@@ -2140,7 +2123,18 @@ export class DatabaseClient {
     createdAt: Date;
     updatedAt: Date;
   } | null> {
-    const settings = this.db.queryOne<any>(
+    const settings = this.db.queryOne<{
+  id: string;
+  userId: string;
+  apiKey: string;
+  model?: string;
+  defaultModel?: string;
+  temperature?: number;
+  maxTokens?: number;
+  enabled?: number;
+  createdAt: number;
+  updatedAt: number;
+}>(
       'SELECT * FROM openrouter_settings WHERE userId = ?',
       [userId]
     );
@@ -2165,14 +2159,7 @@ export class DatabaseClient {
     };
   }
 
-  async saveOpenRouterSettings(data: {
-    userId: string;
-    apiKey: string;
-    model?: string;
-    temperature?: number;
-    maxTokens?: number;
-    enabled?: boolean;
-  }): Promise<void> {
+  async saveOpenRouterSettings(data: Partial<OpenRouterSettings> & { userId: string; apiKey: string }): Promise<void> {
     const existing = await this.getOpenRouterSettings(data.userId);
     const now = Date.now();
     

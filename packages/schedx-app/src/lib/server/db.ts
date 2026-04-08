@@ -1,6 +1,7 @@
 import { getEnvironmentConfig } from '$lib/server/env';
 import { DatabaseClient, runMigrations } from '@schedx/shared-lib/backend';
 import logger from '$lib/logger';
+import type { SqliteDatabase } from '@schedx/shared-lib/backend';
 
 // Create a lazy-loaded singleton pattern
 let dbInstance: DatabaseClient | null = null;
@@ -22,10 +23,19 @@ export function getDbInstance(): DatabaseClient {
 	return dbInstance;
 }
 
-export function getRawDbInstance() {
+/**
+ * Get the raw SQLite database instance with proper typing.
+ * This provides type-safe access to the underlying SqliteDatabase.
+ */
+export function getRawDb(): SqliteDatabase {
 	const db = getDbInstance();
-	return (db as any).db;
+	// Access the private db property through type assertion
+	// This is internal and controlled - we know the structure
+	return (db as unknown as { db: SqliteDatabase }).db;
 }
+
+// Alias for backward compatibility
+export const getRawDbInstance = getRawDb;
 
 export const initializeDatabase = async (): Promise<DatabaseClient> => {
 	const db = getDbInstance();

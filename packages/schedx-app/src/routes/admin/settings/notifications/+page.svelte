@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
+	import logger from '$lib/logger';
 	import { Bell, BellOff, Check, X, Smartphone, Monitor, Info, AlertTriangle, Download } from 'lucide-svelte';
 	import { 
 		isPushSupported, 
@@ -70,7 +71,7 @@
 					totalDevices = data.subscriptionCount || 0;
 				}
 			} catch (e) {
-				console.error('Failed to check push config:', e);
+				logger.error('Failed to check push config', { error: e });
 			}
 
 			// Check subscription status with timeout to prevent hanging
@@ -81,7 +82,7 @@
 					const timeout = new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 5000));
 					subscribed = await Promise.race([subscriptionCheck, timeout]);
 				} catch (e) {
-					console.error('Failed to check subscription status:', e);
+					logger.error('Failed to check subscription status', { error: e });
 					subscribed = false;
 				}
 			}
@@ -92,7 +93,7 @@
 				try {
 					preferences = { ...preferences, ...JSON.parse(savedPrefs) };
 				} catch (e) {
-					console.error('Failed to parse preferences:', e);
+					logger.error('Failed to parse preferences', { error: e });
 				}
 			}
 
@@ -123,14 +124,14 @@
 						totalDevices = data.subscriptionCount || 0;
 					}
 				} catch (e) {
-					console.error('Failed to refresh device count:', e);
+					logger.error('Failed to refresh device count', { error: e });
 				}
 			} else {
 				error = result.error || 'Failed to enable push notifications';
 			}
 		} catch (e) {
 			error = 'An error occurred while enabling notifications';
-			console.error(e);
+			logger.error('Enable notifications error', { error: e });
 		} finally {
 			saving = false;
 		}
@@ -151,7 +152,7 @@
 			}
 		} catch (e) {
 			error = 'An error occurred while disabling notifications';
-			console.error(e);
+			logger.error('Disable notifications error', { error: e });
 		} finally {
 			saving = false;
 		}

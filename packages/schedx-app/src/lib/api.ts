@@ -7,7 +7,6 @@ export const API = {
 	TEST_TWITTER_APP_CONNECTION: `${API_BASE_PATH}/twitter_apps/test-connection`,
 
 	// Admin
-	ADMIN_ANALYTICS: `${API_BASE_PATH}/admin/analytics`,
 	ADMIN_TWEETS: `${API_BASE_PATH}/admin/tweets`,
 	ADMIN_PROFILE: `${API_BASE_PATH}/admin/profile`,
 	ADMIN_CHANGE_PASSWORD: `${API_BASE_PATH}/admin/change-password`,

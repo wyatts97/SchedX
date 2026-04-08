@@ -1,6 +1,7 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
 import { getDbInstance } from '$lib/server/db';
+import logger from '$lib/logger';
 
 // GET: Get email notification preferences
 export const GET: RequestHandler = async ({ cookies }) => {
@@ -40,7 +41,7 @@ export const GET: RequestHandler = async ({ cookies }) => {
 			}
 		});
 	} catch (error) {
-		console.error('Error getting email preferences:', error);
+		logger.error('Error getting email preferences', { error });
 		return json({ error: 'Failed to get email preferences' }, { status: 500 });
 	}
 };
@@ -96,7 +97,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
 		return json({ success: true, message: 'Email settings updated successfully' });
 	} catch (error) {
-		console.error('Error updating email preferences:', error);
+		logger.error('Error updating email preferences', { error });
 		return json({ error: 'Failed to update email preferences' }, { status: 500 });
 	}
 };
