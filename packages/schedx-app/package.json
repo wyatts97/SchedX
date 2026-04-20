@@ -45,7 +45,7 @@
     "@schedule-x/calendar": "^3.3.0",
     "@schedule-x/drag-and-drop": "^3.3.0",
     "@schedule-x/svelte": "^3.0.0",
-    "@schedule-x/theme-default": "^3.3.0",
+    "@schedule-x/theme-default": "^4.1.0",
     "@schedx/shared-lib": "*",
     "@tanstack/svelte-query": "^6.0.10",
     "@types/compression": "^1.8.1",
