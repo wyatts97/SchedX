@@ -1,82 +1,90 @@
 {
-  "name": "schedx-monorepo",
-  "version": "1.0.0",
-  "private": true,
-  "description": "Monorepo for the SchedX project",
-  "workspaces": [
-    "packages/*"
-  ],
-  "scripts": {
-    "setup": "node scripts/setup.js",
-    "validate:env": "node scripts/validate-env.js",
-    "db:indexes": "node scripts/create-indexes.js",
-    "db:setup": "npm run db:indexes",
-    "predev": "npm run validate:env",
-    "dev:app": "npm run dev --workspace=@schedx/app",
-    "dev:scheduler": "npm run dev --workspace=@schedx/scheduler",
-    "dev": "concurrently --names \"APP,SCHEDULER\" --prefix-colors \"blue,green\" \"npm run dev:app\" \"npm run dev:scheduler\"",
-    "build:shared": "npm run build --workspace=@schedx/shared-lib",
-    "build:app": "npm run build --workspace=@schedx/app",
-    "build:scheduler": "npm run build --workspace=@schedx/scheduler",
-    "prebuild": "npm run validate:env",
-    "build": "run-s build:shared build:app build:scheduler",
-    "start:app": "npm run preview --workspace=@schedx/app",
-    "start:scheduler": "npm run start --workspace=@schedx/scheduler",
-    "start": "concurrently --names \"APP,SCHEDULER\" --prefix-colors \"blue,green\" \"npm run start:app\" \"npm run start:scheduler\"",
-    "docker:dev": "docker-compose up -d",
-    "docker:prod": "docker-compose -f docker-compose.prod.yml up -d",
-    "docker:down": "docker-compose down",
-    "lint": "eslint \"**/*.{js,jsx,ts,tsx}\" --quiet --fix",
-    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md,html,css}\"",
-    "audit": "npm audit --audit-level=moderate",
-    "audit:fix": "npm audit fix",
-    "security:audit": "npm audit --audit-level=moderate",
-    "security:check": "npm audit && npm run audit --workspace=@schedx/app && npm run audit --workspace=@schedx/scheduler && npm run audit --workspace=@schedx/shared-lib",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "devDependencies": {
-    "@rollup/plugin-commonjs": "^29.0.0",
-    "@rollup/plugin-json": "^6.1.0",
-    "@rollup/plugin-node-resolve": "^16.0.3",
-    "@rollup/plugin-terser": "^0.4.4",
-    "@types/node": "^24.0.14",
-    "chromatic": "^13.3.2",
-    "concurrently": "^8.2.2",
-    "eslint": "^9.15.0",
-    "eslint-config-prettier": "^9.1.0",
-    "npm-run-all": "^4.1.5",
-    "prettier": "^3.4.2",
-    "vite": "^7.0.0"
-  },
-  "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=8.0.0"
-  },
-  "keywords": [
-    "svelte",
-    "sveltekit",
-    "sqlite",
-    "typescript",
-    "twitter",
-    "scheduling",
-    "schedx"
-  ],
-  "author": "wyatts97",
-  "license": "Elastic-2.0",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/wyatts97/schedx"
-  },
-  "bugs": {
-    "url": "https://github.com/wyatts97/schedx/issues"
-  },
-  "dependencies": {
-    "twitter-api-v2": "^1.24.0"
-  },
-  "overrides": {
-    "cookie": "^0.7.0",
-    "rimraf": "^6.0.1",
-    "glob": "^11.0.0",
-    "inflight": "npm:@npmcli/inflight@^1.0.1"
-  }
+	"name": "schedx",
+	"version": "2.0.0",
+	"description": "Self-hosted X (Twitter) post scheduler",
+	"private": true,
+	"type": "module",
+	"license": "Elastic-2.0",
+	"author": "wyatts97",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/wyatts97/SchedX"
+	},
+	"engines": {
+		"node": ">=22.17.0"
+	},
+	"scripts": {
+		"dev": "vite dev",
+		"build": "vite build",
+		"preview": "vite preview",
+		"start": "node build",
+		"prepare": "svelte-kit sync || echo ''",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"lint": "prettier --check . && eslint .",
+		"format": "prettier --write .",
+		"test": "vitest --run",
+		"test:watch": "vitest",
+		"test:e2e": "playwright test",
+		"db:generate": "drizzle-kit generate",
+		"db:studio": "drizzle-kit studio",
+		"gen:secrets": "node scripts/gen-secrets.js"
+	},
+	"imports": {
+		"#lib": "./src/lib/index.js",
+		"#lib/*": "./src/lib/*"
+	},
+	"dependencies": {
+		"@node-rs/argon2": "^2.0.2",
+		"better-sqlite3": "^13.0.3",
+		"croner": "^10.0.1",
+		"drizzle-orm": "^0.45.4",
+		"pino": "^10.4.0",
+		"sharp": "^0.35.5",
+		"temporal-polyfill": "0.3.0",
+		"twitter-api-v2": "^1.29.1",
+		"twitter-text": "^3.1.0",
+		"web-push": "^3.6.7",
+		"zod": "^4.6.7"
+	},
+	"devDependencies": {
+		"@eslint/js": "^10.0.1",
+		"@internationalized/date": "^3.12.4",
+		"@lucide/svelte": "^1.61.0",
+		"@playwright/test": "^1.60.0",
+		"@schedule-x/calendar": "^3.7.3",
+		"@schedule-x/drag-and-drop": "^3.7.3",
+		"@schedule-x/svelte": "^3.0.0",
+		"@schedule-x/theme-default": "^3.7.3",
+		"@sveltejs/adapter-node": "^6.0.0",
+		"@sveltejs/kit": "^3.1.0",
+		"@sveltejs/vite-plugin-svelte": "^7.2.0",
+		"@tailwindcss/vite": "^4.3.0",
+		"@types/better-sqlite3": "^9.6.0",
+		"@types/node": "^24",
+		"@types/twitter-text": "^3.1.10",
+		"@types/web-push": "^3.6.4",
+		"bits-ui": "^2.20.2",
+		"clsx": "^2.1.1",
+		"drizzle-kit": "^0.31.11",
+		"emoji-picker-element": "^1.29.1",
+		"eslint": "^10.4.1",
+		"eslint-config-prettier": "^10.1.8",
+		"eslint-plugin-svelte": "^3.19.0",
+		"globals": "^17.6.0",
+		"pino-pretty": "^13.2.0",
+		"prettier": "^3.8.3",
+		"prettier-plugin-svelte": "^4.1.0",
+		"prettier-plugin-tailwindcss": "^0.8.0",
+		"svelte": "^5.57.2",
+		"svelte-check": "^4.6.0",
+		"svelte-sonner": "^1.2.1",
+		"tailwind-merge": "^3.7.0",
+		"tailwind-variants": "^3.3.1",
+		"tailwindcss": "^4.3.0",
+		"typescript": "^6.0.3",
+		"typescript-eslint": "^8.60.1",
+		"vite": "^8.3.0",
+		"vitest": "^4.1.8"
+	}
 }
