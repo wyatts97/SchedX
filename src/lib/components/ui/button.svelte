@@ -5,11 +5,11 @@
 		base: 'inline-flex shrink-0 items-center justify-center gap-2 rounded-ctl font-medium whitespace-nowrap transition-colors select-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0',
 		variants: {
 			variant: {
-				primary: 'bg-accent text-accent-ink hover:bg-accent/90',
+				primary: 'bg-primary text-white shadow-sm hover:bg-primary-hover hover:shadow-md',
 				secondary:
-					'border border-line bg-surface text-ink hover:border-line-strong hover:bg-surface-2',
+					'border border-line-strong bg-surface text-ink-2 shadow-sm hover:bg-surface-2 hover:text-ink',
 				ghost: 'text-ink-2 hover:bg-surface-2 hover:text-ink',
-				danger: 'bg-bad text-white hover:bg-bad/90',
+				danger: 'bg-red-500 text-white shadow-sm hover:bg-red-600',
 				'danger-ghost': 'text-bad hover:bg-bad-soft',
 				link: 'text-accent underline-offset-4 hover:underline'
 			},

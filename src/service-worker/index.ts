@@ -5,9 +5,11 @@ import { self } from '$app/service-worker';
 // Build assets are content-hashed, so caching them per version is always safe. Pages and data
 // are never cached: a scheduler must not show stale schedules.
 const CACHE = `schedx-${version}`;
-const PRECACHE = [...immutable.map((f) => f.path), ...assets.map((f) => f.path)].map((p) =>
-	p.startsWith('/') ? p : `/${p}`
-);
+// The emoji picker's data (a large .json asset) is left out: the picker keeps its own copy in
+// IndexedDB once it has been opened.
+const PRECACHE = [...immutable.map((f) => f.path), ...assets.map((f) => f.path)]
+	.filter((p) => !p.endsWith('.json'))
+	.map((p) => (p.startsWith('/') ? p : `/${p}`));
 
 self.addEventListener('install', (event) => {
 	event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(PRECACHE)));

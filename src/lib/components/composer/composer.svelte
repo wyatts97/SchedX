@@ -1,24 +1,30 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { beforeNavigate, goto } from '$app/navigation';
+	import { DropdownMenu } from 'bits-ui';
 	import { toast } from 'svelte-sonner';
 	import Plus from '@lucide/svelte/icons/plus';
 	import Eye from '@lucide/svelte/icons/eye';
-	import Check from '@lucide/svelte/icons/check';
+	import Send from '@lucide/svelte/icons/send';
+	import Calendar from '@lucide/svelte/icons/calendar';
+	import ListPlus from '@lucide/svelte/icons/list-plus';
+	import Save from '@lucide/svelte/icons/save';
+	import ChevronDown from '@lucide/svelte/icons/chevron-down';
+	import Loader from '@lucide/svelte/icons/loader-circle';
 	import ItemEditor from './item-editor.svelte';
 	import MediaPicker from './media-picker.svelte';
 	import PostPreview from './post-preview.svelte';
-	import Avatar from '../avatar.svelte';
-	import Button from '../ui/button.svelte';
+	import AccountPicker from './account-picker.svelte';
+	import ScheduleFields from './schedule-fields.svelte';
 	import Select from '../ui/select.svelte';
 	import Switch from '../ui/switch.svelte';
 	import { newItem, type EditorItem } from './types.js';
+	import { blockStrayDrops, fileDrop } from '#lib/actions/file-drop.js';
 	import { estimateCost, formatUsd } from '#lib/shared/cost.js';
 	import { textStats } from '#lib/shared/text.js';
-	import { fromLocalInput, toLocalInput, zoned, HOUR, formatDateTime } from '#lib/shared/time.js';
-	import type { ComposeAction, ComposeInput, PostView } from '#lib/shared/compose.js';
+	import { fromLocalInput, toLocalInput, formatDateTime } from '#lib/shared/time.js';
+	import type { AccountView, ComposeAction, ComposeInput, PostView } from '#lib/shared/compose.js';
 	import type { PostOptions, Rates, RecurFreq, ReplySettings } from '#lib/shared/types.js';
-	import type { AccountView } from '#lib/shared/compose.js';
 	import { api, cn } from '#lib/utils.js';
 
 	let {
@@ -63,22 +69,14 @@
 	);
 	let options = $state<PostOptions>({ ...(seed?.options ?? {}) });
 	let replySetting = $state<string>(seed?.options.replySettings ?? 'everyone');
-	let action = $state<ComposeAction>(
-		seed
-			? seed.status === 'draft'
-				? 'draft'
-				: seed.queued
-					? 'queue'
-					: 'schedule'
-			: boot.prefill.at
-				? 'schedule'
-				: 'now'
-	);
-	const initialAt =
-		seed?.scheduledAt && seed.scheduledAt > Date.now()
+	const seedAt =
+		seed && !seed.queued && seed.scheduledAt && seed.scheduledAt > Date.now()
 			? seed.scheduledAt
-			: (boot.prefill.at ?? Date.now() + HOUR);
-	let when = $state(toLocalInput(initialAt, boot.tz));
+			: (boot.prefill.at ?? null);
+	/** '' means "no time picked": the primary button posts right away. */
+	let when = $state(seedAt ? toLocalInput(seedAt, boot.tz) : '');
+	/** Editing a queued post keeps it in the queue until a specific time is picked. */
+	let queueMode = $state(!!seed?.queued);
 	let repeat = $state<string>(seed?.recurFreq ?? 'none');
 	let repeatEvery = $state(seed?.recurInterval ?? 1);
 	let repeatUntil = $state(
@@ -87,30 +85,27 @@
 
 	let pickerOpen = $state(false);
 	let pickerTarget = $state(0);
+	let focusIndex = $state(0);
 	let editors: ItemEditor[] = $state([]);
 	let busy = $state(false);
 	let dirty = $state(false);
 	let showPreview = $state(false);
 	let focusKey = $state<string | null>(null);
+	let cardDragOver = $state(false);
 
 	$effect(() => {
 		// any edit marks the form dirty (read deeply so the effect tracks everything)
 		JSON.stringify(items);
 		JSON.stringify(options);
-		void [accountIds.length, when, action, replySetting, repeat];
+		void [accountIds.length, when, replySetting, repeat, queueMode];
 		return () => (dirty = true);
 	});
 
 	beforeNavigate((nav) => {
-		if (
-			dirty &&
-			!busy &&
-			nav.type !== 'form' &&
-			!confirm('Discard this post? Your changes will be lost.')
-		) {
-			nav.cancel();
-		}
+		if (dirty && !busy && !confirm('Discard this post? Your changes will be lost.')) nav.cancel();
 	});
+
+	onMount(() => blockStrayDrops());
 
 	// ---- derived ----
 	const selectedAccounts = $derived(accounts.filter((a) => accountIds.includes(a.id)));
@@ -125,7 +120,7 @@
 		)
 	);
 	const totalCost = $derived(cost.total * Math.max(1, accountIds.length));
-	const scheduledAt = $derived(fromLocalInput(when, tz));
+	const scheduledAt = $derived(when ? fromLocalInput(when, tz) : null);
 	const overLimit = $derived(items.some((i) => textStats(i.text, premium).over));
 	const uploading = $derived(items.some((i) => i.uploads.length > 0));
 	const missingAlt = $derived(
@@ -133,23 +128,32 @@
 	);
 	const empty = $derived(items.every((i) => !i.text.trim() && !i.media.length));
 	const canSubmit = $derived(!busy && !uploading && !overLimit && !empty && accountIds.length > 0);
+	const thread = $derived(items.length > 1);
 
-	const ACTIONS: { id: ComposeAction; label: string; submit: string }[] = [
-		{ id: 'now', label: 'Now', submit: 'Post now' },
-		{ id: 'schedule', label: 'Schedule', submit: 'Schedule' },
-		{ id: 'queue', label: 'Queue', submit: 'Add to queue' },
-		{ id: 'draft', label: 'Draft', submit: 'Save draft' }
-	];
-	const submitLabel = $derived(
-		items.length > 1
-			? {
-					now: 'Post thread now',
-					schedule: 'Schedule thread',
-					queue: 'Add thread to queue',
-					draft: 'Save draft'
-				}[action]
-			: (ACTIONS.find((a) => a.id === action)?.submit ?? 'Save')
+	const primary = $derived<ComposeAction>(queueMode ? 'queue' : scheduledAt ? 'schedule' : 'now');
+	const LABELS = $derived<Record<ComposeAction, string>>({
+		now: thread ? 'Post thread now' : 'Post now',
+		schedule:
+			seed?.status === 'scheduled' ? 'Update schedule' : thread ? 'Schedule thread' : 'Schedule',
+		queue: seed?.queued ? 'Update queue' : thread ? 'Add thread to queue' : 'Add to queue',
+		draft: 'Save draft'
+	});
+	const MORE = $derived(
+		(
+			[
+				{ id: 'now', icon: Send, tone: 'green', hint: 'Publish within seconds' },
+				{ id: 'schedule', icon: Calendar, tone: 'blue', hint: 'At the time you picked' },
+				{ id: 'queue', icon: ListPlus, tone: 'orange', hint: 'Next free queue time' },
+				{ id: 'draft', icon: Save, tone: 'purple', hint: 'Keep it for later' }
+			] as const
+		).filter((a) => a.id !== primary && (a.id !== 'schedule' || scheduledAt))
 	);
+	const TONES = {
+		green: 'bg-green-500/15 text-green-600 dark:text-green-400',
+		blue: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
+		orange: 'bg-orange-500/15 text-orange-600 dark:text-orange-400',
+		purple: 'bg-purple-500/15 text-purple-600 dark:text-purple-400'
+	};
 
 	const REPLY: { value: ReplySettings; label: string }[] = [
 		{ value: 'everyone', label: 'Everyone can reply' },
@@ -159,37 +163,16 @@
 		{ value: 'subscribers', label: 'Your subscribers' }
 	];
 
-	function toggleAccount(id: string) {
-		if (seed) {
-			accountIds = [id];
-			return;
-		}
-		accountIds = accountIds.includes(id) ? accountIds.filter((a) => a !== id) : [...accountIds, id];
-	}
-
 	function addItem() {
 		const item = newItem();
 		items.push(item);
 		focusKey = item.key;
 	}
 
-	function preset(kind: 'hour' | 'evening' | 'morning') {
-		const now = zoned(Date.now(), tz);
-		let target = now
-			.add({ hours: 1 })
-			.round({ smallestUnit: 'minute', roundingIncrement: 15, roundingMode: 'ceil' });
-		if (kind === 'evening') {
-			target = now.with({ hour: 19, minute: 0, second: 0, millisecond: 0 });
-			if (target.epochMilliseconds <= Date.now()) target = target.add({ days: 1 });
-		}
-		if (kind === 'morning')
-			target = now.add({ days: 1 }).with({ hour: 9, minute: 0, second: 0, millisecond: 0 });
-		when = toLocalInput(target.epochMilliseconds, tz);
-		action = 'schedule';
-	}
-
-	async function submit() {
+	async function submit(action: ComposeAction) {
 		if (!canSubmit) return;
+		if (action === 'schedule' && !scheduledAt)
+			return void toast.error('Pick a date and time first.');
 		if (
 			missingAlt &&
 			action !== 'draft' &&
@@ -251,45 +234,36 @@
 	function onkeydown(e: KeyboardEvent) {
 		if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
 			e.preventDefault();
-			submit();
+			submit(primary);
 		}
 	}
 </script>
 
 <svelte:window {onkeydown} />
 
-<div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_19rem]">
-	<section class="min-w-0" aria-label="Post content">
-		<!-- Accounts -->
+<div class="flex w-full flex-col gap-8 md:flex-row md:items-start">
+	<!-- Composer card (legacy /post) -->
+	<section
+		class="relative w-full min-w-0 rounded-lg border border-line bg-surface p-4 shadow-sm sm:p-6 md:flex-1"
+		aria-label="Post content"
+		use:fileDrop={{
+			ondrop: (files) => editors[Math.min(focusIndex, items.length - 1)]?.addFiles(files),
+			onover: (v) => (cardDragOver = v)
+		}}
+	>
 		{#if accounts.length > 1 || !seed}
-			<div class="mb-5 flex flex-wrap items-center gap-2" role="group" aria-label="Post as">
-				{#each accounts as a (a.id)}
-					{@const on = accountIds.includes(a.id)}
-					<button
-						type="button"
-						onclick={() => toggleAccount(a.id)}
-						aria-pressed={on}
-						disabled={a.status === 'needs_reauth'}
-						class={cn(
-							'flex items-center gap-2 rounded-full border py-1 pr-3 pl-1 text-sm transition-colors disabled:opacity-50',
-							on
-								? 'border-accent bg-accent-soft text-ink'
-								: 'border-line text-muted hover:border-line-strong'
-						)}
-						title={a.status === 'needs_reauth' ? 'Reconnect this account first' : undefined}
-					>
-						<Avatar src={a.avatarUrl} name={a.username} size="sm" />
-						@{a.username}
-						{#if on}<Check class="size-3.5 text-accent" />{/if}
-					</button>
-				{/each}
-				{#if accountIds.length > 1}
-					<span class="text-xs text-muted">Posts once to each selected account</span>
-				{/if}
+			<div class="mb-6">
+				<p class="mb-3 text-sm font-medium">
+					Post as
+					{#if accountIds.length > 1}
+						<span class="font-normal text-muted">· once to each selected account</span>
+					{/if}
+				</p>
+				<AccountPicker {accounts} bind:selected={accountIds} single={!!seed} />
 			</div>
 		{/if}
 
-		<div class="rounded-panel border border-line bg-surface px-4 pt-4 sm:px-5">
+		<div class="grid gap-5">
 			{#each items as item, i (item.key)}
 				<ItemEditor
 					bind:this={editors[i]}
@@ -298,6 +272,7 @@
 					total={items.length}
 					{premium}
 					autofocus={i === 0 ? !seed : item.key === focusKey}
+					onfocus={() => (focusIndex = i)}
 					onremove={() => items.splice(i, 1)}
 					onlibrary={() => {
 						pickerTarget = i;
@@ -305,142 +280,44 @@
 					}}
 				/>
 			{/each}
-			<button
-				type="button"
-				onclick={addItem}
-				disabled={items.length >= 25}
-				class="-mx-1 mb-3 flex items-center gap-2 rounded-md px-1 py-1.5 text-sm font-medium text-accent hover:underline disabled:opacity-50"
-			>
-				<Plus class="size-4" />Add another post
-			</button>
 		</div>
 
 		<button
 			type="button"
-			class="mt-4 flex items-center gap-2 text-sm text-muted hover:text-ink lg:hidden"
-			onclick={() => (showPreview = !showPreview)}
-			aria-expanded={showPreview}
+			onclick={addItem}
+			disabled={items.length >= 25}
+			class="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-line-strong bg-surface-2/60 px-4 py-3 text-sm font-medium text-ink-2 transition-all duration-200 hover:border-blue-500 hover:bg-blue-500/10 hover:text-blue-600 disabled:opacity-50 dark:hover:text-blue-400"
 		>
-			<Eye class="size-4" />{showPreview ? 'Hide preview' : 'Show preview'}
+			<Plus class="size-4" />Add another post to the thread
 		</button>
-		<div class={cn('mt-6', !showPreview && 'hidden lg:block')}>
-			<h2 class="mb-3 text-sm font-semibold text-muted">Preview</h2>
-			<div class="rounded-panel border border-line bg-surface p-4 sm:p-5">
-				<PostPreview {items} account={selectedAccounts[0] ?? null} />
-			</div>
+
+		<div class="mt-6 border-t border-line pt-6">
+			<ScheduleFields
+				bind:when
+				bind:repeat
+				bind:repeatEvery
+				bind:repeatUntil
+				{tz}
+				onpick={() => (queueMode = false)}
+			/>
 		</div>
-	</section>
 
-	<aside class="grid content-start gap-6 lg:sticky lg:top-8">
-		<section class="grid gap-3" aria-labelledby="when-h">
-			<h2 id="when-h" class="text-sm font-semibold">When</h2>
-			<div
-				class="grid grid-cols-4 rounded-ctl border border-line bg-surface p-0.5"
-				role="radiogroup"
-				aria-label="When to post"
+		<details class="group mt-6 rounded-lg border border-line">
+			<summary
+				class="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 text-sm font-medium marker:hidden"
 			>
-				{#each ACTIONS as a (a.id)}
-					<button
-						type="button"
-						role="radio"
-						aria-checked={action === a.id}
-						onclick={() => (action = a.id)}
-						class={cn(
-							'rounded-[0.5rem] py-1.5 text-sm',
-							action === a.id
-								? 'bg-accent-soft font-semibold text-ink'
-								: 'text-muted hover:text-ink'
-						)}
-					>
-						{a.label}
-					</button>
-				{/each}
-			</div>
-
-			{#if action === 'schedule'}
-				<input
-					type="datetime-local"
-					bind:value={when}
-					aria-label="Date and time"
-					class="h-10 w-full rounded-ctl border border-line bg-surface px-3 text-sm tnum outline-none focus:border-accent"
-				/>
-				<div class="flex flex-wrap gap-1.5 text-xs">
-					<button
-						type="button"
-						class="rounded-full border border-line px-2.5 py-1 hover:border-line-strong"
-						onclick={() => preset('hour')}>In an hour</button
-					>
-					<button
-						type="button"
-						class="rounded-full border border-line px-2.5 py-1 hover:border-line-strong"
-						onclick={() => preset('evening')}>This evening</button
-					>
-					<button
-						type="button"
-						class="rounded-full border border-line px-2.5 py-1 hover:border-line-strong"
-						onclick={() => preset('morning')}>Tomorrow morning</button
-					>
-				</div>
-				<p class="text-xs text-muted">Times are in {tz}.</p>
-			{:else if action === 'queue'}
-				<p class="text-sm text-muted">
-					Goes out in the next free time slot. <a href="/queue" class="text-accent hover:underline"
-						>Edit queue times</a
-					>
-				</p>
-			{:else if action === 'now'}
-				<p class="text-sm text-muted">Publishes within a few seconds.</p>
-			{:else}
-				<p class="text-sm text-muted">Saved without a time. Schedule it whenever you're ready.</p>
-			{/if}
-
-			{#if action === 'schedule' || action === 'queue'}
-				<div class="grid grid-cols-[1fr_auto] items-center gap-2">
-					<Select
-						bind:value={repeat}
-						items={[
-							{ value: 'none', label: "Doesn't repeat" },
-							{ value: 'daily', label: 'Repeats daily' },
-							{ value: 'weekly', label: 'Repeats weekly' },
-							{ value: 'monthly', label: 'Repeats monthly' }
-						]}
-					/>
-					{#if repeat !== 'none'}
-						<label class="flex items-center gap-1.5 text-sm text-muted">
-							every
-							<input
-								type="number"
-								min="1"
-								max="30"
-								bind:value={repeatEvery}
-								class="h-10 w-14 rounded-ctl border border-line bg-surface px-2 text-ink tnum"
-							/>
-						</label>
-					{/if}
-				</div>
-				{#if repeat !== 'none'}
-					<label class="grid gap-1 text-sm text-muted">
-						Stop after (optional)
-						<input
-							type="date"
-							bind:value={repeatUntil}
-							class="h-10 rounded-ctl border border-line bg-surface px-3 text-ink"
-						/>
-					</label>
-				{/if}
-			{/if}
-		</section>
-
-		<details class="group grid gap-3">
-			<summary class="cursor-pointer list-none text-sm font-semibold marker:hidden">
-				Post settings <span class="font-normal text-muted"
-					>· {REPLY.find((r) => r.value === replySetting)?.label}</span
-				>
+				<span>
+					Post settings
+					<span class="font-normal text-muted">
+						· {REPLY.find((r) => r.value === replySetting)?.label}
+					</span>
+				</span>
+				<ChevronDown class="size-4 text-muted transition-transform group-open:rotate-180" />
 			</summary>
-			<div class="mt-3 grid gap-4">
-				<label class="grid gap-1.5 text-sm">
+			<div class="grid gap-4 border-t border-line px-4 py-4">
+				<label class="grid gap-1.5 text-sm" for="reply-select">
 					Who can reply
-					<Select bind:value={replySetting} items={REPLY} />
+					<Select id="reply-select" bind:value={replySetting} items={REPLY} />
 				</label>
 				<label class="grid gap-1.5 text-sm">
 					Community ID
@@ -448,7 +325,7 @@
 						bind:value={options.communityId}
 						inputmode="numeric"
 						placeholder="Optional"
-						class="h-10 rounded-ctl border border-line bg-surface px-3 outline-none focus:border-accent"
+						class="h-10 rounded-lg border border-line bg-surface px-3 outline-none focus:border-blue-500"
 					/>
 					<span class="text-xs text-muted"
 						>The number at the end of the community's URL on x.com.</span
@@ -468,28 +345,101 @@
 			</div>
 		</details>
 
-		<section class="grid gap-1 border-t border-line pt-4" aria-labelledby="cost-h">
-			<div class="flex items-baseline justify-between">
-				<h2 id="cost-h" class="text-sm font-semibold">Estimated cost</h2>
-				<span class="text-lg font-semibold tnum">{formatUsd(totalCost)}</span>
-			</div>
-			<p class="text-xs text-muted">
+		<div class="mt-6 flex items-baseline justify-between gap-3 text-sm">
+			<p class="text-muted">
+				Estimated cost:
 				{cost.posts + cost.postsWithUrl} post{cost.posts + cost.postsWithUrl > 1 ? 's' : ''}
-				{#if cost.postsWithUrl}· {cost.postsWithUrl} at the link rate ({formatUsd(
-						rates.postWithUrl
-					)}){/if}
-				{#if cost.altTexts}· {cost.altTexts} alt text{/if}
+				{#if cost.postsWithUrl}· {cost.postsWithUrl} at the link rate{/if}
+				{#if cost.altTexts}· {cost.altTexts} image description{cost.altTexts > 1 ? 's' : ''}{/if}
 				{#if accountIds.length > 1}· × {accountIds.length} accounts{/if}
 			</p>
-		</section>
+			<span class="text-lg font-semibold tnum">{formatUsd(totalCost)}</span>
+		</div>
 
-		<div
-			class="fixed inset-x-0 bottom-[calc(3.75rem+env(safe-area-inset-bottom))] z-20 border-t border-line bg-bg/95 px-4 py-3 backdrop-blur md:static md:border-0 md:bg-transparent md:p-0"
+		<div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+			<button
+				type="button"
+				disabled={!canSubmit}
+				onclick={() => submit(primary)}
+				class="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3.5 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:bg-primary-hover hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
+			>
+				{#if busy}
+					<Loader class="size-5 animate-spin" />Saving…
+				{:else if uploading}
+					<Loader class="size-5 animate-spin" />Uploading…
+				{:else}
+					{#if primary === 'schedule'}<Calendar
+							class="size-5"
+						/>{:else if primary === 'queue'}<ListPlus class="size-5" />{:else}<Send
+							class="size-5"
+						/>{/if}
+					{LABELS[primary]}
+				{/if}
+			</button>
+
+			<DropdownMenu.Root>
+				<DropdownMenu.Trigger
+					disabled={!canSubmit}
+					class="group inline-flex w-full items-center justify-center gap-2 rounded-lg border-2 border-line-strong bg-surface px-4 py-3 text-sm font-medium text-ink-2 shadow-sm transition-colors hover:bg-surface-2 disabled:opacity-50 sm:w-auto"
+				>
+					More actions
+					<ChevronDown class="size-4 transition-transform group-data-[state=open]:rotate-180" />
+				</DropdownMenu.Trigger>
+				<DropdownMenu.Portal>
+					<DropdownMenu.Content
+						align="end"
+						sideOffset={8}
+						class="z-50 w-60 animate-[pop-in_0.15s_ease-out] rounded-xl border border-line bg-raised p-1 shadow-pop"
+					>
+						{#each MORE as a (a.id)}
+							<DropdownMenu.Item
+								onSelect={() => submit(a.id)}
+								class="flex cursor-default items-center gap-3 rounded-lg px-3 py-2.5 text-sm outline-none data-highlighted:bg-surface-2"
+							>
+								<span
+									class={cn(
+										'flex size-8 shrink-0 items-center justify-center rounded-lg',
+										TONES[a.tone]
+									)}
+								>
+									<a.icon class="size-4" />
+								</span>
+								<span class="grid">
+									<span class="font-medium text-ink">{LABELS[a.id]}</span>
+									<span class="text-xs text-muted">{a.hint}</span>
+								</span>
+							</DropdownMenu.Item>
+						{/each}
+					</DropdownMenu.Content>
+				</DropdownMenu.Portal>
+			</DropdownMenu.Root>
+		</div>
+		<p class="mt-2 hidden text-xs text-muted sm:block">
+			Ctrl + Enter to {LABELS[primary].toLowerCase()}
+		</p>
+
+		{#if cardDragOver}
+			<div
+				class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-lg border-2 border-dashed border-blue-500 bg-blue-500/5 text-sm font-semibold text-blue-600 dark:text-blue-300"
+			>
+				Drop to attach to post {Math.min(focusIndex, items.length - 1) + 1}
+			</div>
+		{/if}
+	</section>
+
+	<!-- Live preview (legacy right column) -->
+	<aside class="w-full md:sticky md:top-6 md:w-[20rem] md:shrink-0 xl:w-[26rem]">
+		<button
+			type="button"
+			class="mb-3 flex items-center gap-2 text-sm text-muted hover:text-ink md:hidden"
+			onclick={() => (showPreview = !showPreview)}
+			aria-expanded={showPreview}
 		>
-			<Button variant="primary" size="lg" class="w-full" disabled={!canSubmit} onclick={submit}>
-				{busy ? 'Saving…' : uploading ? 'Uploading…' : submitLabel}
-			</Button>
-			<p class="mt-2 hidden text-center text-xs text-muted md:block">Ctrl + Enter</p>
+			<Eye class="size-4" />{showPreview ? 'Hide preview' : 'Show preview'}
+		</button>
+		<div class={cn(!showPreview && 'hidden md:block')}>
+			<h2 class="mb-3 hidden text-sm font-medium text-muted md:block">Preview</h2>
+			<PostPreview {items} account={selectedAccounts[0] ?? null} at={scheduledAt} {tz} />
 		</div>
 	</aside>
 </div>

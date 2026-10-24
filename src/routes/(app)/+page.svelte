@@ -83,7 +83,7 @@
 		{#if data.accounts.length}<h2 id="up-next" class="mb-4 text-lg font-semibold">Up next</h2>{/if}
 		{#if data.upcoming.length}
 			<TimeRail posts={data.upcoming} tz={data.tz} />
-			<a href="/calendar" class="mt-5 inline-block pl-[4.75rem] text-sm text-accent hover:underline"
+			<a href="/calendar" class="mt-5 inline-block pl-[5.75rem] text-sm text-accent hover:underline"
 				>See everything in the calendar</a
 			>
 		{:else if data.accounts.length}

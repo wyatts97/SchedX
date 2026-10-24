@@ -1,9 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import Avatar from './avatar.svelte';
-	import StatusBadge from './status-badge.svelte';
+	import PostCard from './post-card.svelte';
 	import { formatTime, formatRelative, startOfLocalDay, DAY } from '#lib/shared/time.js';
-	import { formatUsd } from '#lib/shared/cost.js';
 	import type { PostView } from '#lib/shared/compose.js';
 
 	let { posts, tz }: { posts: PostView[]; tz: string } = $props();
@@ -39,11 +37,12 @@
 	});
 </script>
 
-<ol class="relative grid gap-6 pl-[4.75rem]" aria-label="Upcoming posts">
-	<span class="absolute top-2 bottom-2 left-[4.25rem] w-px bg-rail" aria-hidden="true"></span>
+<ol class="relative grid gap-6 pl-[5.75rem]" aria-label="Upcoming posts">
+	<span class="absolute top-2 bottom-2 left-[5.25rem] w-px bg-rail" aria-hidden="true"></span>
 
 	<li class="relative flex items-center gap-3 text-sm">
-		<span class="absolute -left-[4.75rem] w-14 text-right font-semibold text-accent tnum"
+		<span
+			class="absolute -left-[5.75rem] w-[4.75rem] text-right font-semibold whitespace-nowrap text-accent tnum"
 			>{formatTime(now, tz)}</span
 		>
 		<span
@@ -58,10 +57,9 @@
 			<h3 class="text-[0.8125rem] font-semibold text-muted">{group.label}</h3>
 			<ol class="grid gap-3">
 				{#each group.posts as post (post.id)}
-					{@const first = post.items[0]}
 					<li class="relative">
 						<time
-							class="absolute top-3.5 -left-[4.75rem] w-14 text-right text-sm font-semibold tnum"
+							class="absolute top-3.5 -left-[5.75rem] w-[4.75rem] text-right text-sm font-semibold whitespace-nowrap tnum"
 							datetime={new Date(post.scheduledAt ?? now).toISOString()}
 							title={formatRelative(post.scheduledAt ?? now, now)}
 						>
@@ -71,33 +69,7 @@
 							class="absolute top-[1.15rem] -left-[0.72rem] size-2 rounded-full border-2 border-rail bg-bg"
 							aria-hidden="true"
 						></span>
-						<a
-							href="/compose?edit={post.id}"
-							class="block rounded-panel border border-line bg-surface px-4 py-3 transition-colors hover:border-line-strong"
-						>
-							<div class="mb-1.5 flex items-center gap-2 text-sm">
-								<Avatar src={post.account.avatarUrl} name={post.account.username} size="sm" />
-								<span class="truncate text-muted">@{post.account.username}</span>
-								{#if post.status !== 'scheduled' || post.queued}<StatusBadge
-										status={post.status}
-										queued={post.queued}
-									/>{/if}
-								<span class="ml-auto text-[0.8125rem] text-muted tnum" title="Estimated cost"
-									>{formatUsd(post.estCost)}</span
-								>
-							</div>
-							<p class="line-clamp-2 text-[0.9375rem] break-words">
-								{first?.text ||
-									(first?.media.length
-										? `${first.media.length} attachment${first.media.length > 1 ? 's' : ''}`
-										: '')}
-							</p>
-							{#if post.items.length > 1}
-								<p class="mt-1 text-[0.8125rem] text-muted">
-									+ {post.items.length - 1} more in thread
-								</p>
-							{/if}
-						</a>
+						<PostCard {post} {tz} />
 					</li>
 				{/each}
 			</ol>

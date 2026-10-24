@@ -47,6 +47,7 @@ let setupDone = false;
 export const handle: Handle = async ({ event, resolve }) => {
 	const cookieTheme = event.cookies.get('theme') as Theme | undefined;
 	event.locals.theme = cookieTheme && THEMES.includes(cookieTheme) ? cookieTheme : 'system';
+	event.locals.sidebarCollapsed = event.cookies.get('sidebar') === 'collapsed';
 
 	const token = event.cookies.get(SESSION_COOKIE);
 	if (token) {

@@ -8,6 +8,7 @@ declare global {
 			user?: SafeUser;
 			sessionId?: string;
 			theme: Theme;
+			sidebarCollapsed: boolean;
 		}
 		// interface Error {}
 		// interface PageData {}

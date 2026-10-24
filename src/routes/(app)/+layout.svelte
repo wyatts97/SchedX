@@ -3,9 +3,15 @@
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps = $props();
-	let theme = $derived(data.theme);
 </script>
 
-<AppShell bind:theme attention={data.attention} mockMode={data.mockMode} paused={data.paused}>
+<AppShell
+	theme={data.theme}
+	sidebarCollapsed={data.sidebarCollapsed}
+	attention={data.attention}
+	mockMode={data.mockMode}
+	paused={data.paused}
+	accounts={data.accounts}
+>
 	{@render children()}
 </AppShell>
