@@ -2,6 +2,8 @@
 
 # ---- build ----
 FROM node:24-alpine AS build
+# Toolchain for native modules (better-sqlite3) when no prebuilt binary matches
+RUN apk add --no-cache python3 make g++
 WORKDIR /app
 COPY package.json package-lock.json .npmrc ./
 RUN npm ci
