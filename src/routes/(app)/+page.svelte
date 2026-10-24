@@ -78,7 +78,7 @@
 	</div>
 {/each}
 
-<div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_17rem]">
+<div class="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_17rem]">
 	<section aria-labelledby="up-next">
 		{#if data.accounts.length}<h2 id="up-next" class="mb-4 text-lg font-semibold">Up next</h2>{/if}
 		{#if data.upcoming.length}
@@ -98,7 +98,7 @@
 
 		{#if data.attention.length}
 			<h2 class="mt-12 mb-4 text-lg font-semibold">Needs your attention</h2>
-			<div class="grid gap-3">
+			<div class="grid grid-cols-1 gap-3">
 				{#each data.attention as post (post.id)}
 					<PostCard {post} tz={data.tz} />
 				{/each}

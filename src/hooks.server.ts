@@ -33,10 +33,18 @@ const THEME_COLOR: Record<Exclude<Theme, 'system'>, string> = {
 };
 
 function themeColorMeta(theme: Theme): string {
-	if (theme !== 'system') return `<meta name="theme-color" content="${THEME_COLOR[theme]}" />`;
+	// In the installed iOS app, dark themes draw under a translucent status bar (white clock on our
+	// dark header). Light and "match device" keep iOS's own opaque bar so the clock never ends up
+	// white-on-white. iOS reads this when the app launches.
+	const statusBar = theme === 'dark' || theme === 'black' ? 'black-translucent' : 'default';
+	const appleMeta = `<meta name="apple-mobile-web-app-status-bar-style" content="${statusBar}" />`;
+	if (theme !== 'system') {
+		return `<meta name="theme-color" content="${THEME_COLOR[theme]}" />${appleMeta}`;
+	}
 	return (
 		`<meta name="theme-color" media="(prefers-color-scheme: light)" content="${THEME_COLOR.light}" />` +
-		`<meta name="theme-color" media="(prefers-color-scheme: dark)" content="${THEME_COLOR.dark}" />`
+		`<meta name="theme-color" media="(prefers-color-scheme: dark)" content="${THEME_COLOR.dark}" />` +
+		appleMeta
 	);
 }
 

@@ -93,7 +93,8 @@
 	{#if data.media.length > 0}
 		<ul class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
 			{#each data.media as m (m.id)}
-				<li class="grid content-start gap-2">
+				<!-- A flex column (not a grid) so a long filename can't widen the tile past its column. -->
+				<li class="flex min-w-0 flex-col gap-2">
 					<a
 						href={m.url}
 						target="_blank"
@@ -113,8 +114,8 @@
 							>
 						{/if}
 					</a>
-					<div class="flex items-center gap-2 text-xs text-muted">
-						<span class="truncate" title={m.originalName}>{m.originalName}</span>
+					<div class="flex min-w-0 items-center gap-2 text-xs text-muted">
+						<span class="min-w-0 truncate" title={m.originalName}>{m.originalName}</span>
 						<span class="ml-auto shrink-0 tnum">{formatBytes(m.size)}</span>
 						<button
 							type="button"
@@ -131,11 +132,11 @@
 						<textarea
 							rows="2"
 							maxlength="1000"
-							placeholder="Describe this image for people using screen readers"
+							placeholder="Describe this image"
 							aria-label="Description for {m.originalName}"
 							value={m.altText}
 							onchange={(e) => saveAlt(m.id, e.currentTarget.value)}
-							class="w-full resize-none rounded-ctl border border-line bg-surface px-2.5 py-1.5 text-xs outline-none focus:border-accent"
+							class="w-full min-w-0 resize-none rounded-ctl border border-line bg-surface px-2.5 py-1.5 text-base outline-none focus:border-accent sm:text-xs"
 						></textarea>
 					{/if}
 				</li>

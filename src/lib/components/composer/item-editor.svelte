@@ -276,7 +276,7 @@
 	{#if item.media.length || item.uploads.length}
 		<div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
 			{#each item.media as m, i (m.id + i)}
-				<figure class="grid gap-1.5">
+				<figure class="flex min-w-0 flex-col gap-1.5">
 					<div
 						class="relative aspect-square overflow-hidden rounded-lg border border-line bg-surface-2"
 					>
@@ -303,7 +303,7 @@
 							placeholder="Describe this image"
 							aria-label="Alt text for {m.originalName}"
 							class={cn(
-								'w-full rounded-md border bg-surface px-2 py-1 text-xs outline-none focus:border-blue-500',
+								'w-full min-w-0 rounded-md border bg-surface px-2 py-1 text-base outline-none focus:border-blue-500 sm:text-xs',
 								m.alt.trim() ? 'border-line' : 'border-amber-500/60'
 							)}
 						/>

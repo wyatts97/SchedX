@@ -37,7 +37,7 @@
 	});
 </script>
 
-<ol class="relative grid gap-6 pl-[5.75rem]" aria-label="Upcoming posts">
+<ol class="relative grid grid-cols-1 gap-6 pl-[5.75rem]" aria-label="Upcoming posts">
 	<span class="absolute top-2 bottom-2 left-[5.25rem] w-px bg-rail" aria-hidden="true"></span>
 
 	<li class="relative flex items-center gap-3 text-sm">
@@ -53,9 +53,9 @@
 	</li>
 
 	{#each groups as group (group.label)}
-		<li class="grid gap-3">
+		<li class="grid min-w-0 grid-cols-1 gap-3">
 			<h3 class="text-[0.8125rem] font-semibold text-muted">{group.label}</h3>
-			<ol class="grid gap-3">
+			<ol class="grid grid-cols-1 gap-3">
 				{#each group.posts as post (post.id)}
 					<li class="relative">
 						<time

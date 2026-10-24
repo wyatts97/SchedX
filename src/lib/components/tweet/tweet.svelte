@@ -78,7 +78,7 @@
 	{#if item.text}
 		<p
 			class={cn(
-				'break-words whitespace-pre-line text-ink',
+				'wrap-anywhere whitespace-pre-line text-ink',
 				large ? 'mt-3 text-xl leading-snug' : 'text-[0.9375rem] leading-normal'
 			)}
 		>

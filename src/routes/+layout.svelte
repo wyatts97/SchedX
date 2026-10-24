@@ -20,6 +20,7 @@
 
 <Toaster
 	position="top-center"
+	mobileOffset={{ top: 'calc(env(safe-area-inset-top) + 16px)' }}
 	toastOptions={{
 		class: '!bg-raised !text-ink !border-line !shadow-pop !rounded-ctl'
 	}}

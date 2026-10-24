@@ -56,7 +56,7 @@
 </nav>
 
 {#if data.posts.length}
-	<div class="grid gap-3">
+	<div class="grid grid-cols-1 gap-3">
 		{#each data.posts as post (post.id)}
 			<PostCard {post} tz={data.tz} />
 		{/each}

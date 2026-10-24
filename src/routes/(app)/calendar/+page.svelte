@@ -111,7 +111,7 @@
 			>
 		</div>
 	{/if}
-	<div class="grid gap-3">
+	<div class="grid grid-cols-1 gap-3">
 		{#each upcoming as post (post.id)}
 			<PostCard {post} tz={data.tz} selectable bind:selected={selected[post.id]} />
 		{/each}

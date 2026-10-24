@@ -1,22 +1,25 @@
 import { expect, test, type Page } from '@playwright/test';
 
 /** Drops a generated PNG onto an element the way a browser drag-and-drop would. */
-async function dropImage(page: Page, selector: string) {
-	await page.evaluate(async (sel) => {
-		const canvas = document.createElement('canvas');
-		canvas.width = 48;
-		canvas.height = 48;
-		canvas.getContext('2d')!.fillRect(0, 0, 48, 48);
-		const blob = await new Promise<Blob>((r) => canvas.toBlob((b) => r(b!), 'image/png'));
-		const data = new DataTransfer();
-		data.items.add(new File([blob], 'dropped.png', { type: 'image/png' }));
-		const target = document.querySelector(sel)!;
-		for (const type of ['dragenter', 'dragover', 'drop']) {
-			target.dispatchEvent(
-				new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer: data })
-			);
-		}
-	}, selector);
+async function dropImage(page: Page, selector: string, name = 'dropped.png') {
+	await page.evaluate(
+		async ([sel, fileName]) => {
+			const canvas = document.createElement('canvas');
+			canvas.width = 48;
+			canvas.height = 48;
+			canvas.getContext('2d')!.fillRect(0, 0, 48, 48);
+			const blob = await new Promise<Blob>((r) => canvas.toBlob((b) => r(b!), 'image/png'));
+			const data = new DataTransfer();
+			data.items.add(new File([blob], fileName, { type: 'image/png' }));
+			const target = document.querySelector(sel)!;
+			for (const type of ['dragenter', 'dragover', 'drop']) {
+				target.dispatchEvent(
+					new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer: data })
+				);
+			}
+		},
+		[selector, name] as const
+	);
 }
 
 test('set up, connect a mock account, post a thread', async ({ page }) => {
@@ -72,14 +75,20 @@ test('set up, connect a mock account, post a thread', async ({ page }) => {
 });
 
 test('media library accepts dropped files', async ({ page }) => {
+	// Works on its own or after the flow above (which creates the account).
 	await page.goto('/login');
 	await page.getByLabel('Username').fill('e2e');
-	await page.getByLabel('Password').fill('e2e-password-123');
-	await page.getByRole('button', { name: 'Sign in' }).click();
-	await expect(page).toHaveURL(/\/$/);
+	await page.getByLabel('Password', { exact: true }).fill('e2e-password-123');
+	if (page.url().includes('/setup')) {
+		await page.getByLabel('Confirm password').fill('e2e-password-123');
+		await page.getByRole('button', { name: 'Create account' }).click();
+	} else {
+		await page.getByRole('button', { name: 'Sign in' }).click();
+	}
+	await expect(page).not.toHaveURL(/\/(login|setup)/);
 
 	await page.goto('/library');
-	await dropImage(page, '[aria-label^="Upload media"]');
+	await dropImage(page, '[aria-label^="Upload media"]', 'library-drop.png');
 	await expect(page.getByText('Uploaded 1 file')).toBeVisible();
-	await expect(page.getByLabel('Description for dropped.png')).toBeVisible();
+	await expect(page.getByLabel('Description for library-drop.png')).toBeVisible();
 });

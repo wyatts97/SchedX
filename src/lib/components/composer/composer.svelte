@@ -263,7 +263,7 @@
 			</div>
 		{/if}
 
-		<div class="grid gap-5">
+		<div class="grid grid-cols-1 gap-5">
 			{#each items as item, i (item.key)}
 				<ItemEditor
 					bind:this={editors[i]}
