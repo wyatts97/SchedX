@@ -43,7 +43,9 @@ function occupiedMinutes(accountId: string, after: number, excludePostId?: strin
 		)
 		.all();
 	return new Set(
-		rows.filter((r) => r.id !== excludePostId && r.at !== null).map((r) => Math.floor(r.at! / MINUTE))
+		rows
+			.filter((r) => r.id !== excludePostId && r.at !== null)
+			.map((r) => Math.floor(r.at! / MINUTE))
 	);
 }
 
@@ -51,7 +53,12 @@ function occupiedMinutes(accountId: string, after: number, excludePostId?: strin
  * Next queue slot for the account that no other pending post occupies, or null when the
  * account has no queue times configured.
  */
-export function nextFreeSlot(accountId: string, tz: string, after = Date.now(), excludePostId?: string): number | null {
+export function nextFreeSlot(
+	accountId: string,
+	tz: string,
+	after = Date.now(),
+	excludePostId?: string
+): number | null {
 	const slots = getSlots(accountId);
 	if (!slots.length) return null;
 	const taken = occupiedMinutes(accountId, after, excludePostId);

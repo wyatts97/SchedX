@@ -10,20 +10,26 @@ export const variables = defineEnvVars({
 		schema: optional
 	},
 	ENCRYPTION_KEY: {
-		description: 'Secret (32+ chars) used to encrypt X tokens at rest. Generate: npm run gen:secrets',
+		description:
+			'Secret (32+ chars) used to encrypt X tokens at rest. Generate: npm run gen:secrets',
 		schema: optional
 	},
 	APP_URL: {
-		description: 'Public URL of the app, e.g. https://schedx.example.com (used for the X OAuth callback)',
+		description:
+			'Public URL of the app, e.g. https://schedx.example.com (used for the X OAuth callback)',
 		schema: optional
 	},
-	X_CLIENT_ID: { description: 'OAuth 2.0 Client ID from the X Developer Console', schema: optional },
+	X_CLIENT_ID: {
+		description: 'OAuth 2.0 Client ID from the X Developer Console',
+		schema: optional
+	},
 	X_CLIENT_SECRET: {
 		description: 'OAuth 2.0 Client Secret from the X Developer Console',
 		schema: optional
 	},
 	X_API_MODE: {
-		description: '"live" (default) talks to the real X API; "mock" uses a fake client that costs nothing',
+		description:
+			'"live" (default) talks to the real X API; "mock" uses a fake client that costs nothing',
 		schema: optional
 	},
 	VAPID_PUBLIC_KEY: { description: 'Web push public key', schema: optional },

@@ -3,7 +3,12 @@ import { eq } from 'drizzle-orm';
 import { getDb, schema } from '#lib/server/db/index.js';
 import { savePost, retryNow } from '#lib/server/posts/service.js';
 import { tick, resumePublishing } from '#lib/server/scheduler/loop.js';
-import { setSlots, nextFreeSlot, listQueuedIds, reorderQueue } from '#lib/server/scheduler/queue.js';
+import {
+	setSlots,
+	nextFreeSlot,
+	listQueuedIds,
+	reorderQueue
+} from '#lib/server/scheduler/queue.js';
 import { nextOccurrence } from '#lib/server/scheduler/recurrence.js';
 import { mockStore } from '#lib/server/x/mock.js';
 import { getSettings, setSetting, DEFAULT_SETTINGS } from '#lib/server/settings.js';
@@ -29,7 +34,9 @@ function timeline() {
 }
 
 beforeEach(async () => {
-	({ account: { id: accountId } } = await setupTestEnv());
+	({
+		account: { id: accountId }
+	} = await setupTestEnv());
 });
 
 describe('publishing', () => {
@@ -55,12 +62,18 @@ describe('publishing', () => {
 		const items = itemRows(id);
 		expect(postRow(id).status).toBe('published');
 		expect(items.every((i) => i.xPostId)).toBe(true);
-		expect(timeline().map((t) => t.text).reverse()).toEqual(['Thread 1/3', 'Thread 2/3', 'Thread 3/3']);
+		expect(
+			timeline()
+				.map((t) => t.text)
+				.reverse()
+		).toEqual(['Thread 1/3', 'Thread 2/3', 'Thread 3/3']);
 	});
 
 	it('uploads media and charges for alt text', async () => {
 		const mediaId = await makeImage();
-		const id = compose({ items: [{ text: 'pic', media: [{ id: mediaId, altText: 'A blue square' }] }] });
+		const id = compose({
+			items: [{ text: 'pic', media: [{ id: mediaId, altText: 'A blue square' }] }]
+		});
 		await tick();
 		expect(postRow(id).status).toBe('published');
 		expect(currentSpend().spent).toBeCloseTo(0.02);
@@ -124,7 +137,11 @@ describe('failures', () => {
 		getDb().update(schema.posts).set({ nextAttemptAt: null }).where(eq(schema.posts.id, id)).run();
 		await tick();
 		expect(postRow(id).status).toBe('published');
-		expect(timeline().map((t) => t.text).reverse()).toEqual(['part one', 'part two', 'part three']);
+		expect(
+			timeline()
+				.map((t) => t.text)
+				.reverse()
+		).toEqual(['part one', 'part two', 'part three']);
 	});
 
 	it('recovers a post interrupted mid-publish (expired lease) via verification', async () => {
@@ -149,7 +166,11 @@ describe('failures', () => {
 		expect(getSettings().publishingPaused?.reason).toBe('credits');
 		expect(postRow(b).status).toBe('scheduled');
 
-		getDb().update(schema.postItems).set({ text: 'money now' }).where(eq(schema.postItems.postId, a)).run();
+		getDb()
+			.update(schema.postItems)
+			.set({ text: 'money now' })
+			.where(eq(schema.postItems.postId, a))
+			.run();
 		resumePublishing();
 		await tick();
 		expect(postRow(a).status).toBe('published');
@@ -192,7 +213,10 @@ describe('queue', () => {
 	});
 
 	it('assigns distinct slots and can reorder them', () => {
-		setSlots(accountId, [1, 2, 3, 4, 5, 6, 7].map((weekday) => ({ weekday, minutes: 12 * 60 })));
+		setSlots(
+			accountId,
+			[1, 2, 3, 4, 5, 6, 7].map((weekday) => ({ weekday, minutes: 12 * 60 }))
+		);
 		const a = compose({ action: 'queue', items: [{ text: 'A', media: [] }] });
 		const b = compose({ action: 'queue', items: [{ text: 'B', media: [] }] });
 		const queued = listQueuedIds(accountId);

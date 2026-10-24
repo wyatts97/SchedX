@@ -1,0 +1,191 @@
+@import '@fontsource-variable/instrument-sans';
+@import 'tailwindcss';
+
+/* Dark variants follow the data-theme attribute; "system" follows the OS. */
+@custom-variant dark {
+	&:where([data-theme='dark'] *, [data-theme='black'] *) {
+		@slot;
+	}
+	@media (prefers-color-scheme: dark) {
+		&:where([data-theme='system'] *) {
+			@slot;
+		}
+	}
+}
+
+/* ---------- Theme tokens ---------- */
+:root,
+[data-theme='light'],
+[data-theme='system'] {
+	--bg: #f3f5f7;
+	--surface: #ffffff;
+	--surface-2: #f8fafb;
+	--raised: #ffffff;
+	--line: #e1e6ea;
+	--line-strong: #c9d1d8;
+	--ink: #0f1419;
+	--ink-2: #3a4550;
+	--muted: #5f6c78;
+	--accent: #3f51e0;
+	--accent-ink: #ffffff;
+	--accent-soft: #e9ecff;
+	--ok: #18794e;
+	--ok-soft: #e3f4ea;
+	--bad: #c52f2f;
+	--bad-soft: #fde8e8;
+	--warn: #a3600b;
+	--warn-soft: #fdf1dc;
+	--rail: #c9d1d8;
+	--shadow: 0 1px 2px rgb(15 20 25 / 0.06), 0 8px 24px -12px rgb(15 20 25 / 0.18);
+	color-scheme: light;
+}
+
+[data-theme='dark'] {
+	--bg: #15202b;
+	--surface: #1b2733;
+	--surface-2: #192430;
+	--raised: #22303d;
+	--line: #2c3b49;
+	--line-strong: #3d4f60;
+	--ink: #e9eef2;
+	--ink-2: #c3ccd4;
+	--muted: #8d9aa6;
+	--accent: #8094ff;
+	--accent-ink: #0d1430;
+	--accent-soft: #24305a;
+	--ok: #4cc38a;
+	--ok-soft: #173a2b;
+	--bad: #f2777a;
+	--bad-soft: #43222a;
+	--warn: #f0b252;
+	--warn-soft: #3e3020;
+	--rail: #3d4f60;
+	--shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 12px 32px -16px rgb(0 0 0 / 0.6);
+	color-scheme: dark;
+}
+
+[data-theme='black'] {
+	--bg: #000000;
+	--surface: #0c0e10;
+	--surface-2: #08090a;
+	--raised: #16191c;
+	--line: #22262a;
+	--line-strong: #33393f;
+	--ink: #e7e9ea;
+	--ink-2: #c4c8cb;
+	--muted: #7a8086;
+	--accent: #8a9cff;
+	--accent-ink: #050816;
+	--accent-soft: #1a2040;
+	--ok: #4cc38a;
+	--ok-soft: #0f2a1e;
+	--bad: #f2777a;
+	--bad-soft: #36161b;
+	--warn: #f0b252;
+	--warn-soft: #2e2312;
+	--rail: #33393f;
+	--shadow: 0 0 0 1px #22262a, 0 12px 32px -16px rgb(0 0 0 / 0.9);
+	color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+	[data-theme='system'] {
+		--bg: #15202b;
+		--surface: #1b2733;
+		--surface-2: #192430;
+		--raised: #22303d;
+		--line: #2c3b49;
+		--line-strong: #3d4f60;
+		--ink: #e9eef2;
+		--ink-2: #c3ccd4;
+		--muted: #8d9aa6;
+		--accent: #8094ff;
+		--accent-ink: #0d1430;
+		--accent-soft: #24305a;
+		--ok: #4cc38a;
+		--ok-soft: #173a2b;
+		--bad: #f2777a;
+		--bad-soft: #43222a;
+		--warn: #f0b252;
+		--warn-soft: #3e3020;
+		--rail: #3d4f60;
+		--shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 12px 32px -16px rgb(0 0 0 / 0.6);
+		color-scheme: dark;
+	}
+}
+
+@theme inline {
+	--font-sans: 'Instrument Sans Variable', ui-sans-serif, system-ui, sans-serif;
+	--color-bg: var(--bg);
+	--color-surface: var(--surface);
+	--color-surface-2: var(--surface-2);
+	--color-raised: var(--raised);
+	--color-line: var(--line);
+	--color-line-strong: var(--line-strong);
+	--color-ink: var(--ink);
+	--color-ink-2: var(--ink-2);
+	--color-muted: var(--muted);
+	--color-accent: var(--accent);
+	--color-accent-ink: var(--accent-ink);
+	--color-accent-soft: var(--accent-soft);
+	--color-ok: var(--ok);
+	--color-ok-soft: var(--ok-soft);
+	--color-bad: var(--bad);
+	--color-bad-soft: var(--bad-soft);
+	--color-warn: var(--warn);
+	--color-warn-soft: var(--warn-soft);
+	--color-rail: var(--rail);
+	--shadow-pop: var(--shadow);
+	--radius-ctl: 0.625rem;
+	--radius-panel: 1rem;
+}
+
+@layer base {
+	html {
+		-webkit-text-size-adjust: 100%;
+		text-rendering: optimizeLegibility;
+	}
+	body {
+		background: var(--bg);
+		color: var(--ink);
+		font-family: var(--font-sans);
+		font-size: 0.9375rem;
+		line-height: 1.5;
+		-webkit-font-smoothing: antialiased;
+	}
+	h1,
+	h2,
+	h3 {
+		letter-spacing: -0.015em;
+		line-height: 1.2;
+		text-wrap: balance;
+	}
+	::selection {
+		background: var(--accent-soft);
+	}
+	:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+		border-radius: 4px;
+	}
+	button,
+	[role='button'] {
+		cursor: pointer;
+	}
+	button:disabled {
+		cursor: not-allowed;
+	}
+}
+
+@utility tnum {
+	font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		transition-duration: 0.01ms !important;
+	}
+}

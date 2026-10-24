@@ -3,7 +3,13 @@ import type { ComposeInput } from '../../shared/compose.js';
 
 const pollSchema = z.object({
 	options: z
-		.array(z.string().trim().min(1, 'Poll options cannot be empty').max(25, 'Poll options are max 25 characters'))
+		.array(
+			z
+				.string()
+				.trim()
+				.min(1, 'Poll options cannot be empty')
+				.max(25, 'Poll options are max 25 characters')
+		)
 		.min(2, 'A poll needs at least 2 options')
 		.max(4, 'A poll can have at most 4 options'),
 	durationMinutes: z.number().int().min(5).max(10080)
@@ -26,7 +32,9 @@ export const composeSchema = z.object({
 		.max(25, 'Threads are limited to 25 posts'),
 	options: z
 		.object({
-			replySettings: z.enum(['everyone', 'following', 'mentionedUsers', 'subscribers', 'verified']).optional(),
+			replySettings: z
+				.enum(['everyone', 'following', 'mentionedUsers', 'subscribers', 'verified'])
+				.optional(),
 			communityId: z.string().trim().regex(/^\d*$/, 'Community ID must be numeric').optional(),
 			shareWithFollowers: z.boolean().optional(),
 			madeWithAi: z.boolean().optional(),

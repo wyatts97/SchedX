@@ -113,7 +113,10 @@ export async function tick(now = Date.now()): Promise<void> {
 		if (!claimPost(id, Date.now())) continue;
 		try {
 			await publishPost(id);
-			setRaw('scheduler.heartbeat', { ...(getHeartbeat() ?? { lastTick: now }), lastPublished: Date.now() });
+			setRaw('scheduler.heartbeat', {
+				...(getHeartbeat() ?? { lastTick: now }),
+				lastPublished: Date.now()
+			});
 		} catch (err) {
 			// publishPost handles its own errors; this is a last-resort guard.
 			logger.error({ postId: id, err: errorMessage(err) }, 'unexpected publish error');
@@ -149,7 +152,9 @@ export async function backupDatabase(): Promise<string> {
 	await fsp.mkdir(dir, { recursive: true });
 	const file = path.join(dir, `schedx-${new Date().toISOString().slice(0, 10)}.db`);
 	await getDb().$client.backup(file);
-	const files = (await fsp.readdir(dir)).filter((f) => /^schedx-\d{4}-\d{2}-\d{2}\.db$/.test(f)).sort();
+	const files = (await fsp.readdir(dir))
+		.filter((f) => /^schedx-\d{4}-\d{2}-\d{2}\.db$/.test(f))
+		.sort();
 	for (const old of files.slice(0, Math.max(0, files.length - KEEP_BACKUPS))) {
 		await fsp.rm(path.join(dir, old), { force: true });
 	}
@@ -159,7 +164,10 @@ export async function backupDatabase(): Promise<string> {
 export async function listBackups(): Promise<{ name: string; size: number; mtime: number }[]> {
 	const dir = dataPath('backups');
 	try {
-		const names = (await fsp.readdir(dir)).filter((f) => f.endsWith('.db')).sort().reverse();
+		const names = (await fsp.readdir(dir))
+			.filter((f) => f.endsWith('.db'))
+			.sort()
+			.reverse();
 		return Promise.all(
 			names.map(async (name) => {
 				const st = await fsp.stat(path.join(dir, name));
@@ -224,7 +232,9 @@ export function resumePublishing(): number {
 			nextAttemptAt: null,
 			updatedAt: Date.now()
 		})
-		.where(and(eq(schema.posts.status, 'paused'), inArray(schema.posts.errorKind, ['credits', 'budget'])))
+		.where(
+			and(eq(schema.posts.status, 'paused'), inArray(schema.posts.errorKind, ['credits', 'budget']))
+		)
 		.run().changes;
 	kickScheduler();
 	return n;

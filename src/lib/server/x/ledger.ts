@@ -5,11 +5,7 @@ import { round } from '../../shared/cost.js';
 import type { Rates } from '../../shared/types.js';
 
 export type BillableOp =
-	| 'post.create'
-	| 'post.create_url'
-	| 'media.metadata'
-	| 'user.read'
-	| 'post.read.owned';
+	'post.create' | 'post.create_url' | 'media.metadata' | 'user.read' | 'post.read.owned';
 
 const RATE_FOR: Record<BillableOp, keyof Rates> = {
 	'post.create': 'post',

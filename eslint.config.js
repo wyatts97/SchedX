@@ -35,7 +35,11 @@ export default defineConfig(
 	},
 	{
 		// Override or add rule settings here, such as:
-		// 'svelte/button-has-type': 'error'
-		rules: {}
+		rules: {
+			// SchedX is always served from the domain root, so plain "/path" links are correct.
+			'svelte/no-navigation-without-resolve': 'off',
+			// Flags short-lived local Maps/URLSearchParams built inside functions and $derived.
+			'svelte/prefer-svelte-reactivity': 'off'
+		}
 	}
 );

@@ -48,7 +48,11 @@ export async function makeImage(): Promise<string> {
 
 export function postRow(id: string) {
 	const db = getDb();
-	return db.select().from(schema.posts).all().find((p) => p.id === id)!;
+	return db
+		.select()
+		.from(schema.posts)
+		.all()
+		.find((p) => p.id === id)!;
 }
 
 export function itemRows(postId: string) {

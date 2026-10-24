@@ -100,7 +100,8 @@ async function markPublished(post: PostRow): Promise<void> {
 	await notify({
 		event: 'published',
 		title: `Posted${account ? ` as @${account.username}` : ''}`,
-		body: preview(first?.text ?? '') + (items.length > 1 ? ` (+${items.length - 1} in thread)` : ''),
+		body:
+			preview(first?.text ?? '') + (items.length > 1 ? ` (+${items.length - 1} in thread)` : ''),
 		url: '/history'
 	});
 	continueSeries(post);
@@ -131,16 +132,28 @@ async function checkBudgetWarning(): Promise<void> {
 	}
 }
 
-async function handleFailure(post: PostRow, err: unknown, phase: 'post' | 'media' | 'read'): Promise<void> {
+async function handleFailure(
+	post: PostRow,
+	err: unknown,
+	phase: 'post' | 'media' | 'read'
+): Promise<void> {
 	const xe = err instanceof XError ? err : classifyXError(err, phase);
-	const fresh = getDb().select().from(schema.posts).where(eq(schema.posts.id, post.id)).get() ?? post;
+	const fresh =
+		getDb().select().from(schema.posts).where(eq(schema.posts.id, post.id)).get() ?? post;
 	const base = { leaseUntil: null, lastError: xe.message.slice(0, 1000), errorKind: xe.kind };
 	const firstText = preview(loadItems(post.id)[0]?.text ?? '');
-	logger.warn({ postId: post.id, kind: xe.kind, err: xe.message, attempt: fresh.attempts }, 'publish failed');
+	logger.warn(
+		{ postId: post.id, kind: xe.kind, err: xe.message, attempt: fresh.attempts },
+		'publish failed'
+	);
 
 	switch (xe.kind) {
 		case 'ambiguous':
-			setPost(post.id, { ...base, status: 'needs_verification', nextAttemptAt: Date.now() + MINUTE });
+			setPost(post.id, {
+				...base,
+				status: 'needs_verification',
+				nextAttemptAt: Date.now() + MINUTE
+			});
 			return;
 		case 'auth': {
 			setPost(post.id, { ...base, status: 'paused', nextAttemptAt: null });
@@ -171,7 +184,12 @@ async function handleFailure(post: PostRow, err: unknown, phase: 'post' | 'media
 
 	if (isPermanent(xe.kind) || fresh.attempts >= MAX_ATTEMPTS) {
 		setPost(post.id, { ...base, status: 'failed', nextAttemptAt: null });
-		await notify({ event: 'failed', title: 'Post failed', body: `${firstText} — ${xe.message}`, url: '/history?tab=failed' });
+		await notify({
+			event: 'failed',
+			title: 'Post failed',
+			body: `${firstText} — ${xe.message}`,
+			url: '/history?tab=failed'
+		});
 		continueSeries(fresh);
 		return;
 	}
@@ -187,7 +205,8 @@ async function uploadItemMedia(api: XApi, postId: string, itemId: string): Promi
 		const data = await readMediaFile(media);
 		const mediaId = await api.uploadMedia(data, media.mime, media.kind);
 		const alt = link.altText.trim();
-		if (alt && altTextBillable({ kind: media.kind, altText: alt })) await api.setAltText(mediaId, alt);
+		if (alt && altTextBillable({ kind: media.kind, altText: alt }))
+			await api.setAltText(mediaId, alt);
 		ids.push(mediaId);
 	}
 	return ids;
@@ -212,7 +231,9 @@ export async function publishPost(postId: string): Promise<void> {
 		const cost = estimateCost(
 			pending.map((i) => ({
 				text: i.text,
-				media: media.filter((m) => m.link.itemId === i.id).map((m) => ({ kind: m.media.kind, altText: m.link.altText }))
+				media: media
+					.filter((m) => m.link.itemId === i.id)
+					.map((m) => ({ kind: m.media.kind, altText: m.link.altText }))
 			})),
 			rates
 		).total;
@@ -226,7 +247,12 @@ export async function publishPost(postId: string): Promise<void> {
 				leaseUntil: null,
 				attempts: Math.max(0, post.attempts - 1)
 			});
-			await notify({ event: 'paused', title: 'Post paused: budget reached', body: message, url: '/settings/budget' });
+			await notify({
+				event: 'paused',
+				title: 'Post paused: budget reached',
+				body: message,
+				url: '/settings/budget'
+			});
 			return;
 		}
 	}
@@ -280,7 +306,8 @@ export async function verifyPost(postId: string): Promise<void> {
 
 	try {
 		const { api, account } = await getXApi({ accountId: post.accountId, postId: post.id });
-		const since = Math.min(post.updatedAt, post.leaseUntil ?? post.updatedAt) - LEASE_MS - 2 * MINUTE;
+		const since =
+			Math.min(post.updatedAt, post.leaseUntil ?? post.updatedAt) - LEASE_MS - 2 * MINUTE;
 		const recent = await api.recentPosts(account.xUserId, since);
 		const want = normalizeForMatch(next.text);
 		const match = recent.find((r) => normalizeForMatch(r.text) === want);
@@ -301,6 +328,9 @@ export async function verifyPost(postId: string): Promise<void> {
 		const xe = classifyXError(err, 'read');
 		if (xe.kind === 'auth') return handleFailure(post, xe, 'read');
 		logger.warn({ postId, err: xe.message }, 'verification failed, will try again');
-		setPost(post.id, { nextAttemptAt: Date.now() + 2 * MINUTE, lastError: `Verification: ${xe.message}` });
+		setPost(post.id, {
+			nextAttemptAt: Date.now() + 2 * MINUTE,
+			lastError: `Verification: ${xe.message}`
+		});
 	}
 }

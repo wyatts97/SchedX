@@ -53,7 +53,9 @@ export function createSession(userId: string, userAgent: string | null) {
 }
 
 /** Returns the user for a session token, sliding the expiry when it is getting old. */
-export function validateSession(token: string): { user: SafeUser; expiresAt: number; sessionId: string } | null {
+export function validateSession(
+	token: string
+): { user: SafeUser; expiresAt: number; sessionId: string } | null {
 	const db = getDb();
 	const sessionId = sha256(token);
 	const row = db
@@ -79,7 +81,12 @@ export function deleteSession(token: string): void {
 		.run();
 }
 
-export async function changePassword(userId: string, current: string, next: string, keepSessionId: string) {
+export async function changePassword(
+	userId: string,
+	current: string,
+	next: string,
+	keepSessionId: string
+) {
 	const db = getDb();
 	const user = db.select().from(schema.users).where(eq(schema.users.id, userId)).get();
 	if (!user || !(await verify(user.passwordHash, current).catch(() => false))) {

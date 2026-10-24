@@ -8,7 +8,9 @@ const schema = z
 		ENCRYPTION_KEY: z
 			.string({ error: 'ENCRYPTION_KEY is required (run `npm run gen:secrets`)' })
 			.min(32, 'ENCRYPTION_KEY must be at least 32 characters'),
-		APP_URL: z.url({ error: 'APP_URL must be a full URL like https://schedx.example.com' }).optional(),
+		APP_URL: z
+			.url({ error: 'APP_URL must be a full URL like https://schedx.example.com' })
+			.optional(),
 		X_API_MODE: z.enum(['live', 'mock']).default('live'),
 		X_CLIENT_ID: z.string().optional(),
 		X_CLIENT_SECRET: z.string().optional(),
@@ -50,7 +52,11 @@ export function loadConfig(): RuntimeConfig {
 		xClientSecret: c.X_CLIENT_SECRET,
 		vapid:
 			c.VAPID_PUBLIC_KEY && c.VAPID_PRIVATE_KEY
-				? { publicKey: c.VAPID_PUBLIC_KEY, privateKey: c.VAPID_PRIVATE_KEY, subject: c.VAPID_SUBJECT }
+				? {
+						publicKey: c.VAPID_PUBLIC_KEY,
+						privateKey: c.VAPID_PRIVATE_KEY,
+						subject: c.VAPID_SUBJECT
+					}
 				: undefined,
 		maxUploadBytes: c.MAX_UPLOAD_MB * 1024 * 1024,
 		scheduler: c.SCHEDULER === 'on'

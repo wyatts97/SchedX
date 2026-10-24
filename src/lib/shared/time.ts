@@ -30,7 +30,12 @@ export function fromLocalInput(value: string, tz: string): number | null {
 	return fromLocal(m[1], Number(m[2]) * 60 + Number(m[3]), tz);
 }
 
-export function addCalendar(ms: number, tz: string, unit: 'days' | 'weeks' | 'months', n: number): number {
+export function addCalendar(
+	ms: number,
+	tz: string,
+	unit: 'days' | 'weeks' | 'months',
+	n: number
+): number {
 	return zoned(ms, tz).add({ [unit]: n }).epochMilliseconds;
 }
 
@@ -55,7 +60,11 @@ export function hhmmToMinutes(value: string): number | null {
 	return h * 60 + min;
 }
 
-export function formatDateTime(ms: number, tz: string, opts: Intl.DateTimeFormatOptions = {}): string {
+export function formatDateTime(
+	ms: number,
+	tz: string,
+	opts: Intl.DateTimeFormatOptions = {}
+): string {
 	return new Intl.DateTimeFormat(undefined, {
 		timeZone: tz,
 		weekday: 'short',
@@ -68,7 +77,11 @@ export function formatDateTime(ms: number, tz: string, opts: Intl.DateTimeFormat
 }
 
 export function formatTime(ms: number, tz: string): string {
-	return new Intl.DateTimeFormat(undefined, { timeZone: tz, hour: 'numeric', minute: '2-digit' }).format(ms);
+	return new Intl.DateTimeFormat(undefined, {
+		timeZone: tz,
+		hour: 'numeric',
+		minute: '2-digit'
+	}).format(ms);
 }
 
 export function formatRelative(ms: number, now = Date.now()): string {

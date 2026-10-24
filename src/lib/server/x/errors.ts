@@ -4,13 +4,26 @@ import { XError } from './types.js';
 /** Which call failed. A failed *post* create may still have gone through on X's side. */
 export type XPhase = 'post' | 'media' | 'read' | 'auth';
 
-const NOT_SENT_CODES = new Set(['ECONNREFUSED', 'ENOTFOUND', 'EAI_AGAIN', 'ENETUNREACH', 'EHOSTUNREACH']);
+const NOT_SENT_CODES = new Set([
+	'ECONNREFUSED',
+	'ENOTFOUND',
+	'EAI_AGAIN',
+	'ENETUNREACH',
+	'EHOSTUNREACH'
+]);
 
 function describe(data: unknown): string {
 	if (!data || typeof data !== 'object') return '';
 	const d = data as Record<string, unknown>;
 	const errors = Array.isArray(d.errors) ? (d.errors as Record<string, unknown>[]) : [];
-	const parts = [d.detail, errors[0]?.message, errors[0]?.detail, d.title, d.error_description, d.error];
+	const parts = [
+		d.detail,
+		errors[0]?.message,
+		errors[0]?.detail,
+		d.title,
+		d.error_description,
+		d.error
+	];
 	return (parts.find((p) => typeof p === 'string' && p.trim()) as string | undefined) ?? '';
 }
 

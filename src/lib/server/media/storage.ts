@@ -29,7 +29,8 @@ export function uploadsDir(): string {
 
 export function mediaPath(filename: string): string {
 	// Filenames are generated from UUIDs; reject anything else defensively.
-	if (!/^[a-f0-9-]+(_thumb)?\.[a-z0-9]+$/.test(filename)) throw new MediaError('Invalid media filename');
+	if (!/^[a-f0-9-]+(_thumb)?\.[a-z0-9]+$/.test(filename))
+		throw new MediaError('Invalid media filename');
 	return path.join(uploadsDir(), filename);
 }
 
@@ -58,7 +59,12 @@ async function normaliseImage(input: Buffer, mime: string) {
 	if (!tooBig && !tooWide && meta.orientation === undefined) {
 		return { data: input, mime, width: meta.width ?? null, height: meta.height ?? null };
 	}
-	let pipeline = img.resize({ width: MAX_IMAGE_EDGE, height: MAX_IMAGE_EDGE, fit: 'inside', withoutEnlargement: true });
+	let pipeline = img.resize({
+		width: MAX_IMAGE_EDGE,
+		height: MAX_IMAGE_EDGE,
+		fit: 'inside',
+		withoutEnlargement: true
+	});
 	let outMime = mime;
 	if (mime === 'image/png' && !meta.hasAlpha) {
 		pipeline = pipeline.jpeg({ quality: 88, mozjpeg: true });
@@ -74,7 +80,8 @@ async function normaliseImage(input: Buffer, mime: string) {
 			.toBuffer({ resolveWithObject: true }));
 		outMime = 'image/jpeg';
 	}
-	if (data.length > X_LIMITS.image) throw new MediaError('Image is too large even after compression.');
+	if (data.length > X_LIMITS.image)
+		throw new MediaError('Image is too large even after compression.');
 	return { data, mime: outMime, width: info.width, height: info.height };
 }
 
@@ -94,7 +101,9 @@ export async function saveMedia(input: UploadInput): Promise<MediaRow> {
 	if (!kind) throw new MediaError(`Unsupported file type: ${input.mime || 'unknown'}`);
 	const max = Math.min(X_LIMITS[kind], kind === 'image' ? Infinity : rt().maxUploadBytes);
 	if (kind !== 'image' && input.data.length > max) {
-		throw new MediaError(`File is too large (max ${Math.round(max / 1024 / 1024)} MB for ${kind}s).`);
+		throw new MediaError(
+			`File is too large (max ${Math.round(max / 1024 / 1024)} MB for ${kind}s).`
+		);
 	}
 
 	const id = crypto.randomUUID();
@@ -183,7 +192,8 @@ export async function deleteMedia(id: string): Promise<void> {
 		.from(schema.postItemMedia)
 		.where(eq(schema.postItemMedia.mediaId, id))
 		.get()!.n;
-	if (used > 0) throw new MediaError(`This media is attached to ${used} post(s). Remove it from them first.`);
+	if (used > 0)
+		throw new MediaError(`This media is attached to ${used} post(s). Remove it from them first.`);
 	getDb().delete(schema.media).where(eq(schema.media.id, id)).run();
 	for (const f of [m.filename, m.thumbFilename]) {
 		if (f) await fsp.rm(mediaPath(f), { force: true });

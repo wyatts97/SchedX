@@ -13,9 +13,12 @@ export function encrypt(plaintext: string): string {
 	const cipher = createCipheriv('aes-256-gcm', key(), iv);
 	const ct = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
 	const tag = cipher.getAuthTag();
-	return [VERSION, iv.toString('base64url'), tag.toString('base64url'), ct.toString('base64url')].join(
-		':'
-	);
+	return [
+		VERSION,
+		iv.toString('base64url'),
+		tag.toString('base64url'),
+		ct.toString('base64url')
+	].join(':');
 }
 
 export function decrypt(payload: string): string {

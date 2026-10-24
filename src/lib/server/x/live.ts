@@ -50,7 +50,8 @@ export class LiveXApi implements XApi {
 	}
 
 	async uploadMedia(data: Buffer, mime: string, kind: MediaKind): Promise<string> {
-		const category = kind === 'image' ? 'tweet_image' : kind === 'gif' ? 'tweet_gif' : 'tweet_video';
+		const category =
+			kind === 'image' ? 'tweet_image' : kind === 'gif' ? 'tweet_gif' : 'tweet_video';
 		try {
 			return await this.client.v2.uploadMedia(
 				data,
@@ -64,7 +65,9 @@ export class LiveXApi implements XApi {
 
 	async setAltText(mediaId: string, text: string): Promise<void> {
 		try {
-			await this.client.v2.createMediaMetadata(mediaId, { alt_text: { text: text.slice(0, 1000) } });
+			await this.client.v2.createMediaMetadata(mediaId, {
+				alt_text: { text: text.slice(0, 1000) }
+			});
 		} catch (err) {
 			throw classifyXError(err, 'media');
 		}

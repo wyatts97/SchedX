@@ -31,7 +31,15 @@ describe('estimateCost', () => {
 	});
 	it('charges alt text only for images and GIFs', () => {
 		const cost = estimateCost(
-			[{ text: 'x', media: [{ kind: 'image', altText: 'a cat' }, { kind: 'video', altText: 'ignored' }] }],
+			[
+				{
+					text: 'x',
+					media: [
+						{ kind: 'image', altText: 'a cat' },
+						{ kind: 'video', altText: 'ignored' }
+					]
+				}
+			],
 			DEFAULT_RATES
 		);
 		expect(cost.altTexts).toBe(1);

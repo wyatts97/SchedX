@@ -35,7 +35,13 @@ export function nextOccurrence(
 /** Clones a recurring post as the next scheduled occurrence. Returns the new post id. */
 export function spawnNextOccurrence(post: PostRow, tz: string): string | null {
 	if (!post.recurFreq || post.scheduledAt === null) return null;
-	const at = nextOccurrence(post.scheduledAt, post.recurFreq, post.recurInterval, post.recurUntil, tz);
+	const at = nextOccurrence(
+		post.scheduledAt,
+		post.recurFreq,
+		post.recurInterval,
+		post.recurUntil,
+		tz
+	);
 	if (at === null) return null;
 
 	const db = getDb();
@@ -50,7 +56,12 @@ export function spawnNextOccurrence(post: PostRow, tz: string): string | null {
 			? tx
 					.select()
 					.from(schema.postItemMedia)
-					.where(inArray(schema.postItemMedia.itemId, items.map((i) => i.id)))
+					.where(
+						inArray(
+							schema.postItemMedia.itemId,
+							items.map((i) => i.id)
+						)
+					)
 					.all()
 			: [];
 
@@ -72,12 +83,25 @@ export function spawnNextOccurrence(post: PostRow, tz: string): string | null {
 		for (const item of items) {
 			const itemId = crypto.randomUUID();
 			tx.insert(schema.postItems)
-				.values({ id: itemId, postId: newId, position: item.position, text: item.text, poll: item.poll })
+				.values({
+					id: itemId,
+					postId: newId,
+					position: item.position,
+					text: item.text,
+					poll: item.poll
+				})
 				.run();
 			const own = links.filter((l) => l.itemId === item.id);
 			if (own.length) {
 				tx.insert(schema.postItemMedia)
-					.values(own.map((l) => ({ itemId, mediaId: l.mediaId, position: l.position, altText: l.altText })))
+					.values(
+						own.map((l) => ({
+							itemId,
+							mediaId: l.mediaId,
+							position: l.position,
+							altText: l.altText
+						}))
+					)
 					.run();
 			}
 		}

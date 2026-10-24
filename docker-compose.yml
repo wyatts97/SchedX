@@ -1,0 +1,29 @@
+# SchedX behind Cloudflare Tunnel (cloudflared running on the host).
+# In the Cloudflare dashboard, point your public hostname (e.g. schedx.example.com)
+# at http://localhost:3000. The port is bound to 127.0.0.1 so the app is only
+# reachable through the tunnel, which also makes the client-IP header trustworthy.
+services:
+  schedx:
+    build: .
+    image: schedx:latest
+    container_name: schedx
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:3000:3000'
+    env_file: .env
+    environment:
+      DATA_DIR: /data
+      # Cloudflare terminates HTTPS; derive the public origin from its headers.
+      PROTOCOL_HEADER: x-forwarded-proto
+      HOST_HEADER: host
+      ADDRESS_HEADER: cf-connecting-ip
+      # Keep a little above MAX_UPLOAD_MB (Cloudflare's free plan caps bodies at 100 MB).
+      BODY_SIZE_LIMIT: 105M
+      TZ: ${TZ:-UTC}
+    volumes:
+      - schedx-data:/data
+
+volumes:
+  # Holds schedx.db, uploads/ and backups/. Back it up with:
+  #   docker run --rm -v schedx_schedx-data:/data -v "$PWD":/out alpine tar czf /out/schedx-data.tgz -C /data .
+  schedx-data:

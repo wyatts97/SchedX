@@ -17,7 +17,8 @@ function migrationsFolder(): string {
 		path.resolve(process.cwd(), '..', 'drizzle')
 	].filter(Boolean) as string[];
 	const found = candidates.find((dir) => fs.existsSync(path.join(dir, 'meta', '_journal.json')));
-	if (!found) throw new Error(`Could not find migrations folder (looked in ${candidates.join(', ')})`);
+	if (!found)
+		throw new Error(`Could not find migrations folder (looked in ${candidates.join(', ')})`);
 	return found;
 }
 

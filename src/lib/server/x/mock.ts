@@ -61,13 +61,21 @@ export class MockXApi implements XApi {
 			case 'transient':
 				throw new XError('transient', 'Mock X 503: Service Unavailable', { status: 503 });
 			case 'duplicate':
-				throw new XError('duplicate', 'Mock X 403: You are not allowed to create a Tweet with duplicate content.', { status: 403 });
+				throw new XError(
+					'duplicate',
+					'Mock X 403: You are not allowed to create a Tweet with duplicate content.',
+					{ status: 403 }
+				);
 			case 'forbidden':
-				throw new XError('forbidden', 'Mock X 403: Reply to this post is not allowed.', { status: 403 });
+				throw new XError('forbidden', 'Mock X 403: Reply to this post is not allowed.', {
+					status: 403
+				});
 			case 'auth':
 				throw new XError('auth', 'Mock X 401: Unauthorized', { status: 401 });
 			case 'credits':
-				throw new XError('credits', 'Mock X 402: Your account has run out of credits.', { status: 402 });
+				throw new XError('credits', 'Mock X 402: Your account has run out of credits.', {
+					status: 402
+				});
 			case 'rate':
 				throw new XError('rate_limit', 'Mock X 429: Too Many Requests', {
 					status: 429,

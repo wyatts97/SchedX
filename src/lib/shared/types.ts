@@ -28,7 +28,8 @@ export type RecurFreq = 'daily' | 'weekly' | 'monthly';
 
 export type MediaKind = 'image' | 'gif' | 'video';
 
-export type ReplySettings = 'everyone' | 'following' | 'mentionedUsers' | 'subscribers' | 'verified';
+export type ReplySettings =
+	'everyone' | 'following' | 'mentionedUsers' | 'subscribers' | 'verified';
 
 export interface PostOptions {
 	replySettings?: ReplySettings;
@@ -63,12 +64,7 @@ export const DEFAULT_RATES: Rates = {
 };
 
 export type NotificationEvent =
-	| 'published'
-	| 'failed'
-	| 'needs_reauth'
-	| 'paused'
-	| 'budget_warning'
-	| 'missed';
+	'published' | 'failed' | 'needs_reauth' | 'paused' | 'budget_warning' | 'missed';
 
 export const NOTIFICATION_EVENTS: { id: NotificationEvent; label: string }[] = [
 	{ id: 'published', label: 'Post published' },
@@ -91,4 +87,9 @@ export const STATUS_LABELS: Record<PostStatus, string> = {
 };
 
 /** Statuses that need the user's attention on the dashboard. */
-export const ATTENTION_STATUSES: PostStatus[] = ['failed', 'paused', 'missed', 'needs_verification'];
+export const ATTENTION_STATUSES: PostStatus[] = [
+	'failed',
+	'paused',
+	'missed',
+	'needs_verification'
+];

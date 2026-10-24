@@ -22,10 +22,13 @@ export function callbackUrl(requestOrigin: string): string {
 /** Starts the OAuth 2.0 PKCE flow and returns the X authorize URL. */
 export function beginConnect(requestOrigin: string): string {
 	const { xClientId, xClientSecret } = rt();
-	if (!xClientId || !xClientSecret) throw new XError('invalid', 'X_CLIENT_ID / X_CLIENT_SECRET are not set');
+	if (!xClientId || !xClientSecret)
+		throw new XError('invalid', 'X_CLIENT_ID / X_CLIENT_SECRET are not set');
 	const redirectUri = callbackUrl(requestOrigin);
 	const app = new TwitterApi({ clientId: xClientId, clientSecret: xClientSecret });
-	const { url, state, codeVerifier } = app.generateOAuth2AuthLink(redirectUri, { scope: REQUIRED_SCOPES });
+	const { url, state, codeVerifier } = app.generateOAuth2AuthLink(redirectUri, {
+		scope: REQUIRED_SCOPES
+	});
 	const db = getDb();
 	db.delete(schema.oauthStates).where(lt(schema.oauthStates.expiresAt, Date.now())).run();
 	db.insert(schema.oauthStates)
@@ -36,7 +39,11 @@ export function beginConnect(requestOrigin: string): string {
 
 export async function completeConnect(state: string, code: string): Promise<AccountRow> {
 	const db = getDb();
-	const saved = db.select().from(schema.oauthStates).where(eq(schema.oauthStates.state, state)).get();
+	const saved = db
+		.select()
+		.from(schema.oauthStates)
+		.where(eq(schema.oauthStates.state, state))
+		.get();
 	db.delete(schema.oauthStates).where(eq(schema.oauthStates.state, state)).run();
 	if (!saved || saved.expiresAt < Date.now()) {
 		throw new XError('invalid', 'This sign-in link expired. Please try connecting again.');
@@ -45,7 +52,11 @@ export async function completeConnect(state: string, code: string): Promise<Acco
 	const app = new TwitterApi({ clientId: xClientId!, clientSecret: xClientSecret! });
 	let login;
 	try {
-		login = await app.loginWithOAuth2({ code, codeVerifier: saved.codeVerifier, redirectUri: saved.redirectUri });
+		login = await app.loginWithOAuth2({
+			code,
+			codeVerifier: saved.codeVerifier,
+			redirectUri: saved.redirectUri
+		});
 	} catch (err) {
 		throw classifyXError(err, 'auth');
 	}

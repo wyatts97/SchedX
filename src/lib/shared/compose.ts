@@ -1,4 +1,26 @@
-import type { MediaKind, PollInput, PostOptions, PostStatus, RecurFreq } from './types.js';
+import type {
+	AccountStatus,
+	MediaKind,
+	PollInput,
+	PostOptions,
+	PostStatus,
+	RecurFreq
+} from './types.js';
+
+/** An X account as the UI sees it (never includes tokens). */
+export interface AccountView {
+	id: string;
+	xUserId: string;
+	username: string;
+	displayName: string;
+	avatarUrl: string | null;
+	status: AccountStatus;
+	lastError: string | null;
+	isDefault: boolean;
+	premium: boolean;
+	scopes: string[];
+	createdAt: number;
+}
 
 export type ComposeAction = 'draft' | 'schedule' | 'queue' | 'now';
 

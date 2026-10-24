@@ -27,9 +27,15 @@ function tz(): string {
 
 function validate(input: ComposeInput) {
 	const db = getDb();
-	const accounts = db.select().from(schema.accounts).where(inArray(schema.accounts.id, input.accountIds)).all();
-	if (accounts.length !== input.accountIds.length) throw new ComposeError('Unknown account selected.');
-	if (input.id && input.accountIds.length !== 1) throw new ComposeError('An existing post belongs to one account.');
+	const accounts = db
+		.select()
+		.from(schema.accounts)
+		.where(inArray(schema.accounts.id, input.accountIds))
+		.all();
+	if (accounts.length !== input.accountIds.length)
+		throw new ComposeError('Unknown account selected.');
+	if (input.id && input.accountIds.length !== 1)
+		throw new ComposeError('An existing post belongs to one account.');
 
 	const mediaIds = input.items.flatMap((i) => i.media.map((m) => m.id));
 	const mediaRows = mediaIds.length
@@ -40,7 +46,8 @@ function validate(input: ComposeInput) {
 	input.items.forEach((item, idx) => {
 		const label = input.items.length > 1 ? `Post ${idx + 1}: ` : '';
 		const hasMedia = item.media.length > 0;
-		if (!item.text.trim() && !hasMedia) throw new ComposeError(`${label}Write something or attach media.`);
+		if (!item.text.trim() && !hasMedia)
+			throw new ComposeError(`${label}Write something or attach media.`);
 		for (const m of item.media) {
 			if (!kinds.has(m.id)) throw new ComposeError(`${label}An attached file no longer exists.`);
 		}
@@ -64,7 +71,8 @@ function validate(input: ComposeInput) {
 
 	if (input.action === 'schedule') {
 		if (!input.scheduledAt) throw new ComposeError('Pick a date and time.');
-		if (input.scheduledAt < Date.now() - 60_000) throw new ComposeError('That time is in the past.');
+		if (input.scheduledAt < Date.now() - 60_000)
+			throw new ComposeError('That time is in the past.');
 	}
 	return { accounts };
 }
@@ -75,11 +83,24 @@ function writeItems(tx: Tx, postId: string, input: ComposeInput) {
 	input.items.forEach((item, position) => {
 		const itemId = crypto.randomUUID();
 		tx.insert(schema.postItems)
-			.values({ id: itemId, postId, position, text: item.text, poll: position === 0 ? (item.poll ?? null) : null })
+			.values({
+				id: itemId,
+				postId,
+				position,
+				text: item.text,
+				poll: position === 0 ? (item.poll ?? null) : null
+			})
 			.run();
 		if (item.media.length) {
 			tx.insert(schema.postItemMedia)
-				.values(item.media.map((m, i) => ({ itemId, mediaId: m.id, position: i, altText: m.altText ?? '' })))
+				.values(
+					item.media.map((m, i) => ({
+						itemId,
+						mediaId: m.id,
+						position: i,
+						altText: m.altText ?? ''
+					}))
+				)
 				.run();
 		}
 	});
@@ -110,7 +131,9 @@ export function savePost(input: ComposeInput): string[] {
 			case 'queue': {
 				const slot = nextFreeSlot(accountId, tz(), now, input.id);
 				if (slot === null) {
-					throw new ComposeError('This account has no queue times yet. Add some on the Queue page.');
+					throw new ComposeError(
+						'This account has no queue times yet. Add some on the Queue page.'
+					);
 				}
 				scheduledAt = slot;
 				queued = true;
@@ -124,7 +147,10 @@ export function savePost(input: ComposeInput): string[] {
 			scheduledAt,
 			queued,
 			options: { ...input.options, communityId: input.options?.communityId || undefined },
-			recurFreq: input.action === 'draft' || input.action === 'now' ? null : (input.recurrence?.freq ?? null),
+			recurFreq:
+				input.action === 'draft' || input.action === 'now'
+					? null
+					: (input.recurrence?.freq ?? null),
 			recurInterval: input.recurrence?.interval ?? 1,
 			recurUntil: input.recurrence?.until ?? null,
 			attempts: 0,
@@ -140,7 +166,9 @@ export function savePost(input: ComposeInput): string[] {
 				const existing = tx.select().from(schema.posts).where(eq(schema.posts.id, input.id)).get();
 				if (!existing) throw new ComposeError('This post no longer exists.');
 				if (!EDITABLE.includes(existing.status)) {
-					throw new ComposeError('This post is publishing or already published and cannot be edited.');
+					throw new ComposeError(
+						'This post is publishing or already published and cannot be edited.'
+					);
 				}
 				const published = tx
 					.select({ n: sql<number>`count(*)` })
@@ -148,7 +176,9 @@ export function savePost(input: ComposeInput): string[] {
 					.where(and(eq(schema.postItems.postId, input.id), isNotNull(schema.postItems.xPostId)))
 					.get()!.n;
 				if (published > 0) {
-					throw new ComposeError('Part of this thread is already on X. Duplicate it to post a new copy.');
+					throw new ComposeError(
+						'Part of this thread is already on X. Duplicate it to post a new copy.'
+					);
 				}
 				tx.update(schema.posts).set(values).where(eq(schema.posts.id, input.id)).run();
 				tx.delete(schema.postItems).where(eq(schema.postItems.postId, input.id)).run();
@@ -156,7 +186,9 @@ export function savePost(input: ComposeInput): string[] {
 				ids.push(input.id);
 			} else {
 				const id = crypto.randomUUID();
-				tx.insert(schema.posts).values({ id, ...values, createdAt: now }).run();
+				tx.insert(schema.posts)
+					.values({ id, ...values, createdAt: now })
+					.run();
 				writeItems(tx, id, input);
 				ids.push(id);
 			}
@@ -184,7 +216,12 @@ function hydrate(rows: PostRow[]): PostView[] {
 				.select({ link: schema.postItemMedia, media: schema.media })
 				.from(schema.postItemMedia)
 				.innerJoin(schema.media, eq(schema.postItemMedia.mediaId, schema.media.id))
-				.where(inArray(schema.postItemMedia.itemId, items.map((i) => i.id)))
+				.where(
+					inArray(
+						schema.postItemMedia.itemId,
+						items.map((i) => i.id)
+					)
+				)
 				.orderBy(asc(schema.postItemMedia.position))
 				.all()
 		: [];
@@ -236,7 +273,10 @@ function hydrate(rows: PostRow[]): PostView[] {
 			lastError: p.lastError,
 			items: own,
 			estCost: estimateCost(
-				unpublished.map((i) => ({ text: i.text, media: i.media.map((m) => ({ kind: m.kind, altText: m.attachedAlt })) })),
+				unpublished.map((i) => ({
+					text: i.text,
+					media: i.media.map((m) => ({ kind: m.kind, altText: m.attachedAlt }))
+				})),
 				rates
 			).total,
 			createdAt: p.createdAt,
@@ -251,7 +291,12 @@ export function getPost(id: string): PostView | null {
 }
 
 function query(where: SQL | undefined, order: SQL[], limit?: number, offset = 0): PostView[] {
-	let q = getDb().select().from(schema.posts).where(where).orderBy(...order).$dynamic();
+	let q = getDb()
+		.select()
+		.from(schema.posts)
+		.where(where)
+		.orderBy(...order)
+		.$dynamic();
 	if (limit) q = q.limit(limit).offset(offset);
 	return hydrate(q.all());
 }
@@ -279,7 +324,11 @@ export function listDrafts(): PostView[] {
 
 export function listQueue(accountId: string): PostView[] {
 	return query(
-		and(eq(schema.posts.accountId, accountId), eq(schema.posts.queued, true), eq(schema.posts.status, 'scheduled')),
+		and(
+			eq(schema.posts.accountId, accountId),
+			eq(schema.posts.queued, true),
+			eq(schema.posts.status, 'scheduled')
+		),
 		[asc(schema.posts.scheduledAt)]
 	);
 }
@@ -299,7 +348,12 @@ export function listCalendar(start: number, end: number, accountId?: string): Po
 	);
 }
 
-export function listHistory(filter: 'published' | 'failed', page: number, pageSize = 20, accountId?: string) {
+export function listHistory(
+	filter: 'published' | 'failed',
+	page: number,
+	pageSize = 20,
+	accountId?: string
+) {
 	const where = and(
 		filter === 'published'
 			? eq(schema.posts.status, 'published')
@@ -326,7 +380,9 @@ export function counts() {
 		.from(schema.posts)
 		.groupBy(schema.posts.status)
 		.all();
-	return Object.fromEntries(rows.map((r) => [r.status, r.n])) as Partial<Record<PostStatus, number>>;
+	return Object.fromEntries(rows.map((r) => [r.status, r.n])) as Partial<
+		Record<PostStatus, number>
+	>;
 }
 
 /** Estimated cost of everything still scheduled before `end`. */
@@ -334,7 +390,12 @@ export function projectedSpend(end: number): number {
 	const rows = getDb()
 		.select()
 		.from(schema.posts)
-		.where(and(inArray(schema.posts.status, ['scheduled', 'paused', 'needs_verification']), lt(schema.posts.scheduledAt, end)))
+		.where(
+			and(
+				inArray(schema.posts.status, ['scheduled', 'paused', 'needs_verification']),
+				lt(schema.posts.scheduledAt, end)
+			)
+		)
 		.all();
 	return hydrate(rows).reduce((sum, p) => sum + p.estCost, 0);
 }
@@ -366,7 +427,14 @@ export function deletePost(id: string): boolean {
 export function retryNow(id: string): boolean {
 	return update(
 		id,
-		{ status: 'scheduled', scheduledAt: Date.now(), nextAttemptAt: null, attempts: 0, errorKind: null, lastError: null },
+		{
+			status: 'scheduled',
+			scheduledAt: Date.now(),
+			nextAttemptAt: null,
+			attempts: 0,
+			errorKind: null,
+			lastError: null
+		},
 		['failed', 'paused', 'missed', 'draft']
 	);
 }
@@ -381,13 +449,22 @@ export function reschedule(id: string, at: number): boolean {
 		'failed'
 	]);
 	if (ok) {
-		update(id, { status: 'scheduled', attempts: 0, errorKind: null, lastError: null }, ['paused', 'missed', 'failed']);
+		update(id, { status: 'scheduled', attempts: 0, errorKind: null, lastError: null }, [
+			'paused',
+			'missed',
+			'failed'
+		]);
 	}
 	return ok;
 }
 
 export function moveToDrafts(id: string): boolean {
-	return update(id, { status: 'draft', queued: false, nextAttemptAt: null }, ['scheduled', 'failed', 'paused', 'missed']);
+	return update(id, { status: 'draft', queued: false, nextAttemptAt: null }, [
+		'scheduled',
+		'failed',
+		'paused',
+		'missed'
+	]);
 }
 
 export function duplicatePost(id: string): string | null {
@@ -414,7 +491,11 @@ export function shiftPosts(ids: string[], deltaMs: number): number {
 			const p = tx.select().from(schema.posts).where(eq(schema.posts.id, id)).get();
 			if (!p || p.scheduledAt === null || !['scheduled', 'draft'].includes(p.status)) continue;
 			tx.update(schema.posts)
-				.set({ scheduledAt: Math.max(Date.now() + 60_000, p.scheduledAt + deltaMs), queued: false, updatedAt: Date.now() })
+				.set({
+					scheduledAt: Math.max(Date.now() + 60_000, p.scheduledAt + deltaMs),
+					queued: false,
+					updatedAt: Date.now()
+				})
 				.where(eq(schema.posts.id, id))
 				.run();
 			n++;

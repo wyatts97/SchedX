@@ -7,6 +7,7 @@ import { rt } from '../runtime.js';
 import { logger, errorMessage } from '../logger.js';
 import { notify } from '../notify/index.js';
 import { hasUrl } from '../../shared/text.js';
+import type { AccountView } from '../../shared/compose.js';
 import { classifyXError } from './errors.js';
 import { recordUsage } from './ledger.js';
 import { LiveXApi } from './live.js';
@@ -15,21 +16,15 @@ import { XError, type XApi, type XUser } from './types.js';
 
 export type AccountRow = typeof schema.accounts.$inferSelect;
 
-export interface AccountView {
-	id: string;
-	xUserId: string;
-	username: string;
-	displayName: string;
-	avatarUrl: string | null;
-	status: AccountRow['status'];
-	lastError: string | null;
-	isDefault: boolean;
-	premium: boolean;
-	scopes: string[];
-	createdAt: number;
-}
+export type { AccountView };
 
-export const REQUIRED_SCOPES = ['tweet.read', 'tweet.write', 'users.read', 'media.write', 'offline.access'];
+export const REQUIRED_SCOPES = [
+	'tweet.read',
+	'tweet.write',
+	'users.read',
+	'media.write',
+	'offline.access'
+];
 const REFRESH_MARGIN_MS = 5 * 60 * 1000;
 
 export function toView(a: AccountRow): AccountView {
@@ -129,7 +124,13 @@ export function pendingPostCount(accountId: string): number {
 		.where(
 			and(
 				eq(schema.posts.accountId, accountId),
-				inArray(schema.posts.status, ['scheduled', 'draft', 'paused', 'needs_verification', 'missed'])
+				inArray(schema.posts.status, [
+					'scheduled',
+					'draft',
+					'paused',
+					'needs_verification',
+					'missed'
+				])
 			)
 		)
 		.get()!.n;
@@ -185,7 +186,9 @@ async function withLock<T>(key: string, fn: () => Promise<T>): Promise<T> {
 	}
 }
 
-async function freshAccessToken(accountId: string): Promise<{ account: AccountRow; token: string }> {
+async function freshAccessToken(
+	accountId: string
+): Promise<{ account: AccountRow; token: string }> {
 	return withLock(accountId, async () => {
 		const account = getAccount(accountId);
 		if (!account) throw new XError('invalid', 'Account no longer exists');
@@ -243,7 +246,8 @@ export async function getXApi(ctx: ApiContext): Promise<{ api: XApi; account: Ac
 	if (rt().xMode === 'mock') {
 		const row = getAccount(ctx.accountId);
 		if (!row) throw new XError('invalid', 'Account no longer exists');
-		if (row.status === 'needs_reauth') throw new XError('auth', `@${row.username} needs to be reconnected`);
+		if (row.status === 'needs_reauth')
+			throw new XError('auth', `@${row.username} needs to be reconnected`);
 		account = row;
 		inner = new MockXApi({ id: row.xUserId, username: row.username, name: row.displayName });
 	} else {

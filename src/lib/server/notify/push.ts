@@ -25,7 +25,10 @@ function configure(): boolean {
 	return true;
 }
 
-export function saveSubscription(sub: { endpoint: string; p256dh: string; auth: string }, userAgent?: string) {
+export function saveSubscription(
+	sub: { endpoint: string; p256dh: string; auth: string },
+	userAgent?: string
+) {
 	getDb()
 		.insert(schema.pushSubscriptions)
 		.values({ ...sub, userAgent: userAgent?.slice(0, 200) })
@@ -37,7 +40,10 @@ export function saveSubscription(sub: { endpoint: string; p256dh: string; auth: 
 }
 
 export function removeSubscription(endpoint: string) {
-	getDb().delete(schema.pushSubscriptions).where(eq(schema.pushSubscriptions.endpoint, endpoint)).run();
+	getDb()
+		.delete(schema.pushSubscriptions)
+		.where(eq(schema.pushSubscriptions.endpoint, endpoint))
+		.run();
 }
 
 export function subscriptionCount(): number {
