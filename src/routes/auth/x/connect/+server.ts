@@ -9,5 +9,6 @@ export const GET: RequestHandler = async ({ url }) => {
 		redirect(303, `/accounts?connected=${encodeURIComponent(account.username)}`);
 	}
 	if (!xConfigured()) redirect(303, '/accounts?error=not_configured');
-	redirect(303, beginConnect(url.origin));
+	// X's authorize page lives on x.com (or twitter.com, depending on the library version).
+	redirect(303, beginConnect(url.origin), { external: ['https://x.com', 'https://twitter.com'] });
 };
