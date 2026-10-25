@@ -18,14 +18,29 @@
 	import ScheduleFields from './schedule-fields.svelte';
 	import Select from '../ui/select.svelte';
 	import Switch from '../ui/switch.svelte';
-	import { newItem, type EditorItem } from './types.js';
+	import { attach, newItem, type EditorItem, type EditorMedia } from './types.js';
 	import { blockStrayDrops, fileDrop } from '#lib/actions/file-drop.js';
 	import { estimateCost, formatUsd } from '#lib/shared/cost.js';
+	import { validateAttachmentSet } from '#lib/shared/media-rules.js';
 	import { textStats } from '#lib/shared/text.js';
 	import { fromLocalInput, toLocalInput, formatDateTime } from '#lib/shared/time.js';
-	import type { AccountView, ComposeAction, ComposeInput, PostView } from '#lib/shared/compose.js';
-	import type { PostOptions, Rates, RecurFreq, ReplySettings } from '#lib/shared/types.js';
-	import { api, cn } from '#lib/utils.js';
+	import type {
+		AccountView,
+		ComposeAction,
+		ComposeInput,
+		DuplicateMatch,
+		PostView
+	} from '#lib/shared/compose.js';
+	import {
+		STATUS_LABELS,
+		type PostOptions,
+		type Rates,
+		type RecurFreq,
+		type ReplySettings
+	} from '#lib/shared/types.js';
+	import Dialog from '../ui/dialog.svelte';
+	import Button from '../ui/button.svelte';
+	import { api, ApiError, cn } from '#lib/utils.js';
 
 	let {
 		accounts,
@@ -59,7 +74,7 @@
 			? seed.items.map((i) => ({
 					key: crypto.randomUUID(),
 					text: i.text,
-					media: i.media.map((m) => ({ ...m, alt: m.attachedAlt })),
+					media: i.media.map((m) => attach(m, m.attachedAlt)),
 					poll: i.poll
 						? { options: [...i.poll.options], durationMinutes: i.poll.durationMinutes }
 						: null,
@@ -92,6 +107,27 @@
 	let showPreview = $state(false);
 	let focusKey = $state<string | null>(null);
 	let cardDragOver = $state(false);
+	/** Attachment being dragged between posts, plus everyone's media before the drag began. */
+	let dragging = $state<EditorMedia | null>(null);
+	let beforeDrag: EditorMedia[][] = [];
+
+	function onMediaDrag(media: EditorMedia | null) {
+		if (media) {
+			dragging = media;
+			beforeDrag = items.map((i) => [...i.media]);
+			return;
+		}
+		if (!dragging) return;
+		dragging = null;
+		// Both zones finalize; check once they have. Each post only accepts what X allows, so this
+		// is a backstop for drops that raced a change.
+		queueMicrotask(() => {
+			const bad = items.find((i) => validateAttachmentSet(i.media.map((m) => m.kind)));
+			if (!bad || beforeDrag.length !== items.length) return;
+			items.forEach((i, idx) => (i.media = beforeDrag[idx]));
+			toast.error(validateAttachmentSet(bad.media.map((m) => m.kind)) ?? 'Cannot move that here.');
+		});
+	}
 
 	$effect(() => {
 		// any edit marks the form dirty (read deeply so the effect tracks everything)
@@ -169,13 +205,18 @@
 		focusKey = item.key;
 	}
 
-	async function submit(action: ComposeAction) {
+	/** Set when the server found posts with the same text; the dialog asks what to do. */
+	let duplicate = $state<{ action: ComposeAction; matches: DuplicateMatch[] } | null>(null);
+	let duplicateOpen = $state(false);
+
+	async function submit(action: ComposeAction, allowDuplicate = false) {
 		if (!canSubmit) return;
 		if (action === 'schedule' && !scheduledAt)
 			return void toast.error('Pick a date and time first.');
 		if (
 			missingAlt &&
 			action !== 'draft' &&
+			!allowDuplicate &&
 			!confirm(
 				`${missingAlt} image${missingAlt > 1 ? 's have' : ' has'} no description. Post anyway?`
 			)
@@ -186,7 +227,7 @@
 			accountIds,
 			items: items.map((i, idx) => ({
 				text: i.text,
-				media: i.media.map((m) => ({ id: m.id, altText: m.alt })),
+				media: i.media.map((m) => ({ id: m.mediaId, altText: m.alt })),
 				poll:
 					idx === 0 && i.poll
 						? {
@@ -209,7 +250,8 @@
 							interval: repeatEvery,
 							until: repeatUntil ? fromLocalInput(`${repeatUntil}T23:59`, tz) : null
 						}
-					: null
+					: null,
+			allowDuplicate
 		};
 		busy = true;
 		try {
@@ -225,7 +267,10 @@
 			toast.success(msg);
 			await goto(action === 'draft' ? '/drafts' : action === 'queue' ? '/queue' : '/');
 		} catch (err) {
-			toast.error((err as Error).message);
+			if (err instanceof ApiError && err.data.code === 'duplicate') {
+				duplicate = { action, matches: err.data.matches as DuplicateMatch[] };
+				duplicateOpen = true;
+			} else toast.error((err as Error).message);
 		} finally {
 			busy = false;
 		}
@@ -271,6 +316,8 @@
 					index={i}
 					total={items.length}
 					{premium}
+					{dragging}
+					ondrag={onMediaDrag}
 					autofocus={i === 0 ? !seed : item.key === focusKey}
 					onfocus={() => (focusIndex = i)}
 					onremove={() => items.splice(i, 1)}
@@ -443,6 +490,42 @@
 		</div>
 	</aside>
 </div>
+
+<Dialog
+	bind:open={duplicateOpen}
+	title="You already have a post with this text"
+	description="X turns down a post that repeats one of your recent posts word for word, so this one would probably fail."
+>
+	{#if duplicate}
+		<ul class="grid gap-2">
+			{#each duplicate.matches as m (m.postId)}
+				<li class="grid gap-1 rounded-lg border border-line bg-surface px-3 py-2.5 text-sm">
+					<span class="text-xs text-muted">
+						@{m.username} ·
+						{m.status === 'published' ? 'Posted' : STATUS_LABELS[m.status]}
+						{m.at ? formatDateTime(m.at, tz) : ''}
+					</span>
+					<span class="line-clamp-3 break-words">{m.text}</span>
+				</li>
+			{/each}
+		</ul>
+	{/if}
+	{#snippet footer()}
+		<Button
+			onclick={() => {
+				duplicateOpen = false;
+				editors[0]?.focus();
+			}}>Edit text</Button
+		>
+		<Button
+			variant="primary"
+			onclick={() => {
+				duplicateOpen = false;
+				if (duplicate) submit(duplicate.action, true);
+			}}>{duplicate ? `${LABELS[duplicate.action]} anyway` : 'Post anyway'}</Button
+		>
+	{/snippet}
+</Dialog>
 
 <MediaPicker
 	bind:open={pickerOpen}

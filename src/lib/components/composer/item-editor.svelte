@@ -16,9 +16,16 @@
 		validateAttachmentSet,
 		formatBytes
 	} from '#lib/shared/media-rules.js';
+	import { flip } from 'svelte/animate';
+	import {
+		dndzone,
+		TRIGGERS,
+		SHADOW_ITEM_MARKER_PROPERTY_NAME,
+		type DndEvent
+	} from 'svelte-dnd-action';
 	import { fileDrop, pastedFiles } from '#lib/actions/file-drop.js';
 	import { uploadMedia } from './upload.js';
-	import type { EditorItem } from './types.js';
+	import { attach, type EditorItem, type EditorMedia } from './types.js';
 	import type { MediaInfo } from '#lib/shared/compose.js';
 	import { cn } from '#lib/utils.js';
 
@@ -27,6 +34,8 @@
 		index,
 		total,
 		premium,
+		dragging = null,
+		ondrag,
 		onremove,
 		onlibrary,
 		onfocus,
@@ -36,11 +45,17 @@
 		index: number;
 		total: number;
 		premium: boolean;
+		/** The attachment being dragged anywhere in the composer, if any. */
+		dragging?: EditorMedia | null;
+		/** Called when a drag starts in this post (with the attachment) and when it ends. */
+		ondrag?: (media: EditorMedia | null) => void;
 		onremove: () => void;
 		onlibrary: () => void;
 		onfocus?: () => void;
 		autofocus?: boolean;
 	} = $props();
+
+	const FLIP_MS = 150;
 
 	let fileInput: HTMLInputElement | undefined = $state();
 	let textarea: HTMLTextAreaElement | undefined = $state();
@@ -68,6 +83,35 @@
 	);
 	const nearLimit = $derived(stats.remaining <= 40);
 
+	// While dragging, the dragged attachment's placeholder shows up in whichever post it hovers,
+	// so judge "would this post accept it" without it.
+	const accepts = $derived.by(() => {
+		if (!dragging) return false;
+		const rest = item.media.filter((m) => m.id !== dragging.id);
+		return (
+			!item.poll &&
+			item.uploads.length === 0 &&
+			!rest.some((m) => m.mediaId === dragging.mediaId) &&
+			!validateAttachmentSet([...rest.map((m) => m.kind), dragging.kind])
+		);
+	});
+
+	const isShadow = (m: EditorMedia) =>
+		(m as EditorMedia & { [SHADOW_ITEM_MARKER_PROPERTY_NAME]?: boolean })[
+			SHADOW_ITEM_MARKER_PROPERTY_NAME
+		] === true;
+
+	function onconsider(e: CustomEvent<DndEvent<EditorMedia>>) {
+		if (e.detail.info.trigger === TRIGGERS.DRAG_STARTED)
+			ondrag?.(item.media.find((m) => m.id === e.detail.info.id) ?? null);
+		item.media = e.detail.items;
+	}
+
+	function onfinalize(e: CustomEvent<DndEvent<EditorMedia>>) {
+		item.media = e.detail.items;
+		ondrag?.(null);
+	}
+
 	$effect(() => {
 		if (autofocus) textarea?.focus();
 	});
@@ -85,9 +129,10 @@
 	}
 
 	export function addMedia(list: MediaInfo[]) {
-		const err = validateAttachmentSet([...kinds, ...list.map((m) => m.kind)]);
+		const fresh = list.filter((m) => !item.media.some((a) => a.mediaId === m.id));
+		const err = validateAttachmentSet([...kinds, ...fresh.map((m) => m.kind)]);
 		if (err) return void toast.error(err);
-		item.media.push(...list.map((m) => ({ ...m, alt: m.altText })));
+		item.media.push(...fresh.map((m) => attach(m)));
 	}
 
 	/** Uploads files from the picker, a drop or a paste and attaches them to this post. */
@@ -106,7 +151,7 @@
 				const slot = item.uploads[item.uploads.length - 1];
 				try {
 					const media = await uploadMedia(file, (p) => (slot.progress = p));
-					item.media.push({ ...media, alt: media.altText });
+					item.media.push(attach(media));
 				} catch (e) {
 					toast.error((e as Error).message);
 				} finally {
@@ -273,45 +318,84 @@
 		</p>
 	{/if}
 
-	{#if item.media.length || item.uploads.length}
-		<div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-			{#each item.media as m, i (m.id + i)}
-				<figure class="flex min-w-0 flex-col gap-1.5">
-					<div
-						class="relative aspect-square overflow-hidden rounded-lg border border-line bg-surface-2"
-					>
-						<img src={m.thumbUrl} alt="" class="size-full object-cover" />
-						{#if m.kind !== 'image'}
-							<span
-								class="absolute bottom-1.5 left-1.5 rounded bg-black/70 px-1.5 py-0.5 text-[0.6875rem] font-semibold text-white uppercase"
-								>{m.kind}</span
-							>
-						{/if}
-						<button
-							type="button"
-							class="absolute top-1.5 right-1.5 rounded-full bg-black/70 p-1 text-white hover:bg-red-600"
-							aria-label="Remove {m.originalName}"
-							onclick={() => item.media.splice(i, 1)}
+	<!-- Drag a tile to change the order X shows them in, or onto another post of the thread.
+	     The zone stays mounted (hidden when empty) so an empty post can take a drop. -->
+	<div
+		use:dndzone={{
+			items: item.media,
+			type: 'media',
+			flipDurationMs: FLIP_MS,
+			delayTouchStart: 150,
+			dropFromOthersDisabled: !accepts,
+			dropTargetStyle: {},
+			dropTargetClasses: ['outline-2', 'outline-offset-4', 'outline-dashed', 'outline-blue-500/50']
+		}}
+		{onconsider}
+		{onfinalize}
+		aria-label="Attachments for post {index + 1}"
+		class={cn(
+			'mt-3 grid grid-cols-2 gap-3 rounded-lg sm:grid-cols-4',
+			!item.media.length &&
+				(accepts
+					? "min-h-20 border-2 border-dashed border-blue-500/50 bg-blue-500/5 before:col-span-full before:self-center before:text-center before:text-sm before:font-medium before:text-blue-600 before:content-['Drop_here_to_move_it_to_this_post'] dark:before:text-blue-300"
+					: 'hidden')
+		)}
+	>
+		{#each item.media as m, i (m.id)}
+			<figure
+				animate:flip={{ duration: FLIP_MS }}
+				aria-label="{m.originalName}, {i + 1} of {item.media.length}"
+				class="flex min-w-0 cursor-grab flex-col gap-1.5 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+			>
+				<div
+					class={cn(
+						'relative aspect-square overflow-hidden rounded-lg border border-line bg-surface-2',
+						isShadow(m) && 'border-2 border-dashed border-blue-500 opacity-40'
+					)}
+					title={item.media.length > 1 ? 'Drag to reorder' : undefined}
+				>
+					<img src={m.thumbUrl} alt="" draggable="false" class="size-full object-cover" />
+					{#if item.media.length > 1}
+						<span
+							class="absolute top-1.5 left-1.5 flex size-5 items-center justify-center rounded-full bg-black/70 text-[0.6875rem] font-semibold text-white tnum"
+							aria-hidden="true">{i + 1}</span
 						>
-							<X class="size-3.5" />
-						</button>
-					</div>
-					{#if m.kind !== 'video'}
-						<input
-							bind:value={m.alt}
-							maxlength="1000"
-							placeholder="Describe this image"
-							aria-label="Alt text for {m.originalName}"
-							class={cn(
-								'w-full min-w-0 rounded-md border bg-surface px-2 py-1 text-base outline-none focus:border-blue-500 sm:text-xs',
-								m.alt.trim() ? 'border-line' : 'border-amber-500/60'
-							)}
-						/>
-					{:else}
-						<span class="text-xs text-muted">{formatBytes(m.size)}</span>
 					{/if}
-				</figure>
-			{/each}
+					{#if m.kind !== 'image'}
+						<span
+							class="absolute bottom-1.5 left-1.5 rounded bg-black/70 px-1.5 py-0.5 text-[0.6875rem] font-semibold text-white uppercase"
+							>{m.kind}</span
+						>
+					{/if}
+					<button
+						type="button"
+						class="absolute top-1.5 right-1.5 cursor-pointer rounded-full bg-black/70 p-1 text-white hover:bg-red-600"
+						aria-label="Remove {m.originalName}"
+						onclick={() => item.media.splice(i, 1)}
+					>
+						<X class="size-3.5" />
+					</button>
+				</div>
+				{#if m.kind !== 'video'}
+					<input
+						bind:value={m.alt}
+						maxlength="1000"
+						placeholder="Describe this image"
+						aria-label="Alt text for {m.originalName}"
+						class={cn(
+							'w-full min-w-0 rounded-md border bg-surface px-2 py-1 text-base outline-none focus:border-blue-500 sm:text-xs',
+							m.alt.trim() ? 'border-line' : 'border-amber-500/60'
+						)}
+					/>
+				{:else}
+					<span class="text-xs text-muted">{formatBytes(m.size)}</span>
+				{/if}
+			</figure>
+		{/each}
+	</div>
+
+	{#if item.uploads.length}
+		<div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
 			{#each item.uploads as u (u)}
 				<div
 					class="grid aspect-square place-items-center rounded-lg border border-dashed border-line-strong p-3 text-center text-xs text-muted"

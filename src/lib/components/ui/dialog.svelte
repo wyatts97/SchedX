@@ -2,7 +2,7 @@
 	import { Dialog } from 'bits-ui';
 	import X from '@lucide/svelte/icons/x';
 	import type { Snippet } from 'svelte';
-	import { cn } from '#lib/utils.js';
+	import { cn, ignoreToastClicks } from '#lib/utils.js';
 
 	let {
 		open = $bindable(false),
@@ -25,6 +25,7 @@
 	<Dialog.Portal>
 		<Dialog.Overlay class="fixed inset-0 z-50 bg-black/45 backdrop-blur-[2px]" />
 		<Dialog.Content
+			onInteractOutside={ignoreToastClicks}
 			class={cn(
 				'fixed inset-x-0 bottom-0 z-50 max-h-[92dvh] overflow-y-auto rounded-t-panel border border-line bg-raised p-5 shadow-pop',
 				'sm:inset-auto sm:top-1/2 sm:left-1/2 sm:w-full sm:max-w-lg sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-panel',

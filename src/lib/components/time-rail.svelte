@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import PostCard from './post-card.svelte';
+	import { usePendingDeletes } from './shell/pending-deletes.svelte.js';
 	import { formatTime, formatRelative, startOfLocalDay, DAY } from '#lib/shared/time.js';
 	import type { PostView } from '#lib/shared/compose.js';
 
@@ -25,9 +26,11 @@
 		}).format(ms);
 	}
 
+	const pending = usePendingDeletes();
+
 	const groups = $derived.by(() => {
 		const out: { label: string; posts: PostView[] }[] = [];
-		for (const p of posts) {
+		for (const p of pending.visible(posts)) {
 			const label = dayLabel(p.scheduledAt ?? now);
 			const last = out.at(-1);
 			if (last?.label === label) last.posts.push(p);

@@ -8,6 +8,7 @@
 	import { uploadMedia } from '#lib/components/composer/upload.js';
 	import { blockStrayDrops, fileDrop } from '#lib/actions/file-drop.js';
 	import { formatBytes, kindForMime } from '#lib/shared/media-rules.js';
+	import { usePendingDeletes } from '#lib/components/shell/pending-deletes.svelte.js';
 	import { api } from '#lib/utils.js';
 	import type { PageProps } from './$types';
 
@@ -48,14 +49,15 @@
 		}
 	}
 
-	async function remove(id: string) {
-		if (!confirm('Delete this file from the library?')) return;
-		try {
-			await api(`/api/media/${id}`, undefined, 'DELETE');
-			await refreshAll();
-		} catch (err) {
-			toast.error((err as Error).message);
-		}
+	const pending = usePendingDeletes();
+	const media = $derived(pending.visible(data.media));
+
+	function remove(id: string) {
+		pending.schedule({
+			ids: [id],
+			label: 'File deleted',
+			requests: [{ url: `/api/media/${id}`, method: 'DELETE' }]
+		});
 	}
 </script>
 
@@ -90,9 +92,9 @@
 		</ul>
 	{/if}
 
-	{#if data.media.length > 0}
+	{#if media.length > 0}
 		<ul class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-			{#each data.media as m (m.id)}
+			{#each media as m (m.id)}
 				<!-- A flex column (not a grid) so a long filename can't widen the tile past its column. -->
 				<li class="flex min-w-0 flex-col gap-2">
 					<a

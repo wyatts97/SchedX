@@ -1,11 +1,12 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { getDb, schema } from '#lib/server/db/index.js';
-import { savePost, retryNow } from '#lib/server/posts/service.js';
+import { savePost, retryNow, findDuplicates } from '#lib/server/posts/service.js';
 import { tick, resumePublishing } from '#lib/server/scheduler/loop.js';
 import {
 	setSlots,
 	nextFreeSlot,
+	openSlots,
 	listQueuedIds,
 	reorderQueue
 } from '#lib/server/scheduler/queue.js';
@@ -228,6 +229,73 @@ describe('queue', () => {
 
 	it('refuses to queue without slots', () => {
 		expect(() => compose({ action: 'queue' })).toThrow(/queue times/);
+	});
+
+	describe('open slots for the calendar', () => {
+		// Friday noon before the US clocks fall back (Sunday 2026-11-01).
+		beforeEach(() => {
+			vi.useFakeTimers({ toFake: ['Date'] });
+			vi.setSystemTime(fromLocal('2026-10-30', 12 * 60, TZ));
+		});
+		afterEach(() => vi.useRealTimers());
+
+		it('lists future, unused slot times and keeps wall-clock time across DST', () => {
+			setSlots(
+				accountId,
+				[1, 2, 3, 4, 5, 6, 7].flatMap((weekday) => [
+					{ weekday, minutes: 9 * 60 },
+					{ weekday, minutes: 18 * 60 }
+				])
+			);
+			compose({ action: 'schedule', scheduledAt: fromLocal('2026-10-31', 18 * 60, TZ) });
+
+			const slots = openSlots(
+				accountId,
+				TZ,
+				fromLocal('2026-10-30', 0, TZ),
+				fromLocal('2026-11-03', 0, TZ)
+			);
+			const at = (date: string, h: number) => fromLocal(date, h * 60, TZ);
+			expect(slots).toEqual([
+				at('2026-10-30', 18), // 09:00 Friday is already past
+				at('2026-10-31', 9), // 18:00 Saturday is taken
+				at('2026-11-01', 9),
+				at('2026-11-01', 18),
+				at('2026-11-02', 9),
+				at('2026-11-02', 18)
+			]);
+			expect(at('2026-11-01', 9) - at('2026-10-31', 9)).toBe(25 * 60 * MINUTE);
+		});
+
+		it('returns nothing without queue times', () => {
+			expect(openSlots(accountId, TZ, Date.now(), Date.now() + 7 * 24 * 60 * MINUTE)).toEqual([]);
+		});
+	});
+});
+
+describe('duplicate check', () => {
+	it('matches a recent post despite different links, spacing and case', async () => {
+		const id = compose({ items: [{ text: 'Big news: https://example.com/a', media: [] }] });
+		await tick();
+		expect(postRow(id).status).toBe('published');
+		const matches = findDuplicates([accountId], ['big   NEWS: https://example.com/other']);
+		expect(matches.map((m) => m.postId)).toEqual([id]);
+		expect(matches[0].status).toBe('published');
+	});
+
+	it('matches pending posts, but not drafts or the post being edited', () => {
+		const later = Date.now() + 3 * 24 * 60 * MINUTE;
+		const id = compose({
+			action: 'schedule',
+			scheduledAt: later,
+			items: [{ text: 'See you later', media: [] }]
+		});
+		compose({ action: 'draft', items: [{ text: 'Just a draft', media: [] }] });
+
+		expect(findDuplicates([accountId], ['see you later']).map((m) => m.postId)).toEqual([id]);
+		expect(findDuplicates([accountId], ['see you later'], id)).toEqual([]);
+		expect(findDuplicates([accountId], ['Just a draft'])).toEqual([]);
+		expect(findDuplicates([accountId], [''])).toEqual([]);
 	});
 });
 

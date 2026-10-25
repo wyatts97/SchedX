@@ -6,11 +6,15 @@
 	import LogOut from '@lucide/svelte/icons/log-out';
 	import Logo from './logo.svelte';
 	import ThemeToggle from './theme-toggle.svelte';
+	import SpendMeter, { type Spend } from './spend-meter.svelte';
 	import { SIDEBAR_NAV, isActive } from './nav.js';
 	import { cn } from '#lib/utils.js';
 
-	let { collapsed = $bindable(false), attention }: { collapsed?: boolean; attention: number } =
-		$props();
+	let {
+		collapsed = $bindable(false),
+		attention,
+		spend
+	}: { collapsed?: boolean; attention: number; spend: Spend } = $props();
 
 	function toggle() {
 		collapsed = !collapsed;
@@ -77,7 +81,12 @@
 			</ul>
 		</nav>
 
-		<div class="mt-auto border-t border-line/60 px-2 py-2">
+		<!-- API spend sits between the page links and the footer buttons. -->
+		<div class="border-t border-line/60 p-2">
+			<SpendMeter {spend} {collapsed} />
+		</div>
+
+		<div class="border-t border-line/60 px-2 py-2">
 			<div class={cn('flex items-center justify-center gap-1.5', collapsed && 'flex-col gap-2')}>
 				<button
 					type="button"

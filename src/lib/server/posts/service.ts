@@ -1,4 +1,18 @@
-import { and, asc, desc, eq, gte, inArray, isNotNull, lt, or, sql, type SQL } from 'drizzle-orm';
+import {
+	and,
+	asc,
+	desc,
+	eq,
+	gte,
+	inArray,
+	isNotNull,
+	isNull,
+	lt,
+	ne,
+	or,
+	sql,
+	type SQL
+} from 'drizzle-orm';
 import { getDb, schema } from '../db/index.js';
 import { notInPast } from '../db/helpers.js';
 import { getSettings } from '../settings.js';
@@ -6,9 +20,10 @@ import { getUser } from '../auth/index.js';
 import { toInfo } from '../media/storage.js';
 import { nextFreeSlot } from '../scheduler/queue.js';
 import { estimateCost } from '../../shared/cost.js';
-import { textStats } from '../../shared/text.js';
+import { normalizeForMatch, textStats } from '../../shared/text.js';
 import { validateAttachmentSet } from '../../shared/media-rules.js';
-import type { ComposeInput, PostItemView, PostView } from '../../shared/compose.js';
+import { DAY } from '../../shared/time.js';
+import type { ComposeInput, DuplicateMatch, PostItemView, PostView } from '../../shared/compose.js';
 import type { PostStatus } from '../../shared/types.js';
 
 type PostRow = typeof schema.posts.$inferSelect;
@@ -383,6 +398,61 @@ export function counts() {
 	return Object.fromEntries(rows.map((r) => [r.status, r.n])) as Partial<
 		Record<PostStatus, number>
 	>;
+}
+
+/** How far back X's "you already said that" check is assumed to reach. */
+const DUPLICATE_WINDOW = 30 * DAY;
+
+/**
+ * Posts on the same accounts with the same text as one of `texts` (ignoring links, spacing and
+ * case): published in the last 30 days, or still waiting to go out. X rejects a post that repeats
+ * one of your recent posts word for word, and two identical pending posts would collide.
+ */
+export function findDuplicates(
+	accountIds: string[],
+	texts: string[],
+	excludePostId?: string
+): DuplicateMatch[] {
+	const wanted = new Set(texts.map(normalizeForMatch).filter(Boolean));
+	if (!wanted.size || !accountIds.length) return [];
+	const { posts, postItems, accounts } = schema;
+	const rows = getDb()
+		.select({
+			postId: posts.id,
+			username: accounts.username,
+			status: posts.status,
+			scheduledAt: posts.scheduledAt,
+			publishedAt: postItems.publishedAt,
+			text: postItems.text
+		})
+		.from(postItems)
+		.innerJoin(posts, eq(postItems.postId, posts.id))
+		.innerJoin(accounts, eq(posts.accountId, accounts.id))
+		.where(
+			and(
+				inArray(posts.accountId, accountIds),
+				excludePostId ? ne(posts.id, excludePostId) : undefined,
+				or(
+					gte(postItems.publishedAt, Date.now() - DUPLICATE_WINDOW),
+					and(
+						inArray(posts.status, ['scheduled', 'publishing', 'paused']),
+						isNull(postItems.xPostId)
+					)
+				)
+			)
+		)
+		.all();
+	const seen = new Set<string>();
+	return rows
+		.filter((r) => wanted.has(normalizeForMatch(r.text)))
+		.filter((r) => !seen.has(r.postId) && seen.add(r.postId))
+		.map((r) => ({
+			postId: r.postId,
+			username: r.username,
+			status: r.status,
+			at: r.publishedAt ?? r.scheduledAt,
+			text: r.text.slice(0, 140)
+		}));
 }
 
 /** Estimated cost of everything still scheduled before `end`. */

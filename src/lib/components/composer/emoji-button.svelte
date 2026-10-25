@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Popover } from 'bits-ui';
+	import Smile from '@lucide/svelte/icons/smile';
 	// Self-hosted emoji data: a hashed build asset, so the CSP can stay `connect-src 'self'`.
 	import emojiData from 'emoji-picker-element-data/en/emojibase/data.json?url';
 	import type { Picker } from 'emoji-picker-element';
@@ -35,11 +36,11 @@
 <Popover.Root bind:open>
 	<Popover.Trigger
 		{disabled}
-		class="flex size-8 items-center justify-center rounded-full bg-surface-2 text-xl leading-none transition-colors hover:bg-line disabled:opacity-40"
+		class="flex size-8 items-center justify-center rounded-full bg-surface-2 text-accent transition-colors hover:bg-line disabled:opacity-40 data-[state=open]:bg-accent data-[state=open]:text-white"
 		aria-label="Add emoji"
 		title="Emoji"
 	>
-		<span aria-hidden="true">😊</span>
+		<Smile class="size-4" />
 	</Popover.Trigger>
 	<Popover.Portal>
 		<Popover.Content

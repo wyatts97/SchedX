@@ -3,9 +3,12 @@
 	import PostCard from '#lib/components/post-card.svelte';
 	import EmptyState from '#lib/components/empty-state.svelte';
 	import Button from '#lib/components/ui/button.svelte';
+	import { usePendingDeletes } from '#lib/components/shell/pending-deletes.svelte.js';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
+	const pending = usePendingDeletes();
+	const drafts = $derived(pending.visible(data.drafts));
 </script>
 
 <svelte:head><title>Drafts · SchedX</title></svelte:head>
@@ -15,9 +18,9 @@
 	description="Posts you've started but haven't scheduled. Open one to finish and schedule it."
 />
 
-{#if data.drafts.length}
+{#if drafts.length}
 	<div class="grid grid-cols-1 gap-3">
-		{#each data.drafts as post (post.id)}
+		{#each drafts as post (post.id)}
 			<PostCard {post} tz={data.tz} />
 		{/each}
 	</div>

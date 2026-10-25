@@ -12,6 +12,7 @@
 	mockMode={data.mockMode}
 	paused={data.paused}
 	accounts={data.accounts}
+	spend={data.spend}
 >
 	{@render children()}
 </AppShell>

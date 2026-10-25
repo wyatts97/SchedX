@@ -7,10 +7,13 @@
 	import Avatar from '#lib/components/avatar.svelte';
 	import { formatUsd } from '#lib/shared/cost.js';
 	import { formatRelative } from '#lib/shared/time.js';
+	import { usePendingDeletes } from '#lib/components/shell/pending-deletes.svelte.js';
 	import { cn } from '#lib/utils.js';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
+	const pending = usePendingDeletes();
+	const attention = $derived(pending.visible(data.attention));
 
 	const reauth = $derived(data.accounts.filter((a) => a.status === 'needs_reauth'));
 	const scheduled = $derived(data.counts.scheduled ?? 0);
@@ -78,7 +81,7 @@
 	</div>
 {/each}
 
-<div class="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_17rem]">
+<div class="grid grid-cols-1 gap-10">
 	<section aria-labelledby="up-next">
 		{#if data.accounts.length}<h2 id="up-next" class="mb-4 text-lg font-semibold">Up next</h2>{/if}
 		{#if data.upcoming.length}
@@ -96,17 +99,18 @@
 			</EmptyState>
 		{/if}
 
-		{#if data.attention.length}
+		{#if attention.length}
 			<h2 class="mt-12 mb-4 text-lg font-semibold">Needs your attention</h2>
 			<div class="grid grid-cols-1 gap-3">
-				{#each data.attention as post (post.id)}
+				{#each attention as post (post.id)}
 					<PostCard {post} tz={data.tz} />
 				{/each}
 			</div>
 		{/if}
 	</section>
 
-	<aside class="grid content-start gap-8">
+	<!-- On desktop the spend meter lives in the sidebar; phones and tablets get this card. -->
+	<aside class="grid max-w-md content-start gap-8 lg:hidden">
 		<section aria-labelledby="spend" class="grid gap-3">
 			<h2 id="spend" class="text-lg font-semibold">X API spend</h2>
 			<p>
@@ -143,23 +147,5 @@
 				<a href="/settings/budget" class="text-accent hover:underline">Budget settings</a>
 			</p>
 		</section>
-
-		{#if data.accounts.length}
-			<section aria-labelledby="accts" class="grid gap-3">
-				<h2 id="accts" class="text-lg font-semibold">Accounts</h2>
-				<ul class="grid gap-2">
-					{#each data.accounts as a (a.id)}
-						<li class="flex items-center gap-2.5 text-sm">
-							<Avatar src={a.avatarUrl} name={a.username} size="sm" />
-							<span class="truncate">@{a.username}</span>
-							{#if a.status === 'needs_reauth'}<span class="ml-auto text-xs text-warn"
-									>Reconnect</span
-								>
-							{:else if a.isDefault}<span class="ml-auto text-xs text-muted">Default</span>{/if}
-						</li>
-					{/each}
-				</ul>
-			</section>
-		{/if}
 	</aside>
 </div>

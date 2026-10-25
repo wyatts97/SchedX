@@ -262,6 +262,11 @@
 	}
 }
 
+/* An open dialog sets pointer-events: none on <body>; toasts (and their Undo) must stay clickable. */
+[data-sonner-toast]:not([data-visible='false']) {
+	pointer-events: auto;
+}
+
 /* Full-screen wash shown briefly while the theme changes (legacy). */
 .theme-overlay {
 	background: var(--overlay);

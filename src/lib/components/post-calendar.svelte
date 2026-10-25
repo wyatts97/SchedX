@@ -17,14 +17,34 @@
 	import '@schedule-x/theme-default/dist/index.css';
 	import { Temporal } from 'temporal-polyfill';
 	import type { PostView, AccountView } from '#lib/shared/compose.js';
+	import type { OpenSlot } from './calendar/day-panel.svelte';
 	import { STATUS_LABELS } from '#lib/shared/types.js';
+	import { DAY } from '#lib/shared/time.js';
 	import { api } from '#lib/utils.js';
 
-	let { posts, accounts, tz }: { posts: PostView[]; accounts: AccountView[]; tz: string } =
-		$props();
+	let {
+		posts,
+		slots,
+		accounts,
+		tz,
+		onday,
+		onrange
+	}: {
+		posts: PostView[];
+		slots: OpenSlot[];
+		accounts: AccountView[];
+		tz: string;
+		/** A day (YYYY-MM-DD) was clicked, or a post on it (then `postId` is set). */
+		onday: (date: string, postId?: string) => void;
+		/** The visible date range changed (epoch ms). */
+		onrange: (from: number, to: number) => void;
+	} = $props();
 
 	const PALETTE = ['#3f51e0', '#0f8a6c', '#b45309', '#be185d', '#7c3aed', '#0369a1'];
+	const SLOT_PREFIX = 'slot:';
 	let app = $state<CalendarApp | null>(null);
+	// Unknown until the first range change; the default views are month-sized.
+	let visibleDays = $state(31);
 
 	function isDark(): boolean {
 		const t = document.documentElement.dataset.theme;
@@ -55,6 +75,28 @@
 			});
 	}
 
+	/** Free queue times, drawn faintly. Only in week/day views so month cells stay readable. */
+	function toSlotEvents(list: OpenSlot[]) {
+		return list.map((s) => {
+			const start = Temporal.Instant.fromEpochMilliseconds(s.at).toZonedDateTimeISO(tz);
+			return {
+				id: `${SLOT_PREFIX}${s.accountId}:${s.at}`,
+				title: 'Open queue time',
+				start,
+				end: start.add({ minutes: 20 }),
+				calendarId: s.accountId,
+				_options: { disableDND: true, disableResize: true, additionalClasses: ['sx-open-slot'] }
+			};
+		});
+	}
+
+	function dateOf(ms: number): string {
+		return Temporal.Instant.fromEpochMilliseconds(ms)
+			.toZonedDateTimeISO(tz)
+			.toPlainDate()
+			.toString();
+	}
+
 	onMount(() => {
 		const mobile = window.innerWidth < 768;
 		const calendars = Object.fromEntries(
@@ -83,7 +125,26 @@
 			plugins: mobile ? [] : [createDragAndDropPlugin(15)],
 			callbacks: {
 				onEventClick(event) {
-					goto(`/compose?edit=${event.id}`);
+					const id = String(event.id);
+					if (id.startsWith(SLOT_PREFIX)) {
+						const [accountId, at] = id.slice(SLOT_PREFIX.length).split(':');
+						goto(`/compose?at=${at}&account=${accountId}`);
+						return;
+					}
+					const start = event.start as Temporal.ZonedDateTime;
+					onday(dateOf(start.epochMilliseconds), id);
+				},
+				onRangeUpdate(range) {
+					const from = (range.start as Temporal.ZonedDateTime).epochMilliseconds;
+					const to = (range.end as Temporal.ZonedDateTime).epochMilliseconds;
+					visibleDays = Math.round((to - from) / DAY);
+					onrange(from, to);
+				},
+				onClickDate(date) {
+					onday(date.toString());
+				},
+				onClickAgendaDate(date) {
+					onday(date.toString());
 				},
 				async onEventUpdate(event) {
 					const start = event.start as Temporal.ZonedDateTime;
@@ -98,13 +159,6 @@
 				},
 				onClickDateTime(dateTime) {
 					const at = dateTime.toInstant().epochMilliseconds;
-					if (at > Date.now()) goto(`/compose?at=${at}`);
-				},
-				onClickDate(date) {
-					const at = date.toZonedDateTime({
-						timeZone: tz,
-						plainTime: new Temporal.PlainTime(9)
-					}).epochMilliseconds;
 					if (at > Date.now()) goto(`/compose?at=${at}`);
 				}
 			}
@@ -121,7 +175,7 @@
 	});
 
 	$effect(() => {
-		const events = toEvents(posts);
+		const events = [...toEvents(posts), ...(visibleDays <= 8 ? toSlotEvents(slots) : [])];
 		app?.events.set(events as unknown as CalendarEventExternal[]);
 	});
 </script>
@@ -169,5 +223,18 @@
 	}
 	.sx-wrap :global(.sx__view-container) {
 		min-height: 36rem;
+	}
+	/* Free queue times: an outline you can click to fill, not a post. */
+	.sx-wrap :global(.sx__event.sx-open-slot) {
+		background: transparent !important;
+		border: 1px dashed var(--line-strong) !important;
+		color: var(--muted) !important;
+		opacity: 0.8;
+		box-shadow: none;
+	}
+	.sx-wrap :global(.sx__event.sx-open-slot:hover) {
+		border-color: var(--accent) !important;
+		color: var(--accent) !important;
+		opacity: 1;
 	}
 </style>

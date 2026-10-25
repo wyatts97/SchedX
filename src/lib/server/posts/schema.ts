@@ -50,5 +50,6 @@ export const composeSchema = z.object({
 			until: z.number().int().nullable()
 		})
 		.nullable()
-		.optional()
+		.optional(),
+	allowDuplicate: z.boolean().optional()
 }) satisfies z.ZodType<ComposeInput, unknown>;

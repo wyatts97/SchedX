@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { onMount, untrack, type Snippet } from 'svelte';
-	import { refreshAll } from '$app/navigation';
+	import { invalidate, refreshAll } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 	import Sidebar from './shell/sidebar.svelte';
+	import type { Spend } from './shell/spend-meter.svelte';
 	import MobileHeader from './shell/mobile-header.svelte';
 	import MobileNavbar from './shell/mobile-navbar.svelte';
 	import { provideTheme } from './shell/theme.svelte.js';
+	import { providePendingDeletes } from './shell/pending-deletes.svelte.js';
 	import Button from './ui/button.svelte';
 	import { api, cn } from '#lib/utils.js';
 	import type { Theme } from '#lib/shared/types.js';
@@ -18,6 +20,7 @@
 		mockMode,
 		paused,
 		accounts,
+		spend,
 		children
 	}: {
 		theme: Theme;
@@ -26,6 +29,7 @@
 		mockMode: boolean;
 		paused: { reason: string; message?: string } | null;
 		accounts: AccountView[];
+		spend: Spend;
 		children: Snippet;
 	} = $props();
 
@@ -35,6 +39,23 @@
 	const defaultAccount = $derived(accounts.find((a) => a.isDefault) ?? accounts[0] ?? null);
 
 	onMount(() => themeController.listen());
+
+	const pendingDeletes = providePendingDeletes();
+	onMount(() => pendingDeletes.listen());
+
+	// Keep the spend meter, attention badge and post statuses current while the app is open:
+	// re-check every minute when the tab is visible, and right away when you come back to it.
+	onMount(() => {
+		const refresh = () => {
+			if (document.visibilityState === 'visible') void invalidate('app:status');
+		};
+		const timer = setInterval(refresh, 60_000);
+		document.addEventListener('visibilitychange', refresh);
+		return () => {
+			clearInterval(timer);
+			document.removeEventListener('visibilitychange', refresh);
+		};
+	});
 
 	async function resume() {
 		try {
@@ -56,7 +77,7 @@
 	Skip to content
 </a>
 
-<Sidebar bind:collapsed {attention} />
+<Sidebar bind:collapsed {attention} {spend} />
 
 <div
 	class={cn(

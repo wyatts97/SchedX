@@ -45,6 +45,18 @@ export interface ComposeInput {
 	action: ComposeAction;
 	scheduledAt?: number | null;
 	recurrence?: { freq: RecurFreq; interval: number; until: number | null } | null;
+	/** Skip the duplicate-text check (the person saw the warning and chose to post anyway). */
+	allowDuplicate?: boolean;
+}
+
+/** An existing post with the same text, returned with a 409 `duplicate` from /api/compose. */
+export interface DuplicateMatch {
+	postId: string;
+	username: string;
+	status: PostStatus;
+	/** When it went out, or when it is due. */
+	at: number | null;
+	text: string;
 }
 
 /** Media as shown in the composer and library. */

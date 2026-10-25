@@ -5,10 +5,13 @@
 	import EmptyState from '#lib/components/empty-state.svelte';
 	import Select from '#lib/components/ui/select.svelte';
 	import Button from '#lib/components/ui/button.svelte';
+	import { usePendingDeletes } from '#lib/components/shell/pending-deletes.svelte.js';
 	import { cn } from '#lib/utils.js';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
+	const pending = usePendingDeletes();
+	const posts = $derived(pending.visible(data.posts));
 
 	function href(params: Record<string, string | number>) {
 		const q = new URLSearchParams({ tab: data.tab, account: data.account, page: '1' });
@@ -55,9 +58,9 @@
 	{/each}
 </nav>
 
-{#if data.posts.length}
+{#if posts.length}
 	<div class="grid grid-cols-1 gap-3">
-		{#each data.posts as post (post.id)}
+		{#each posts as post (post.id)}
 			<PostCard {post} tz={data.tz} />
 		{/each}
 	</div>

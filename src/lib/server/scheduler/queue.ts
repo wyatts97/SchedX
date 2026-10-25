@@ -50,6 +50,34 @@ function occupiedMinutes(accountId: string, after: number, excludePostId?: strin
 }
 
 /**
+ * Queue slot times for the account, in order, that are after `after`, no later than `until`
+ * and not occupied by another pending post. DST-safe: each slot is a local wall-clock time.
+ */
+function* freeSlotTimes(
+	accountId: string,
+	tz: string,
+	after: number,
+	until: number,
+	excludePostId?: string
+): Generator<number> {
+	const slots = getSlots(accountId);
+	if (!slots.length) return;
+	const taken = occupiedMinutes(accountId, after, excludePostId);
+	const first = zoned(after, tz).toPlainDate();
+	for (let date = first; ; date = date.add({ days: 1 })) {
+		const dayStart = fromLocal(date.toString(), 0, tz);
+		if (dayStart > until) return;
+		for (const s of slots) {
+			if (s.weekday !== date.dayOfWeek) continue;
+			const at = fromLocal(date.toString(), s.minutes, tz);
+			if (at <= after + MINUTE || at > until) continue;
+			if (taken.has(Math.floor(at / MINUTE))) continue;
+			yield at;
+		}
+	}
+}
+
+/**
  * Next queue slot for the account that no other pending post occupies, or null when the
  * account has no queue times configured.
  */
@@ -59,21 +87,14 @@ export function nextFreeSlot(
 	after = Date.now(),
 	excludePostId?: string
 ): number | null {
-	const slots = getSlots(accountId);
-	if (!slots.length) return null;
-	const taken = occupiedMinutes(accountId, after, excludePostId);
-	const today = zoned(after, tz).toPlainDate();
-	for (let d = 0; d < LOOKAHEAD_DAYS; d++) {
-		const date = today.add({ days: d });
-		const daySlots = slots.filter((s) => s.weekday === date.dayOfWeek);
-		for (const s of daySlots) {
-			const at = fromLocal(date.toString(), s.minutes, tz);
-			if (at <= after + MINUTE) continue;
-			if (taken.has(Math.floor(at / MINUTE))) continue;
-			return at;
-		}
-	}
+	const until = after + LOOKAHEAD_DAYS * 24 * 60 * MINUTE;
+	for (const at of freeSlotTimes(accountId, tz, after, until, excludePostId)) return at;
 	return null;
+}
+
+/** Open (unused, future) queue times for the account between `from` and `to`, for the calendar. */
+export function openSlots(accountId: string, tz: string, from: number, to: number): number[] {
+	return [...freeSlotTimes(accountId, tz, Math.max(from, Date.now()), to)];
 }
 
 export function listQueuedIds(accountId: string): { id: string; scheduledAt: number }[] {

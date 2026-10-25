@@ -17,6 +17,7 @@
 	import Menu, { type MenuItem } from './ui/menu.svelte';
 	import { formatDateTime } from '#lib/shared/time.js';
 	import { formatUsd } from '#lib/shared/cost.js';
+	import { usePendingDeletes } from './shell/pending-deletes.svelte.js';
 	import type { PostView } from '#lib/shared/compose.js';
 	import { api, cn } from '#lib/utils.js';
 
@@ -24,7 +25,8 @@
 		post,
 		tz,
 		selectable = false,
-		selected = $bindable(false),
+		// No fallback: callers bind to map entries that start out undefined (calendar list view).
+		selected = $bindable(),
 		class: className
 	}: {
 		post: PostView;
@@ -34,6 +36,7 @@
 		class?: string;
 	} = $props();
 
+	const isSelected = $derived(selected ?? false);
 	const first = $derived(post.items[0]);
 	const posted = $derived(post.items.filter((i) => i.xPostId).length);
 	const editable = $derived(
@@ -86,10 +89,14 @@
 		}
 	}
 
+	const pending = usePendingDeletes();
+
 	function remove() {
-		const message =
-			post.status === 'published' ? 'Remove from SchedX? It stays on X.' : 'Delete this post?';
-		if (confirm(message)) run('delete', post.status === 'published' ? 'Removed' : 'Deleted');
+		pending.schedule({
+			ids: [post.id],
+			label: post.status === 'published' ? 'Removed from SchedX. It stays on X.' : 'Post deleted',
+			requests: [{ url: `/api/posts/${post.id}`, body: { action: 'delete' } }]
+		});
 	}
 
 	const menu = $derived<(MenuItem | 'separator')[]>([
@@ -135,7 +142,7 @@
 <article
 	class={cn(
 		'group w-full max-w-2xl overflow-hidden rounded-xl border bg-surface shadow-sm transition-shadow hover:shadow-md',
-		selected ? 'border-blue-500 ring-2 ring-blue-500/30' : 'border-line',
+		isSelected ? 'border-blue-500 ring-2 ring-blue-500/30' : 'border-line',
 		className
 	)}
 >
@@ -143,12 +150,12 @@
 		{#if selectable}
 			<button
 				type="button"
-				onclick={() => (selected = !selected)}
+				onclick={() => (selected = !isSelected)}
 				class="rounded p-0.5 text-muted hover:text-ink"
-				aria-pressed={selected}
-				aria-label={selected ? 'Deselect post' : 'Select post'}
+				aria-pressed={isSelected}
+				aria-label={isSelected ? 'Deselect post' : 'Select post'}
 			>
-				{#if selected}<CheckSquare class="size-5 text-blue-500" />{:else}<Square
+				{#if isSelected}<CheckSquare class="size-5 text-blue-500" />{:else}<Square
 						class="size-5"
 					/>{/if}
 			</button>

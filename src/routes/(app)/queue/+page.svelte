@@ -7,6 +7,13 @@
 	import Plus from '@lucide/svelte/icons/plus';
 	import X from '@lucide/svelte/icons/x';
 	import GripVertical from '@lucide/svelte/icons/grip-vertical';
+	import { flip } from 'svelte/animate';
+	import {
+		dragHandleZone,
+		dragHandle,
+		SHADOW_ITEM_MARKER_PROPERTY_NAME,
+		type DndEvent
+	} from 'svelte-dnd-action';
 	import PageHeader from '#lib/components/page-header.svelte';
 	import EmptyState from '#lib/components/empty-state.svelte';
 	import Button from '#lib/components/ui/button.svelte';
@@ -15,6 +22,7 @@
 	import { WEEKDAYS, formatDateTime, minutesToHHMM, hhmmToMinutes } from '#lib/shared/time.js';
 	import { formatUsd } from '#lib/shared/cost.js';
 	import { api, cn } from '#lib/utils.js';
+	import type { PostView } from '#lib/shared/compose.js';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -30,16 +38,22 @@
 	}
 
 	let rows = $state<Row[]>([]);
-	let order = $state<string[]>([]);
+	/**
+	 * Queued posts in display order. Each row carries its post: while a drag starts, the library
+	 * inserts a copy of the row under a placeholder id, so looking posts up by id would miss.
+	 */
+	type Entry = { id: string; post: PostView };
+	let order = $state<Entry[]>([]);
 	let savingSlots = $state(false);
 	let accountSel = $state('');
 	$effect.pre(() => {
 		rows = toRows(data.slots);
-		order = data.queue.map((p) => p.id);
+		order = data.queue.map((p) => ({ id: p.id, post: p }));
 		accountSel = data.accountId ?? '';
 	});
 
-	const byId = $derived(new Map(data.queue.map((p) => [p.id, p])));
+	const FLIP_MS = 150;
+
 	const times = $derived(data.queue.map((p) => p.scheduledAt!).sort((a, b) => a - b));
 	const account = $derived(data.accounts.find((a) => a.id === data.accountId));
 	const dirtySlots = $derived(JSON.stringify(rows) !== JSON.stringify(toRows(data.slots)));
@@ -67,10 +81,10 @@
 		}
 	}
 
-	async function persistOrder(next: string[]) {
+	async function persistOrder(next: Entry[]) {
 		order = next;
 		try {
-			await api(`/api/queue/${data.accountId}`, { action: 'reorder', ids: next });
+			await api(`/api/queue/${data.accountId}`, { action: 'reorder', ids: next.map((o) => o.id) });
 			await refreshAll();
 		} catch (err) {
 			toast.error((err as Error).message);
@@ -84,13 +98,22 @@
 		persistOrder(next);
 	}
 
+	function onconsider(e: CustomEvent<DndEvent<Entry>>) {
+		order = e.detail.items;
+	}
+
+	function onfinalize(e: CustomEvent<DndEvent<Entry>>) {
+		const next = e.detail.items;
+		const changed = next.some((o, i) => o.id !== data.queue[i]?.id);
+		if (changed) persistOrder(next);
+		else order = next;
+	}
+
 	async function shuffle() {
 		await api(`/api/queue/${data.accountId}`, { action: 'shuffle' });
 		toast.success('Queue shuffled');
 		await refreshAll();
 	}
-
-	let dragFrom = $state<number | null>(null);
 </script>
 
 <svelte:head><title>Queue · SchedX</title></svelte:head>
@@ -198,58 +221,70 @@
 						: 'Add posting times first, then choose Queue in the composer.'}
 				/>
 			{:else}
-				<ol class="grid gap-2">
-					{#each order as id, i (id)}
-						{@const post = byId.get(id)}
-						{#if post}
-							<li
-								draggable="true"
-								ondragstart={() => (dragFrom = i)}
-								ondragover={(e) => e.preventDefault()}
-								ondrop={() => {
-									if (dragFrom === null || dragFrom === i) return;
-									const next = [...order];
-									const [it] = next.splice(dragFrom, 1);
-									next.splice(i, 0, it);
-									dragFrom = null;
-									persistOrder(next);
-								}}
-								class="grid grid-cols-[auto_8.5rem_1fr_auto] items-center gap-3 rounded-panel border border-line bg-surface px-3 py-2.5"
+				<!-- Drag by the grip (keeps the list scrollable on touch); arrows do the same. -->
+				<ol
+					class="grid gap-2"
+					aria-label="Queue order"
+					use:dragHandleZone={{
+						items: order,
+						type: 'queue',
+						flipDurationMs: FLIP_MS,
+						dropTargetStyle: {}
+					}}
+					{onconsider}
+					{onfinalize}
+				>
+					{#each order as entry, i (entry.id)}
+						{@const post = entry.post}
+						<li
+							animate:flip={{ duration: FLIP_MS }}
+							aria-label={post.items[0]?.text.slice(0, 60) || 'Media post'}
+							class={cn(
+								'grid grid-cols-[auto_8.5rem_1fr_auto] items-center gap-3 rounded-panel border border-line bg-surface px-3 py-2.5',
+								(entry as Entry & { [SHADOW_ITEM_MARKER_PROPERTY_NAME]?: boolean })[
+									SHADOW_ITEM_MARKER_PROPERTY_NAME
+								] && 'border-dashed border-accent opacity-50'
+							)}
+						>
+							<span
+								use:dragHandle
+								aria-label="Drag to reorder"
+								class="-m-2 rounded-md p-2 text-muted hover:text-ink focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
 							>
-								<GripVertical class="size-4 cursor-grab text-muted" aria-hidden="true" />
-								<time class="text-sm font-semibold tnum">{formatDateTime(times[i], data.tz)}</time>
-								<a href="/compose?edit={post.id}" class="min-w-0">
-									<p class="truncate text-sm">{post.items[0]?.text || 'Media post'}</p>
-									<p class="text-xs text-muted">
-										<Avatar
-											src={post.account.avatarUrl}
-											name={post.account.username}
-											size="sm"
-											class="mr-1 inline-flex size-4 align-[-3px]"
-										/>
-										{post.items.length > 1 ? `Thread of ${post.items.length} · ` : ''}<span
-											class="tnum">{formatUsd(post.estCost)}</span
-										>
-									</p>
-								</a>
-								<div class="flex">
-									<Button
-										size="icon-sm"
-										variant="ghost"
-										aria-label="Move up"
-										disabled={i === 0}
-										onclick={() => move(i, -1)}><ArrowUp /></Button
+								<GripVertical class="size-4" aria-hidden="true" />
+							</span>
+							<time class="text-sm font-semibold tnum">{formatDateTime(times[i], data.tz)}</time>
+							<a href="/compose?edit={post.id}" class="min-w-0">
+								<p class="truncate text-sm">{post.items[0]?.text || 'Media post'}</p>
+								<p class="text-xs text-muted">
+									<Avatar
+										src={post.account.avatarUrl}
+										name={post.account.username}
+										size="sm"
+										class="mr-1 inline-flex size-4 align-[-3px]"
+									/>
+									{post.items.length > 1 ? `Thread of ${post.items.length} · ` : ''}<span
+										class="tnum">{formatUsd(post.estCost)}</span
 									>
-									<Button
-										size="icon-sm"
-										variant="ghost"
-										aria-label="Move down"
-										disabled={i === order.length - 1}
-										onclick={() => move(i, 1)}><ArrowDown /></Button
-									>
-								</div>
-							</li>
-						{/if}
+								</p>
+							</a>
+							<div class="flex">
+								<Button
+									size="icon-sm"
+									variant="ghost"
+									aria-label="Move up"
+									disabled={i === 0}
+									onclick={() => move(i, -1)}><ArrowUp /></Button
+								>
+								<Button
+									size="icon-sm"
+									variant="ghost"
+									aria-label="Move down"
+									disabled={i === order.length - 1}
+									onclick={() => move(i, 1)}><ArrowDown /></Button
+								>
+							</div>
+						</li>
 					{/each}
 				</ol>
 			{/if}
