@@ -1,238 +1,109 @@
 <div align="center">
-  <img src="./packages/schedx-app/static/app-icon-lightsout.png" alt="SchedX" width="100" />
-  
-  # SchedX
-  
-  **Self-hosted Twitter/X scheduling platform with multi-account support**
-  
-  [![License: Elastic 2.0](https://img.shields.io/badge/License-Elastic%202.0-blue.svg)](LICENSE)
-  [![SvelteKit](https://img.shields.io/badge/SvelteKit-5.x-orange.svg)](https://kit.svelte.dev/)
-  [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker)](https://www.docker.com/)
+  <img src="./static/icons/icon-192.png" alt="" width="88" />
+
+# SchedX
+
+**Schedule posts and threads to X from your own server.**
+
 </div>
 
----
+SchedX is a self-hosted, single-user scheduler for X (Twitter) built on the official, pay-per-use X API. You write posts and threads, schedule them or drop them into a queue, and SchedX publishes them on time — with retries that never double-post and a running tally of what the API is costing you.
 
-## Features
+## What it does
 
-| Category | Capabilities |
-|----------|-------------|
-| **Scheduling** | Schedule tweets & threads • Recurring posts • Queue with time slots • Drafts & templates • Drag-and-drop calendar |
-| **Media** | Images, GIFs, videos up to 50MB • Auto-generated video thumbnails • Image optimization • Gallery management • Lightbox viewer |
-| **Analytics** | Follower growth charts • Engagement metrics (likes, retweets, replies, views) • Auto-sync via Rettiwt-API • Manual sync button |
-| **Bulk Ops** | Bulk delete/reschedule • CSV import • Queue reordering |
-| **Reliability** | Auto-retry with exponential backoff • Email notifications (Resend) • Double-posting prevention • Health monitoring |
-| **PWA** | Install as app • Push notifications • Offline support • Background sync |
-| **Security** | OAuth 2.0 PKCE + 1.0a • AES-256 token encryption • Rate limiting • CSRF protection |
-| **Themes** | Light, Dark, and Lights-Out modes • Timezone-aware scheduling |
-| **AI** | OpenRouter integration • Tweet generation • Multiple LLM models (GPT-4, Claude, Llama, etc.) |
+- **Posts and threads** in one composer, with images (up to 4), GIFs or video, image descriptions (alt text), polls, reply controls, community posting and AI / paid-partnership disclosures.
+- **Schedule, queue or post now.** The queue fills your own weekly posting times; reorder or shuffle it any time. Posts can repeat daily, weekly or monthly.
+- **Calendar** with drag-to-reschedule, plus a list view with bulk move and delete.
+- **Cost tracking.** Every post shows its estimated price before you publish (X charges far more for posts containing links), the dashboard tracks spend for the billing cycle, and a monthly budget cap pauses publishing instead of overspending.
+- **Reliable publishing.** If a request to X times out, SchedX checks your timeline before retrying, so a post never goes out twice. Interrupted threads resume where they stopped. Posts missed while the server was off are published late within a catch-up window, or held for review.
+- **Multiple X accounts**, cross-posting, drafts, a reusable media library and CSV import.
+- **Installable app** (PWA) with push notifications for published, failed and paused posts.
+- **Light, Dim and Lights out** themes.
 
-## Tech Stack
+## Requirements
 
-| Layer | Technologies |
-|-------|-------------|
-| **Frontend** | SvelteKit 5, Svelte 5, TailwindCSS, Preline UI, ApexCharts, Schedule-X Calendar |
-| **Backend** | Node.js 18+, SvelteKit API routes, Zod validation, Superforms |
-| **Database** | SQLite (better-sqlite3), AES-256-GCM encryption, Litestream backups |
-| **Media** | Sharp (image optimization), fluent-ffmpeg (video thumbnails), bigger-picture (lightbox) |
-| **Scheduler** | Croner, atomic claim mechanism, auto-retry with backoff |
-| **Auth** | OAuth 2.0 PKCE, OAuth 1.0a for media uploads |
-| **Analytics** | Rettiwt-API (no rate limits), daily auto-sync |
-| **Infra** | Docker, Pino logging, health checks, Litestream (SQLite replication) |
+- Node.js 22.17+ (24 recommended) for local development, or Docker for deployment
+- An X developer account with pay-per-use credits — https://console.x.com
 
-## Quick Start
+## Quick start (local, no X account needed)
 
-### 1. Clone & Install
 ```bash
-git clone https://github.com/wyatts97/schedx.git
-cd schedx && npm install
-```
-
-### 2. Configure
-```bash
-# Generate secrets
-openssl rand -base64 32  # For AUTH_SECRET
-openssl rand -base64 32  # For DB_ENCRYPTION_KEY
-openssl rand -base64 32  # For API_KEY_ENCRYPTION_KEY
-
-# Create .env file with:
-AUTH_SECRET=<your-secret>
-DB_ENCRYPTION_KEY=<your-key>
-API_KEY_ENCRYPTION_KEY=<your-key>
-DATABASE_PATH=./data/schedx.db
-ORIGIN=http://localhost:5173
-```
-
-### 3. Run
-```bash
-# Windows
-.\dev.ps1
-
-# Linux/Mac
-npm run build:shared
+npm install
+cp .env.example .env
+npm run gen:secrets   # paste the three printed lines into .env
 npm run dev
 ```
 
-Visit **http://localhost:5173** → Login: `admin` / `changeme` → **Change password immediately!**
+Open http://127.0.0.1:5173 and create your SchedX login. With `X_API_MODE=mock` (the default in `.env.example`) SchedX uses a fake X client: you can connect pretend accounts and "publish" without anything leaving your machine or costing money. Put `[fail:transient]`, `[fail:ambiguous]`, `[fail:duplicate]`, `[fail:credits]` or `[fail:rate]` in a post to see how SchedX handles each kind of failure.
 
-## Docker Deployment
+## Connect the real X API
+
+1. In the [X Developer Console](https://console.x.com), open your app's **User authentication settings**:
+   - App type: **Web App, Automated App or Bot**
+   - App permissions: **Read and write**
+   - Callback URI: `<APP_URL>/auth/x/callback` — e.g. `https://schedx.example.com/auth/x/callback`
+2. Copy the **OAuth 2.0 Client ID and Client Secret** into `X_CLIENT_ID` / `X_CLIENT_SECRET`.
+3. Set `X_API_MODE=live` and `APP_URL` to the address you open SchedX at, then restart.
+4. In SchedX, go to **Accounts → Connect account** and approve access on X.
+
+SchedX asks for `tweet.read tweet.write users.read media.write offline.access`. It only uses OAuth 2.0; the old OAuth 1.0a keys are not needed.
+
+## Deploy with Docker behind Cloudflare Tunnel
+
+The included `docker-compose.yml` binds SchedX to `127.0.0.1:3000` so it is only reachable through your tunnel.
 
 ```bash
-cp .env.example .env
-# Edit .env with production values
-docker-compose up -d
+cp .env.example .env      # set ENCRYPTION_KEY, APP_URL=https://schedx.example.com, X_* and VAPID_*
+docker compose up -d --build
 ```
 
-Docker images include ffmpeg pre-installed for video thumbnail generation.
+In the Cloudflare dashboard (Zero Trust → Networks → Tunnels → your tunnel → Public hostnames) add `schedx.example.com` → `http://localhost:3000`. Optionally put a Cloudflare Access policy in front of it for a second sign-in layer.
 
-For production with automatic SQLite backups, use Litestream:
+Data (database, uploads, nightly backups) lives in the `schedx-data` volume. Check health with `curl http://127.0.0.1:3000/api/health`.
+
+## Costs
+
+Prices come from X's pay-per-use table (October 2026) and can be edited under **Settings → Budget** when X changes them:
+
+| Action                                   | Price       |
+| ---------------------------------------- | ----------- |
+| Post                                     | $0.015      |
+| Post containing a link                   | $0.20       |
+| Image description (alt text)             | $0.005      |
+| Reading your own posts (delivery checks) | $0.001 each |
+
+Your X Developer Console has the authoritative bill; set a spending limit there too.
+
+## Configuration
+
+| Variable                                                   | Default        | Purpose                                                         |
+| ---------------------------------------------------------- | -------------- | --------------------------------------------------------------- |
+| `ENCRYPTION_KEY`                                           | — (required)   | Encrypts X tokens at rest. Changing it disconnects accounts.    |
+| `APP_URL`                                                  | request origin | Public URL; used for the OAuth callback.                        |
+| `X_API_MODE`                                               | `live`         | `mock` for the fake client.                                     |
+| `X_CLIENT_ID` / `X_CLIENT_SECRET`                          | —              | OAuth 2.0 credentials from the X Developer Console.             |
+| `DATA_DIR`                                                 | `./data`       | SQLite database, uploads and backups.                           |
+| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | —              | Web push. Generate with `npm run gen:secrets`.                  |
+| `MAX_UPLOAD_MB`                                            | `100`          | Largest upload. Cloudflare's free plan caps requests at 100 MB. |
+| `SCHEDULER`                                                | `on`           | `off` runs the UI without publishing.                           |
+| `LOG_LEVEL`                                                | `info`         | pino log level.                                                 |
+
+Behind a proxy, adapter-node's `PROTOCOL_HEADER`, `HOST_HEADER` and `ADDRESS_HEADER` are set in `docker-compose.yml`.
+
+## Development
+
 ```bash
-docker-compose -f docker-compose.litestream.yml up -d
+npm run check        # types (svelte-check)
+npm run lint         # prettier + eslint
+npm test             # unit + engine integration tests (in-memory SQLite, mock X)
+npm run test:e2e     # Playwright against a production build in mock mode
+npm run db:generate  # after editing src/lib/server/db/schema.ts
 ```
 
-See [docs/LITESTREAM.md](docs/LITESTREAM.md) for backup configuration.
+Stack: SvelteKit 3, Svelte 5, Tailwind CSS 4, bits-ui, Drizzle ORM + better-sqlite3, twitter-api-v2, croner, web-push.
 
-## Twitter API Setup
-
-1. Create app at [developer.x.com](https://developer.x.com/apps)
-2. Configure OAuth 2.0: Read+Write, callback `https://yourdomain.com/api/auth/signin/twitter`
-3. Get OAuth 1.0a keys (required for media uploads)
-4. Add all credentials in SchedX → Admin → Twitter Apps
-
-**Required scopes**: `tweet.read`, `tweet.write`, `users.read`, `offline.access`
-
-## AI Tweet Generation (Optional)
-
-SchedX integrates with [OpenRouter](https://openrouter.ai) to generate tweet content using various LLM models.
-
-1. Create account at [openrouter.ai](https://openrouter.ai)
-2. Get API key from dashboard
-3. Configure in SchedX → Settings → OpenRouter
-4. Choose your preferred model (GPT-4, Claude, Llama, Gemini, etc.)
-
-## Analytics Setup (Optional)
-
-SchedX uses Rettiwt-API for fetching engagement metrics (likes, retweets, replies, views) without Twitter API rate limits.
-
-**Optional enhanced access**: For private/restricted content, add a Rettiwt API Key:
-1. Install browser extension: [X Auth Helper](https://chromewebstore.google.com/detail/x-auth-helper) (Chrome) or [Rettiwt Auth Helper](https://addons.mozilla.org/firefox/addon/rettiwt-auth-helper/) (Firefox)
-2. Log into Twitter/X in your browser
-3. Click extension → Copy API Key
-4. Paste in SchedX → Settings → Tweet Data
-
-## Project Structure
-
-```
-schedx/
-├── packages/
-│   ├── schedx-app/          # SvelteKit app (routes, components, API)
-│   ├── schedx-scheduler/    # Background job processor
-│   └── schedx-shared-lib/   # DB client, types, migrations
-├── docker-compose.yml
-└── .env
-```
-
-## API Highlights
-
-| Endpoint | Description |
-|----------|-------------|
-| `POST /api/tweets` | Create/schedule/publish tweet |
-| `POST /api/tweets/bulk` | Bulk delete, reschedule, queue |
-| `POST /api/tweets/import` | CSV import |
-| `POST /api/queue` | Reorder queue |
-| `POST /api/analytics/sync-engagement` | Manual sync |
-| `GET /api/health` | Health check |
-
-## Environment Variables
-
-| Required | Description |
-|----------|-------------|
-| `AUTH_SECRET` | Session key (32+ chars) |
-| `DB_ENCRYPTION_KEY` | Token encryption key (32+ chars) |
-| `API_KEY_ENCRYPTION_KEY` | Rettiwt API key encryption (32+ chars) |
-| `DATABASE_PATH` | SQLite file path |
-
-| Optional | Default | Description |
-|----------|---------|-------------|
-| `PORT` | 5173 | Server port |
-| `MAX_UPLOAD_SIZE` | 52428800 | Max upload size in bytes (50MB) |
-| `CRON_SCHEDULE` | `* * * * *` | Tweet scheduler cron expression |
-| `ALLOW_LOCAL_NETWORK` | false | Allow access from local network (Docker) |
-| `OPENROUTER_API_KEY` | *(disabled)* | OpenRouter API key for AI features |
-| `VAPID_PUBLIC_KEY` | *(disabled)* | Push notification public key |
-| `VAPID_PRIVATE_KEY` | *(disabled)* | Push notification private key |
-| `VAPID_SUBJECT` | `mailto:admin@schedx.app` | Push notification contact |
-| `RESEND_API_KEY` | *(disabled)* | Resend.com API key for email notifications |
-| `RESEND_FROM_EMAIL` | `noreply@schedx.app` | Email sender address |
-
-## PWA & Push Notifications
-
-SchedX is a Progressive Web App (PWA) that can be installed on any device and supports push notifications.
-
-### Installing SchedX
-
-| Platform | How to Install |
-|----------|----------------|
-| **Desktop (Chrome/Edge)** | Click the install icon in the address bar, or Menu → "Install SchedX" |
-| **Android** | Chrome → Menu → "Add to Home Screen" or "Install App" |
-| **iOS (Safari)** | Share button → "Add to Home Screen" |
-
-### Push Notifications
-
-Push notifications alert you when tweets are posted or fail, even when the app is closed.
-
-**How it works:**
-- **Desktop browsers**: Works in Chrome, Edge, Firefox, Safari 16+
-- **Android**: Works in Chrome and most browsers
-- **iOS**: Requires iOS 16.4+ AND installing SchedX as a PWA (Add to Home Screen)
-
-**Server Setup:**
-```bash
-# Generate VAPID keys
-npx web-push generate-vapid-keys
-
-# Add to .env
-VAPID_PUBLIC_KEY=your_public_key_here
-VAPID_PRIVATE_KEY=your_private_key_here
-VAPID_SUBJECT=mailto:your@email.com
-```
-
-**Enable notifications:** Settings → Push Notifications → Enable
-
-### Offline Support
-
-The service worker caches static assets for offline access. When offline:
-- View cached pages and scheduled tweets
-- Failed actions are queued for background sync
-- Automatic retry when connection is restored
-
-## Email Notifications (Optional)
-
-SchedX can send email notifications when tweets are posted or fail using [Resend](https://resend.com).
-
-1. Create account at [resend.com](https://resend.com)
-2. Get API key from dashboard
-3. Add to `.env`:
-```bash
-RESEND_API_KEY=re_xxxxx
-RESEND_FROM_EMAIL=notifications@yourdomain.com
-```
-4. Enable in SchedX → Settings → Notifications
-
-## System Requirements
-
-| Component | Requirement |
-|-----------|-------------|
-| **Node.js** | 18.x or later |
-| **ffmpeg** | Required for video thumbnails (included in Docker) |
-| **SQLite** | Included via better-sqlite3 |
-| **Storage** | ~100MB base + uploads |
+The pre-2.0 code (SvelteKit 2 monorepo with the Rettiwt analytics) is preserved under the `legacy-v1` git tag.
 
 ## License
 
-[Elastic License 2.0](LICENSE) — Free for personal use, commercial license required for business use.
-
----
-
-<div align="center">
-  <sub>Built with SvelteKit 5, SQLite, and Twitter API v2 • Self-hosted • Privacy-focused</sub>
-</div> 
+[Elastic License 2.0](LICENSE)

@@ -1,47 +1,29 @@
+# SchedX behind Cloudflare Tunnel (cloudflared running on the host).
+# In the Cloudflare dashboard, point your public hostname (e.g. schedx.example.com)
+# at http://localhost:3000. The port is bound to 127.0.0.1 so the app is only
+# reachable through the tunnel, which also makes the client-IP header trustworthy.
 services:
-  app:
-    build:
-      context: .
-    command: npm start -w @schedx/app
-    ports:
-      - "${PORT:-5173}:${PORT:-5173}"
-    env_file:
-      - .env.docker
-    environment:
-      - BODY_SIZE_LIMIT=52428800
-      - NODE_OPTIONS=--max-http-header-size=65536
-      - DOCKER=true
-      - NODE_ENV=production
-    volumes:
-      - uploads-data:/app/packages/schedx-app/uploads
-      - db-data:/data
-    healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:5173/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 40s
+  schedx:
+    build: .
+    image: schedx:latest
+    container_name: schedx
     restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 1G
-        reservations:
-          cpus: '0.5'
-          memory: 512M
-    networks:
-      - schedx-network
-
-  # NOTE: The scheduler is now built into the app (TweetSchedulerService in hooks.server.ts)
-  # This provides push notifications, email notifications, and retry logic all in one container.
-  # The separate schedx-scheduler package is kept for potential future horizontal scaling
-  # but is not needed for typical self-hosted deployments.
+    ports:
+      - '127.0.0.1:3000:3000'
+    env_file: .env
+    environment:
+      DATA_DIR: /data
+      # Cloudflare terminates HTTPS; derive the public origin from its headers.
+      PROTOCOL_HEADER: x-forwarded-proto
+      HOST_HEADER: host
+      ADDRESS_HEADER: cf-connecting-ip
+      # Keep a little above MAX_UPLOAD_MB (Cloudflare's free plan caps bodies at 100 MB).
+      BODY_SIZE_LIMIT: 105M
+      TZ: ${TZ:-UTC}
+    volumes:
+      - schedx-data:/data
 
 volumes:
-  db-data:
-  uploads-data:
-
-networks:
-  schedx-network:
-    driver: bridge
+  # Holds schedx.db, uploads/ and backups/. Back it up with:
+  #   docker run --rm -v schedx_schedx-data:/data -v "$PWD":/out alpine tar czf /out/schedx-data.tgz -C /data .
+  schedx-data:

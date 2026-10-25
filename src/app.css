@@ -1,0 +1,285 @@
+@import 'tailwindcss';
+
+/* Dark variants follow the data-theme attribute; "system" follows the OS. */
+@custom-variant dark {
+	&:where([data-theme='dark'] *, [data-theme='black'] *) {
+		@slot;
+	}
+	@media (prefers-color-scheme: dark) {
+		&:where([data-theme='system'] *) {
+			@slot;
+		}
+	}
+}
+
+/* ---------- Theme tokens (legacy SchedX palette) ---------- */
+:root,
+[data-theme='light'],
+[data-theme='system'] {
+	--bg: #f9fafb;
+	--surface: #ffffff;
+	--surface-2: #f3f4f6;
+	--raised: #ffffff;
+	--chrome: #ffffff;
+	--line: #e5e7eb;
+	--line-strong: #d1d5db;
+	--ink: #111827;
+	--ink-2: #374151;
+	--muted: #6b7280;
+	--accent: #1da1f2;
+	--accent-ink: #ffffff;
+	--accent-soft: #e8f5fe;
+	--primary: #2563eb;
+	--primary-hover: #1d4ed8;
+	--nav-active-bg: #dbeafe;
+	--nav-active-ink: #1d4ed8;
+	--tab-active: #1da1f2;
+	--focus: #3b82f6;
+	--ok: #065f46;
+	--ok-soft: #d1fae5;
+	--bad: #991b1b;
+	--bad-soft: #fee2e2;
+	--warn: #92400e;
+	--warn-soft: #fef3c7;
+	--rail: #d1d5db;
+	--shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+	--overlay: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
+	color-scheme: light;
+}
+
+[data-theme='dark'] {
+	--bg: #15202b;
+	--surface: #192734;
+	--surface-2: #253341;
+	--raised: #192734;
+	--chrome: #15202b;
+	--line: #38444d;
+	--line-strong: #4a5a68;
+	--ink: #ffffff;
+	--ink-2: #e1e8ed;
+	--muted: #8899a6;
+	--accent: #1da1f2;
+	--accent-ink: #ffffff;
+	--accent-soft: #1a3951;
+	--primary: #3b82f6;
+	--primary-hover: #2563eb;
+	--nav-active-bg: rgb(55 65 81 / 0.5);
+	--nav-active-ink: #e5e7eb;
+	--tab-active: #8899a6;
+	--focus: #3b82f6;
+	--ok: #86efac;
+	--ok-soft: rgb(34 197 94 / 0.18);
+	--bad: #fca5a5;
+	--bad-soft: rgb(239 68 68 / 0.18);
+	--warn: #fcd34d;
+	--warn-soft: rgb(245 158 11 / 0.18);
+	--rail: #4a5a68;
+	--shadow: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.4);
+	--overlay: linear-gradient(135deg, #15202b 0%, #192734 50%, #1a2836 100%);
+	color-scheme: dark;
+}
+
+[data-theme='black'] {
+	--bg: #000000;
+	--surface: #111111;
+	--surface-2: #181818;
+	--raised: #111111;
+	--chrome: #111111;
+	--line: #222222;
+	--line-strong: #333333;
+	--ink: #f0f0f0;
+	--ink-2: #d1d5db;
+	--muted: #888888;
+	--accent: #1da1f2;
+	--accent-ink: #ffffff;
+	--accent-soft: #132733;
+	--primary: #3b82f6;
+	--primary-hover: #2563eb;
+	--nav-active-bg: #222222;
+	--nav-active-ink: #f3f4f6;
+	--tab-active: #1da1f2;
+	--focus: #3b82f6;
+	--ok: #4ade80;
+	--ok-soft: rgb(34 197 94 / 0.15);
+	--bad: #f87171;
+	--bad-soft: rgb(239 68 68 / 0.15);
+	--warn: #fbbf24;
+	--warn-soft: rgb(245 158 11 / 0.15);
+	--rail: #333333;
+	--shadow: 0 0 0 1px #222222, 0 20px 25px -5px rgb(0 0 0 / 0.8);
+	--overlay: #000000;
+	color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+	[data-theme='system'] {
+		--bg: #15202b;
+		--surface: #192734;
+		--surface-2: #253341;
+		--raised: #192734;
+		--chrome: #15202b;
+		--line: #38444d;
+		--line-strong: #4a5a68;
+		--ink: #ffffff;
+		--ink-2: #e1e8ed;
+		--muted: #8899a6;
+		--accent: #1da1f2;
+		--accent-ink: #ffffff;
+		--accent-soft: #1a3951;
+		--primary: #3b82f6;
+		--primary-hover: #2563eb;
+		--nav-active-bg: rgb(55 65 81 / 0.5);
+		--nav-active-ink: #e5e7eb;
+		--tab-active: #8899a6;
+		--focus: #3b82f6;
+		--ok: #86efac;
+		--ok-soft: rgb(34 197 94 / 0.18);
+		--bad: #fca5a5;
+		--bad-soft: rgb(239 68 68 / 0.18);
+		--warn: #fcd34d;
+		--warn-soft: rgb(245 158 11 / 0.18);
+		--rail: #4a5a68;
+		--shadow: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.4);
+		--overlay: linear-gradient(135deg, #15202b 0%, #192734 50%, #1a2836 100%);
+		color-scheme: dark;
+	}
+}
+
+@theme inline {
+	--font-sans:
+		ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+		sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+	--color-bg: var(--bg);
+	--color-surface: var(--surface);
+	--color-surface-2: var(--surface-2);
+	--color-raised: var(--raised);
+	--color-chrome: var(--chrome);
+	--color-line: var(--line);
+	--color-line-strong: var(--line-strong);
+	--color-ink: var(--ink);
+	--color-ink-2: var(--ink-2);
+	--color-muted: var(--muted);
+	--color-accent: var(--accent);
+	--color-accent-ink: var(--accent-ink);
+	--color-accent-soft: var(--accent-soft);
+	--color-primary: var(--primary);
+	--color-primary-hover: var(--primary-hover);
+	--color-nav-active: var(--nav-active-bg);
+	--color-nav-active-ink: var(--nav-active-ink);
+	--color-tab-active: var(--tab-active);
+	--color-focus: var(--focus);
+	--color-ok: var(--ok);
+	--color-ok-soft: var(--ok-soft);
+	--color-bad: var(--bad);
+	--color-bad-soft: var(--bad-soft);
+	--color-warn: var(--warn);
+	--color-warn-soft: var(--warn-soft);
+	--color-rail: var(--rail);
+	--shadow-pop: var(--shadow);
+	--radius-ctl: 0.5rem;
+	--radius-panel: 0.75rem;
+}
+
+@layer base {
+	html {
+		-webkit-text-size-adjust: 100%;
+	}
+	body {
+		background: var(--bg);
+		color: var(--ink);
+		font-family: var(--font-sans);
+		font-size: 0.9375rem;
+		line-height: 1.5;
+		-webkit-font-smoothing: antialiased;
+		transition:
+			background-color 0.2s ease,
+			color 0.2s ease;
+	}
+	h1,
+	h2,
+	h3 {
+		line-height: 1.2;
+		text-wrap: balance;
+	}
+	::selection {
+		background: var(--accent-soft);
+	}
+	:focus-visible {
+		outline: 2px solid var(--focus);
+		outline-offset: 2px;
+	}
+	button,
+	[role='button'] {
+		cursor: pointer;
+	}
+	button:disabled {
+		cursor: not-allowed;
+	}
+	input,
+	select,
+	textarea {
+		/* 16px stops iOS zooming into focused fields */
+		font-size: max(16px, 1em);
+	}
+	@media (min-width: 640px) {
+		input,
+		select,
+		textarea {
+			font-size: inherit;
+		}
+	}
+}
+
+@utility tnum {
+	font-variant-numeric: tabular-nums;
+}
+
+/* Legacy logo hover: a quick "inhale". */
+@utility logo-inhale {
+	transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+	&:hover {
+		animation: inhale 0.6s ease-in-out;
+	}
+}
+
+@keyframes inhale {
+	50% {
+		transform: scale(0.92);
+	}
+}
+
+@keyframes icon-in {
+	from {
+		transform: translateY(100%);
+		opacity: 0;
+	}
+}
+
+@keyframes pop-in {
+	from {
+		transform: translateY(6px) scale(0.97);
+		opacity: 0;
+	}
+}
+
+/* An open dialog sets pointer-events: none on <body>; toasts (and their Undo) must stay clickable. */
+[data-sonner-toast]:not([data-visible='false']) {
+	pointer-events: auto;
+}
+
+/* Full-screen wash shown briefly while the theme changes (legacy). */
+.theme-overlay {
+	background: var(--overlay);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		transition-duration: 0.01ms !important;
+	}
+	.theme-overlay {
+		display: none;
+	}
+}
